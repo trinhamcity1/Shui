@@ -129,9 +129,9 @@
       "liberty",
       "pursuit of happiness"
     ],
-    "requiredAnswerCount": "Life, liberty, and the pursuit of happiness are named as rights.",
-    "explanationVI": 2,
-    "quickFactEN": "Bản Tuyên ngôn nói rằng mọi người sinh ra đều có quyền được sống, được tự do, và được mưu cầu hạnh phúc. Đây là ba quyền nổi tiếng nhất trong lịch sử nước Mỹ — bạn chỉ cần nhớ hai trong ba là đủ trả lời.",
+    "requiredAnswerCount": 2,
+    "explanationVI": "Bản Tuyên ngôn nói rằng mọi người sinh ra đều có quyền được sống, được tự do, và được mưu cầu hạnh phúc. Đây là ba quyền nổi tiếng nhất trong lịch sử nước Mỹ — bạn chỉ cần nhớ hai trong ba là đủ trả lời.",
+    "quickFactEN": "Life, liberty, and the pursuit of happiness are named as rights.",
     "dynamicType": "none",
     "officeholderRole": null,
     "lessonId": "lsn_009"
@@ -527,9 +527,9 @@
       "Attorney General",
       "Vice President"
     ],
-    "requiredAnswerCount": "Cabinet members lead departments like State, Defense, or Treasury.",
-    "explanationVI": 2,
-    "quickFactEN": "Có 15 vị trí cấp Nội các, mỗi người đứng đầu một bộ như Bộ Ngoại giao (State), Bộ Quốc phòng (Defense), hay Bộ Tư pháp (đứng đầu là Attorney General). Bạn chỉ cần nhớ tên hai bộ là đủ.",
+    "requiredAnswerCount": 2,
+    "explanationVI": "Có 15 vị trí cấp Nội các, mỗi người đứng đầu một bộ như Bộ Ngoại giao (State), Bộ Quốc phòng (Defense), hay Bộ Tư pháp (đứng đầu là Attorney General). Bạn chỉ cần nhớ tên hai bộ là đủ.",
+    "quickFactEN": "Cabinet members lead departments like State, Defense, or Treasury.",
     "dynamicType": "none",
     "officeholderRole": null,
     "lessonId": "lsn_036"
@@ -747,9 +747,9 @@
       "freedom of worship",
       "the right to bear arms"
     ],
-    "requiredAnswerCount": "Rights like free speech and worship belong to everyone, not just citizens.",
-    "explanationVI": 2,
-    "quickFactEN": "Khác với hai câu trước, những quyền này thuộc về TẤT CẢ mọi người sống ở Mỹ, không chỉ công dân — bao gồm tự do ngôn luận, tự do tụ họp, tự do tôn giáo, và quyền mang vũ khí.",
+    "requiredAnswerCount": 2,
+    "explanationVI": "Khác với hai câu trước, những quyền này thuộc về TẤT CẢ mọi người sống ở Mỹ, không chỉ công dân — bao gồm tự do ngôn luận, tự do tụ họp, tự do tôn giáo, và quyền mang vũ khí.",
+    "quickFactEN": "Rights like free speech and worship belong to everyone, not just citizens.",
     "dynamicType": "none",
     "officeholderRole": null,
     "lessonId": "lsn_051"
@@ -818,9 +818,9 @@
       "run for office",
       "write to a newspaper"
     ],
-    "requiredAnswerCount": "Ways to participate include voting, campaigning, or contacting officials.",
-    "explanationVI": 2,
-    "quickFactEN": "Có rất nhiều cách để tham gia vào nền dân chủ: bỏ phiếu, gia nhập một đảng phái, tham gia vận động tranh cử, gọi điện cho dân biểu, hay thậm chí tự mình ra tranh cử. Dân chủ không chỉ là chuyện của ngày bầu cử.",
+    "requiredAnswerCount": 2,
+    "explanationVI": "Có rất nhiều cách để tham gia vào nền dân chủ: bỏ phiếu, gia nhập một đảng phái, tham gia vận động tranh cử, gọi điện cho dân biểu, hay thậm chí tự mình ra tranh cử. Dân chủ không chỉ là chuyện của ngày bầu cử.",
+    "quickFactEN": "Ways to participate include voting, campaigning, or contacting officials.",
     "dynamicType": "none",
     "officeholderRole": null,
     "lessonId": "lsn_055"
@@ -966,9 +966,9 @@
       "South Carolina",
       "Georgia"
     ],
-    "requiredAnswerCount": "The 13 original states stretched along the Atlantic coast.",
-    "explanationVI": 3,
-    "quickFactEN": "13 thuộc địa ban đầu đều nằm dọc theo bờ biển phía Đông nước Mỹ ngày nay, trải dài từ New Hampshire ở phía Bắc xuống Georgia ở phía Nam. Hãy hình dung một dải đất hẹp ven biển — đó chính là nước Mỹ lúc mới lập quốc.",
+    "requiredAnswerCount": 3,
+    "explanationVI": "13 thuộc địa ban đầu đều nằm dọc theo bờ biển phía Đông nước Mỹ ngày nay, trải dài từ New Hampshire ở phía Bắc xuống Georgia ở phía Nam. Hãy hình dung một dải đất hẹp ven biển — đó chính là nước Mỹ lúc mới lập quốc.",
+    "quickFactEN": "The 13 original states stretched along the Atlantic coast.",
     "dynamicType": "none",
     "officeholderRole": null,
     "lessonId": "lsn_064"
@@ -1554,9 +1554,9 @@
       "Thanksgiving",
       "Christmas"
     ],
-    "requiredAnswerCount": "U.S. federal holidays include New Year's, Labor Day, and Thanksgiving.",
-    "explanationVI": 2,
-    "quickFactEN": "Nước Mỹ có nhiều ngày lễ liên bang trong năm, như Tết Dương lịch, ngày Lễ Lao động, Lễ Tạ ơn, và Giáng sinh. Bạn chỉ cần nhớ tên hai ngày lễ để trả lời đúng câu này.",
+    "requiredAnswerCount": 2,
+    "explanationVI": "Nước Mỹ có nhiều ngày lễ liên bang trong năm, như Tết Dương lịch, ngày Lễ Lao động, Lễ Tạ ơn, và Giáng sinh. Bạn chỉ cần nhớ tên hai ngày lễ để trả lời đúng câu này.",
+    "quickFactEN": "U.S. federal holidays include New Year's, Labor Day, and Thanksgiving.",
     "dynamicType": "none",
     "officeholderRole": null,
     "lessonId": "lsn_100"
