@@ -14,24 +14,40 @@ that means concretely.
 ## Requirements
 
 - Xcode 15+ (targets iOS 17, uses SwiftData + Swift Concurrency)
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
 
 ## Setup
 
+`Histudy.xcodeproj` is committed to the repo, so you don't need XcodeGen
+installed to open and run the app:
+
 ```bash
-xcodegen generate
 open Histudy.xcodeproj
 ```
 
 Select the `Histudy` scheme and run on an iOS 17+ simulator or device.
 
-> **This project was authored in a Linux container with no Xcode/Swift
-> toolchain available**, so nothing here has been compiled yet. Every file
-> was written carefully and cross-checked (content JSON validated against
-> the Swift model shapes, localization keys checked for 1:1 EN/VI parity,
-> enum raw values checked against JSON, etc. — see `scripts/generate_content.py`
-> and the validation this session ran), but **please treat the first build
-> in Xcode as the real smoke test**, not a formality. If something doesn't
+`Histudy.xcodeproj` is generated from `project.yml` via
+[XcodeGen](https://github.com/yonaskolb/XcodeGen) and checked in as a
+convenience. If you edit `project.yml` (add a target, change a build
+setting), regenerate and commit the result:
+
+```bash
+brew install xcodegen   # one-time
+xcodegen generate
+```
+
+> **This project was authored in a Linux container with no Xcode available**,
+> so the Swift/SwiftUI/SwiftData app code itself has not been compiled —
+> that fundamentally requires macOS. What *was* verified from this session:
+> content JSON was validated against the Swift model shapes, localization
+> keys were checked for 1:1 EN/VI parity, enum raw values were checked
+> against JSON, and — since XcodeGen is pure Swift/Foundation with no Apple
+> SDK dependency — a Swift 6.1 toolchain was installed and used to build
+> XcodeGen from source right here and actually run `xcodegen generate`
+> against `project.yml`, producing the real, valid `Histudy.xcodeproj` now
+> committed in this repo (not hand-written). So the project file itself is
+> known-good; **please still treat the first build of the Swift code in
+> Xcode as the real smoke test**, not a formality. If something doesn't
 > compile, it's most likely a small signature mismatch, not a structural
 > problem — the codebase is organized so any one fix should be localized to
 > a single file.
