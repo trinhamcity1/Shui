@@ -1,0 +1,10 @@
+{
+  "lastUpdated": "2026-01-01",
+  "needsReviewAfterDays": 90,
+  "president": "Update in Settings > Content Admin before release",
+  "vicePresident": "Update in Settings > Content Admin before release",
+  "speakerOfHouse": "Update in Settings > Content Admin before release",
+  "chiefJustice": "Update in Settings > Content Admin before release",
+  "presidentParty": "Update in Settings > Content Admin before release",
+  "sourceNote": "Verify against uscis.gov and house.gov/senate.gov before shipping. This file ships as bundled JSON so it can be swapped without a code change."
+}

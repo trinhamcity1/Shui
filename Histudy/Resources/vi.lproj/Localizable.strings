@@ -1,0 +1,77 @@
+/* Common */
+"app_name" = "Histudy";
+"common_ok" = "Đồng ý";
+"common_cancel" = "Hủy";
+"common_next" = "Tiếp theo";
+"common_back" = "Quay lại";
+"common_done" = "Xong";
+"common_skip" = "Bỏ qua";
+"common_continue" = "Tiếp tục";
+
+/* Onboarding */
+"onboarding_welcome_title" = "Gặp gỡ Chị Liên";
+"onboarding_welcome_body" = "Người hướng dẫn ôn thi quốc tịch hằng ngày của bạn. Chỉ năm đến mười phút mỗi ngày, chúng ta sẽ cùng nhau chuẩn bị thật tốt.";
+"onboarding_choose_language_title" = "Chọn ngôn ngữ cho ứng dụng";
+"onboarding_name_title" = "Chị Liên nên gọi bạn là gì?";
+"onboarding_name_placeholder" = "Tên của bạn";
+"onboarding_state_title" = "Bạn đang sống ở tiểu bang nào?";
+"onboarding_state_body" = "Một số câu hỏi trong bài thi phụ thuộc vào tiểu bang của bạn, như tên thủ phủ và tên Thống đốc.";
+"onboarding_local_officials_title" = "Cán bộ địa phương của bạn";
+"onboarding_local_officials_body" = "Những thông tin này thay đổi theo từng cuộc bầu cử, nên bạn (hoặc người hướng dẫn) hãy tự điền vào. Bạn có thể cập nhật lại bất cứ lúc nào trong phần Cài đặt.";
+"onboarding_senator1" = "Thượng nghị sĩ #1";
+"onboarding_senator2" = "Thượng nghị sĩ #2";
+"onboarding_representative" = "Dân biểu Hạ viện";
+"onboarding_governor" = "Thống đốc";
+"onboarding_goal_title" = "Mỗi ngày bạn muốn học bao nhiêu phút?";
+"onboarding_goal_body" = "Bạn có thể thay đổi bất cứ lúc nào. Chúng tôi khuyên bạn nên học 5-10 phút mỗi ngày.";
+"onboarding_get_started" = "Bắt đầu";
+
+/* Home */
+"home_start_session" = "Bắt đầu buổi học hôm nay";
+"home_streak_label" = "ngày liên tiếp";
+"home_todays_session" = "Buổi học hôm nay";
+"home_all_caught_up" = "Bạn đã học xong hôm nay rồi! Hẹn gặp lại vào ngày mai nhé.";
+"home_minutes_today" = "~%d phút hôm nay";
+"home_tab_home" = "Trang chính";
+"home_tab_progress" = "Tiến độ";
+"home_tab_settings" = "Cài đặt";
+
+/* Lesson */
+"lesson_continue_to_quiz" = "Tiếp tục đến bài kiểm tra";
+"lesson_skip" = "Bỏ qua";
+"lesson_replay" = "Xem lại";
+
+/* Quiz */
+"quiz_select_answer" = "Chọn câu trả lời đúng";
+"quiz_select_answer_plural" = "Chọn %d câu trả lời đúng";
+"quiz_submit" = "Gửi";
+"quiz_correct" = "Chính xác!";
+"quiz_incorrect" = "Chưa đúng";
+"quiz_correct_answer_was" = "Câu trả lời đúng:";
+"quiz_next_question" = "Câu hỏi tiếp theo";
+"quiz_finish_session" = "Hoàn tất buổi học";
+"quiz_needs_profile_info" = "Câu trả lời này cần thông tin bạn chưa điền.";
+"quiz_go_to_settings" = "Điền trong phần Cài đặt";
+
+/* Session summary */
+"summary_title" = "Đã hoàn tất buổi học";
+"summary_questions_answered" = "Số câu đã trả lời";
+"summary_accuracy" = "Độ chính xác";
+"summary_done" = "Xong";
+
+/* Progress */
+"progress_title" = "Tiến Độ Của Bạn";
+"progress_mastered" = "Đã thành thạo";
+"progress_learning" = "Đang học";
+"progress_new" = "Chưa bắt đầu";
+"progress_category_breakdown" = "Theo chủ đề";
+"progress_current_streak" = "Chuỗi ngày hiện tại";
+"progress_longest_streak" = "Chuỗi ngày dài nhất";
+
+/* Settings */
+"settings_title" = "Cài Đặt";
+"settings_language" = "Ngôn ngữ ứng dụng";
+"settings_daily_goal" = "Mục tiêu hằng ngày";
+"settings_local_officials" = "Cán bộ địa phương của bạn";
+"settings_about" = "Giới thiệu Histudy";
+"settings_about_body" = "Histudy giúp bạn ôn thi phần công dân của kỳ thi quốc tịch Mỹ, mỗi ngày chỉ năm đến mười phút.";

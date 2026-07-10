@@ -1,0 +1,1440 @@
+[
+  {
+    "id": "lsn_001",
+    "questionIds": [
+      1
+    ],
+    "titleEN": "The Rulebook Above All Rules",
+    "titleVI": "Cuốn Luật Đứng Trên Mọi Luật",
+    "category": "gov_principles",
+    "totalDurationSeconds": 21,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "Imagine every law in America as a player in a giant game.",
+        "textVI": "Hãy tưởng tượng mọi đạo luật ở Mỹ như một người chơi trong một trò chơi khổng lồ.",
+        "atSeconds": 0,
+        "durationSeconds": 5
+      },
+      {
+        "id": "n2",
+        "textEN": "Every single player — federal, state, even the President — has to follow one rulebook.",
+        "textVI": "Mọi \"người chơi\" — luật liên bang, luật tiểu bang, thậm chí cả Tổng thống — đều phải tuân theo một cuốn luật duy nhất.",
+        "atSeconds": 5,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n3",
+        "textEN": "That rulebook is the Constitution. It's the supreme law of the land.",
+        "textVI": "Cuốn luật đó chính là Hiến pháp. Đó là luật tối cao của cả đất nước.",
+        "atSeconds": 11,
+        "durationSeconds": 5
+      },
+      {
+        "id": "n4",
+        "textEN": "No law, no governor, no president can overrule it.",
+        "textVI": "Không một đạo luật, thống đốc, hay tổng thống nào có thể vượt qua nó.",
+        "atSeconds": 16,
+        "durationSeconds": 5
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "titleCard",
+        "atSeconds": 0,
+        "durationSeconds": 5,
+        "textEN": "Who's the boss?",
+        "textVI": "Ai là người đứng đầu?",
+        "symbol": "scalemass",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "comparisonCards",
+        "atSeconds": 5,
+        "durationSeconds": 6,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": [
+          {
+            "textEN": "Federal laws",
+            "textVI": "Luật liên bang"
+          },
+          {
+            "textEN": "State laws",
+            "textVI": "Luật tiểu bang"
+          },
+          {
+            "textEN": "The President",
+            "textVI": "Tổng thống"
+          }
+        ]
+      },
+      {
+        "id": "a3",
+        "type": "documentReveal",
+        "atSeconds": 11,
+        "durationSeconds": 5,
+        "textEN": "The Constitution",
+        "textVI": "Hiến Pháp",
+        "symbol": "scroll",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a4",
+        "type": "bulletList",
+        "atSeconds": 16,
+        "durationSeconds": 5,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": [
+          {
+            "textEN": "Supreme law of the land",
+            "textVI": "Luật tối cao của đất nước"
+          }
+        ]
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_006",
+    "questionIds": [
+      5,
+      6
+    ],
+    "titleEN": "Five Freedoms, One Hand",
+    "titleVI": "Năm Quyền Tự Do, Một Bàn Tay",
+    "category": "gov_principles",
+    "totalDurationSeconds": 17,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "The first ten amendments are called the Bill of Rights.",
+        "textVI": "Mười tu chính án đầu tiên được gọi là Tuyên ngôn Nhân quyền.",
+        "atSeconds": 0,
+        "durationSeconds": 5
+      },
+      {
+        "id": "n2",
+        "textEN": "The very first one — the First Amendment — actually protects five freedoms at once.",
+        "textVI": "Tu chính án đầu tiên bảo vệ đến năm quyền tự do cùng một lúc.",
+        "atSeconds": 5,
+        "durationSeconds": 5
+      },
+      {
+        "id": "n3",
+        "textEN": "Think of one hand: speech, religion, press, assembly, and petition — five fingers, five freedoms.",
+        "textVI": "Hãy nghĩ đến một bàn tay: ngôn luận, tôn giáo, báo chí, hội họp, và kiến nghị — năm ngón tay, năm quyền tự do.",
+        "atSeconds": 10,
+        "durationSeconds": 7
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "documentReveal",
+        "atSeconds": 0,
+        "durationSeconds": 5,
+        "textEN": "Bill of Rights",
+        "textVI": "Tuyên Ngôn Nhân Quyền",
+        "symbol": "doc.text",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "titleCard",
+        "atSeconds": 5,
+        "durationSeconds": 5,
+        "textEN": "First Amendment",
+        "textVI": "Tu Chính Án Thứ Nhất",
+        "symbol": "1.circle",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a3",
+        "type": "bulletList",
+        "atSeconds": 10,
+        "durationSeconds": 7,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": [
+          {
+            "textEN": "Speech",
+            "textVI": "Ngôn luận"
+          },
+          {
+            "textEN": "Religion",
+            "textVI": "Tôn giáo"
+          },
+          {
+            "textEN": "Press",
+            "textVI": "Báo chí"
+          },
+          {
+            "textEN": "Assembly",
+            "textVI": "Hội họp"
+          },
+          {
+            "textEN": "Petition",
+            "textVI": "Kiến nghị"
+          }
+        ]
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_013",
+    "questionIds": [
+      13,
+      14,
+      37
+    ],
+    "titleEN": "Three Legs of One Stool",
+    "titleVI": "Ba Chân Của Một Chiếc Ghế",
+    "category": "gov_system",
+    "totalDurationSeconds": 20,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "The U.S. government stands on three branches, like a stool with three legs.",
+        "textVI": "Chính phủ Mỹ đứng vững nhờ ba nhánh, giống như một chiếc ghế ba chân.",
+        "atSeconds": 0,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n2",
+        "textEN": "Congress makes the laws. The President carries them out. The courts explain them.",
+        "textVI": "Quốc hội làm luật. Tổng thống thi hành luật. Tòa án giải thích luật.",
+        "atSeconds": 6,
+        "durationSeconds": 7
+      },
+      {
+        "id": "n3",
+        "textEN": "Each branch can check the others, so no single leg can grow too powerful and tip the stool over.",
+        "textVI": "Mỗi nhánh có thể kiểm soát các nhánh còn lại, để không một nhánh nào trở nên quá mạnh và làm lật đổ cả chiếc ghế.",
+        "atSeconds": 13,
+        "durationSeconds": 7
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "titleCard",
+        "atSeconds": 0,
+        "durationSeconds": 6,
+        "textEN": "Three branches",
+        "textVI": "Ba nhánh chính quyền",
+        "symbol": "building.columns",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "comparisonCards",
+        "atSeconds": 6,
+        "durationSeconds": 7,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": [
+          {
+            "textEN": "Legislative — Congress makes laws",
+            "textVI": "Lập pháp — Quốc hội làm luật"
+          },
+          {
+            "textEN": "Executive — President enforces laws",
+            "textVI": "Hành pháp — Tổng thống thi hành luật"
+          },
+          {
+            "textEN": "Judicial — Courts interpret laws",
+            "textVI": "Tư pháp — Tòa án giải thích luật"
+          }
+        ]
+      },
+      {
+        "id": "a3",
+        "type": "bulletList",
+        "atSeconds": 13,
+        "durationSeconds": 7,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": [
+          {
+            "textEN": "Checks and balances",
+            "textVI": "Kiểm soát và cân bằng"
+          }
+        ]
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_017",
+    "questionIds": [
+      17,
+      18,
+      19,
+      21,
+      22
+    ],
+    "titleEN": "Two Houses, One Congress",
+    "titleVI": "Hai Viện, Một Quốc Hội",
+    "category": "gov_system",
+    "totalDurationSeconds": 25,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "Congress has two houses under one roof: the Senate and the House of Representatives.",
+        "textVI": "Quốc hội có hai viện dưới một mái nhà: Thượng viện và Hạ viện.",
+        "atSeconds": 0,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n2",
+        "textEN": "The Senate: 100 seats, exactly two per state, six-year terms.",
+        "textVI": "Thượng viện: 100 ghế, mỗi tiểu bang đúng hai ghế, nhiệm kỳ sáu năm.",
+        "atSeconds": 6,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n3",
+        "textEN": "The House: 435 seats split up by each state's population, two-year terms.",
+        "textVI": "Hạ viện: 435 ghế chia theo dân số từng tiểu bang, nhiệm kỳ hai năm.",
+        "atSeconds": 12,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n4",
+        "textEN": "Big states like California get more House seats. Every state gets the same two Senate seats.",
+        "textVI": "Tiểu bang đông dân như California có nhiều ghế Hạ viện hơn. Nhưng mọi tiểu bang đều có đúng hai ghế Thượng viện.",
+        "atSeconds": 18,
+        "durationSeconds": 7
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "titleCard",
+        "atSeconds": 0,
+        "durationSeconds": 6,
+        "textEN": "U.S. Congress",
+        "textVI": "Quốc Hội Hoa Kỳ",
+        "symbol": "building.columns.fill",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "comparisonCards",
+        "atSeconds": 6,
+        "durationSeconds": 6,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": [
+          {
+            "textEN": "Senate: 100 seats, 2 per state, 6-year term",
+            "textVI": "Thượng viện: 100 ghế, 2/tiểu bang, nhiệm kỳ 6 năm"
+          }
+        ]
+      },
+      {
+        "id": "a3",
+        "type": "comparisonCards",
+        "atSeconds": 12,
+        "durationSeconds": 6,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": [
+          {
+            "textEN": "House: 435 seats by population, 2-year term",
+            "textVI": "Hạ viện: 435 ghế theo dân số, nhiệm kỳ 2 năm"
+          }
+        ]
+      },
+      {
+        "id": "a4",
+        "type": "mapUSA",
+        "atSeconds": 18,
+        "durationSeconds": 7,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a5",
+        "type": "highlightRegion",
+        "atSeconds": 18,
+        "durationSeconds": 7,
+        "textEN": "More people = more seats",
+        "textVI": "Đông dân hơn = nhiều ghế hơn",
+        "symbol": null,
+        "region": "west",
+        "cityName": null,
+        "year": null,
+        "items": null
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_021",
+    "questionIds": [
+      21,
+      25
+    ],
+    "titleEN": "Why Some States Get More Votes",
+    "titleVI": "Vì Sao Có Tiểu Bang Nhiều Ghế Hơn",
+    "category": "gov_system",
+    "totalDurationSeconds": 17,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "The House of Representatives has 435 seats total.",
+        "textVI": "Hạ viện có tổng cộng 435 ghế.",
+        "atSeconds": 0,
+        "durationSeconds": 5
+      },
+      {
+        "id": "n2",
+        "textEN": "Those seats aren't split evenly — they follow population.",
+        "textVI": "Những ghế này không chia đều — mà theo dân số.",
+        "atSeconds": 5,
+        "durationSeconds": 5
+      },
+      {
+        "id": "n3",
+        "textEN": "A crowded state like California gets many seats. A small state like Wyoming gets just one.",
+        "textVI": "Một tiểu bang đông dân như California có nhiều ghế. Một tiểu bang nhỏ như Wyoming chỉ có một ghế.",
+        "atSeconds": 10,
+        "durationSeconds": 7
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "titleCard",
+        "atSeconds": 0,
+        "durationSeconds": 5,
+        "textEN": "435 seats",
+        "textVI": "435 ghế",
+        "symbol": "person.3.fill",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "mapUSA",
+        "atSeconds": 5,
+        "durationSeconds": 12,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a3",
+        "type": "highlightRegion",
+        "atSeconds": 5,
+        "durationSeconds": 6,
+        "textEN": "California: many seats",
+        "textVI": "California: nhiều ghế",
+        "symbol": null,
+        "region": "west",
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a4",
+        "type": "highlightRegion",
+        "atSeconds": 11,
+        "durationSeconds": 6,
+        "textEN": "Wyoming: 1 seat",
+        "textVI": "Wyoming: 1 ghế",
+        "symbol": null,
+        "region": "midwest",
+        "cityName": null,
+        "year": null,
+        "items": null
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_058",
+    "questionIds": [
+      58
+    ],
+    "titleEN": "Why They Came",
+    "titleVI": "Vì Sao Họ Đến",
+    "category": "history_colonial",
+    "totalDurationSeconds": 15,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "People crossed an ocean for many reasons: to worship freely, to escape persecution, to find opportunity.",
+        "textVI": "Người ta vượt đại dương vì nhiều lý do: để tự do thờ phượng, thoát khỏi sự đàn áp, tìm kiếm cơ hội mới.",
+        "atSeconds": 0,
+        "durationSeconds": 8
+      },
+      {
+        "id": "n2",
+        "textEN": "It's a story many Vietnamese families know well too — a hard journey toward a new beginning.",
+        "textVI": "Đây cũng là câu chuyện mà nhiều gia đình người Việt rất quen thuộc — một hành trình gian nan hướng tới một khởi đầu mới.",
+        "atSeconds": 8,
+        "durationSeconds": 7
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "titleCard",
+        "atSeconds": 0,
+        "durationSeconds": 8,
+        "textEN": "Why did colonists come?",
+        "textVI": "Vì sao người thuộc địa đến Mỹ?",
+        "symbol": "sailboat",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "bulletList",
+        "atSeconds": 8,
+        "durationSeconds": 7,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": [
+          {
+            "textEN": "Religious freedom",
+            "textVI": "Tự do tôn giáo"
+          },
+          {
+            "textEN": "Escape persecution",
+            "textVI": "Thoát khỏi đàn áp"
+          },
+          {
+            "textEN": "Economic opportunity",
+            "textVI": "Cơ hội kinh tế"
+          }
+        ]
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_061",
+    "questionIds": [
+      61
+    ],
+    "titleEN": "No Taxation Without Representation",
+    "titleVI": "Không Đại Diện Thì Không Đóng Thuế",
+    "category": "history_colonial",
+    "totalDurationSeconds": 17,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "Britain kept raising taxes on the colonists.",
+        "textVI": "Nước Anh liên tục tăng thuế đối với người thuộc địa.",
+        "atSeconds": 0,
+        "durationSeconds": 5
+      },
+      {
+        "id": "n2",
+        "textEN": "But the colonists had no voice, no vote, in the British Parliament that set those taxes.",
+        "textVI": "Nhưng người thuộc địa không có tiếng nói, không có lá phiếu, trong Nghị viện Anh — nơi đặt ra các mức thuế đó.",
+        "atSeconds": 5,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n3",
+        "textEN": "\"No taxation without representation\" became their rallying cry — and one spark of the Revolution.",
+        "textVI": "\"Không đại diện thì không đóng thuế\" trở thành khẩu hiệu của họ — một trong những ngòi nổ của cuộc Cách mạng.",
+        "atSeconds": 11,
+        "durationSeconds": 6
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "titleCard",
+        "atSeconds": 0,
+        "durationSeconds": 5,
+        "textEN": "Rising taxes",
+        "textVI": "Thuế tăng cao",
+        "symbol": "dollarsign.circle",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "quote",
+        "atSeconds": 5,
+        "durationSeconds": 6,
+        "textEN": "No representation in Parliament",
+        "textVI": "Không có đại diện trong Nghị viện",
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a3",
+        "type": "quote",
+        "atSeconds": 11,
+        "durationSeconds": 6,
+        "textEN": "\"No taxation without representation\"",
+        "textVI": "\"Không đại diện thì không đóng thuế\"",
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_063",
+    "questionIds": [
+      8,
+      62,
+      63,
+      99
+    ],
+    "titleEN": "The Fourth of July",
+    "titleVI": "Ngày Mùng Bốn Tháng Bảy",
+    "category": "history_colonial",
+    "totalDurationSeconds": 19,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "Thomas Jefferson picked up his pen and wrote a bold declaration.",
+        "textVI": "Thomas Jefferson cầm bút viết nên một bản tuyên bố táo bạo.",
+        "atSeconds": 0,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n2",
+        "textEN": "On July 4, 1776, it was adopted: the colonies announced they were free from Great Britain.",
+        "textVI": "Ngày 4 tháng 7 năm 1776, bản tuyên bố được thông qua: các thuộc địa tuyên bố họ được tự do khỏi nước Anh.",
+        "atSeconds": 6,
+        "durationSeconds": 7
+      },
+      {
+        "id": "n3",
+        "textEN": "That's why every July 4th, Americans watch fireworks light up the sky — it's Independence Day.",
+        "textVI": "Đó là lý do mỗi ngày 4 tháng 7, người Mỹ ngắm pháo hoa rực rỡ trên bầu trời — đó là ngày Lễ Độc lập.",
+        "atSeconds": 13,
+        "durationSeconds": 6
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "documentReveal",
+        "atSeconds": 0,
+        "durationSeconds": 6,
+        "textEN": "Declaration of Independence",
+        "textVI": "Tuyên Ngôn Độc Lập",
+        "symbol": "pencil.and.scribble",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "timeline",
+        "atSeconds": 6,
+        "durationSeconds": 7,
+        "textEN": "July 4, 1776",
+        "textVI": "4 tháng 7, 1776",
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": 1776,
+        "items": null
+      },
+      {
+        "id": "a3",
+        "type": "showIcon",
+        "atSeconds": 13,
+        "durationSeconds": 6,
+        "textEN": "Independence Day",
+        "textVI": "Ngày Lễ Độc Lập",
+        "symbol": "sparkles",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_064",
+    "questionIds": [
+      64
+    ],
+    "titleEN": "Thirteen Colonies on the Coast",
+    "titleVI": "Mười Ba Thuộc Địa Ven Biển",
+    "category": "history_colonial",
+    "totalDurationSeconds": 19,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "Before there were fifty states, there were just thirteen colonies.",
+        "textVI": "Trước khi có năm mươi tiểu bang, chỉ có mười ba thuộc địa.",
+        "atSeconds": 0,
+        "durationSeconds": 5
+      },
+      {
+        "id": "n2",
+        "textEN": "They formed a thin ribbon along the Atlantic coast — from New Hampshire in the north to Georgia in the south.",
+        "textVI": "Chúng tạo thành một dải đất hẹp dọc bờ biển Đại Tây Dương — từ New Hampshire ở phía Bắc đến Georgia ở phía Nam.",
+        "atSeconds": 5,
+        "durationSeconds": 8
+      },
+      {
+        "id": "n3",
+        "textEN": "Names like Virginia, Massachusetts, and Pennsylvania all started right here.",
+        "textVI": "Những cái tên như Virginia, Massachusetts, và Pennsylvania đều bắt đầu từ đây.",
+        "atSeconds": 13,
+        "durationSeconds": 6
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "titleCard",
+        "atSeconds": 0,
+        "durationSeconds": 5,
+        "textEN": "13 original colonies",
+        "textVI": "13 thuộc địa ban đầu",
+        "symbol": "13.circle",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "mapUSA",
+        "atSeconds": 5,
+        "durationSeconds": 14,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a3",
+        "type": "highlightRegion",
+        "atSeconds": 5,
+        "durationSeconds": 14,
+        "textEN": "The 13 colonies",
+        "textVI": "13 thuộc địa",
+        "symbol": null,
+        "region": "northeast",
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a4",
+        "type": "dropPin",
+        "atSeconds": 13,
+        "durationSeconds": 6,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": "northeast",
+        "cityName": "Virginia",
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a5",
+        "type": "dropPin",
+        "atSeconds": 13,
+        "durationSeconds": 6,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": "northeast",
+        "cityName": "Massachusetts",
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a6",
+        "type": "dropPin",
+        "atSeconds": 13,
+        "durationSeconds": 6,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": "northeast",
+        "cityName": "Pennsylvania",
+        "year": null,
+        "items": null
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_066",
+    "questionIds": [
+      65,
+      66
+    ],
+    "titleEN": "Philadelphia, Summer of 1787",
+    "titleVI": "Philadelphia, Mùa Hè Năm 1787",
+    "category": "history_colonial",
+    "totalDurationSeconds": 13,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "Eleven years after independence, the Founding Fathers gathered in Philadelphia.",
+        "textVI": "Mười một năm sau khi độc lập, các nhà lập quốc tụ họp tại Philadelphia.",
+        "atSeconds": 0,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n2",
+        "textEN": "Their mission: write the rulebook for a brand-new government. The result was the Constitution.",
+        "textVI": "Nhiệm vụ của họ: viết ra cuốn luật cho một chính phủ hoàn toàn mới. Kết quả là bản Hiến pháp.",
+        "atSeconds": 6,
+        "durationSeconds": 7
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "timeline",
+        "atSeconds": 0,
+        "durationSeconds": 6,
+        "textEN": "Constitutional Convention",
+        "textVI": "Hội Nghị Lập Hiến",
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": 1787,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "documentReveal",
+        "atSeconds": 6,
+        "durationSeconds": 7,
+        "textEN": "The Constitution",
+        "textVI": "Hiến Pháp",
+        "symbol": "building.columns",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_073",
+    "questionIds": [
+      73,
+      74
+    ],
+    "titleEN": "A Nation Divided",
+    "titleVI": "Một Quốc Gia Chia Cắt",
+    "category": "history_1800s",
+    "totalDurationSeconds": 17,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "By the 1860s, the North and South disagreed bitterly over slavery.",
+        "textVI": "Đến những năm 1860, miền Bắc và miền Nam bất đồng sâu sắc về chế độ nô lệ.",
+        "atSeconds": 0,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n2",
+        "textEN": "That disagreement, along with states' rights and economic differences, split the country in two.",
+        "textVI": "Bất đồng đó, cùng với vấn đề quyền tiểu bang và khác biệt kinh tế, đã chia đất nước làm đôi.",
+        "atSeconds": 6,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n3",
+        "textEN": "The result was the Civil War — Americans fighting Americans.",
+        "textVI": "Kết quả là cuộc Nội chiến — người Mỹ chiến đấu chống lại người Mỹ.",
+        "atSeconds": 12,
+        "durationSeconds": 5
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "mapUSA",
+        "atSeconds": 0,
+        "durationSeconds": 6,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "highlightRegion",
+        "atSeconds": 0,
+        "durationSeconds": 6,
+        "textEN": "The North",
+        "textVI": "Miền Bắc",
+        "symbol": null,
+        "region": "northeast",
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a3",
+        "type": "highlightRegion",
+        "atSeconds": 6,
+        "durationSeconds": 6,
+        "textEN": "The South",
+        "textVI": "Miền Nam",
+        "symbol": null,
+        "region": "southeast",
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a4",
+        "type": "titleCard",
+        "atSeconds": 12,
+        "durationSeconds": 5,
+        "textEN": "The Civil War, 1861–1865",
+        "textVI": "Nội Chiến, 1861–1865",
+        "symbol": "flag.2.crossed",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_075",
+    "questionIds": [
+      75,
+      76
+    ],
+    "titleEN": "The President Who Freed a Nation",
+    "titleVI": "Vị Tổng Thống Giải Phóng Cả Một Dân Tộc",
+    "category": "history_1800s",
+    "totalDurationSeconds": 19,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "Abraham Lincoln led the country through its darkest, bloodiest chapter.",
+        "textVI": "Abraham Lincoln dẫn dắt đất nước qua chương đen tối và đẫm máu nhất.",
+        "atSeconds": 0,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n2",
+        "textEN": "In 1863, he signed the Emancipation Proclamation, declaring enslaved people in the Confederacy free.",
+        "textVI": "Năm 1863, ông ký Tuyên ngôn Giải phóng Nô lệ, tuyên bố những người nô lệ ở miền Nam ly khai được tự do.",
+        "atSeconds": 6,
+        "durationSeconds": 7
+      },
+      {
+        "id": "n3",
+        "textEN": "He preserved the Union and pushed the nation toward ending slavery for good.",
+        "textVI": "Ông giữ cho Liên bang không bị chia cắt và thúc đẩy đất nước tiến tới việc xóa bỏ hoàn toàn chế độ nô lệ.",
+        "atSeconds": 13,
+        "durationSeconds": 6
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "titleCard",
+        "atSeconds": 0,
+        "durationSeconds": 6,
+        "textEN": "Abraham Lincoln",
+        "textVI": "Abraham Lincoln",
+        "symbol": "person.fill",
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "timeline",
+        "atSeconds": 6,
+        "durationSeconds": 7,
+        "textEN": "Emancipation Proclamation",
+        "textVI": "Tuyên Ngôn Giải Phóng Nô Lệ",
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": 1863,
+        "items": null
+      },
+      {
+        "id": "a3",
+        "type": "bulletList",
+        "atSeconds": 13,
+        "durationSeconds": 6,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": [
+          {
+            "textEN": "Preserved the Union",
+            "textVI": "Giữ gìn Liên bang"
+          }
+        ]
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_088",
+    "questionIds": [
+      88,
+      89,
+      90
+    ],
+    "titleEN": "Coast to Coast, River to River",
+    "titleVI": "Từ Bờ Biển Này Sang Bờ Biển Kia",
+    "category": "geography",
+    "totalDurationSeconds": 19,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "Picture the United States as one giant map stretching between two oceans.",
+        "textVI": "Hãy hình dung nước Mỹ như một tấm bản đồ khổng lồ trải dài giữa hai đại dương.",
+        "atSeconds": 0,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n2",
+        "textEN": "On the west edge: the Pacific Ocean. On the east edge: the Atlantic Ocean.",
+        "textVI": "Ở rìa phía Tây: Thái Bình Dương. Ở rìa phía Đông: Đại Tây Dương.",
+        "atSeconds": 6,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n3",
+        "textEN": "And running down the middle, like a spine, are the Mississippi and Missouri Rivers — the two longest in the country.",
+        "textVI": "Chạy dọc chính giữa, như một cột sống, là sông Mississippi và sông Missouri — hai con sông dài nhất đất nước.",
+        "atSeconds": 12,
+        "durationSeconds": 7
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "mapUSA",
+        "atSeconds": 0,
+        "durationSeconds": 19,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "highlightRegion",
+        "atSeconds": 6,
+        "durationSeconds": 6,
+        "textEN": "Pacific Ocean",
+        "textVI": "Thái Bình Dương",
+        "symbol": null,
+        "region": "west",
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a3",
+        "type": "highlightRegion",
+        "atSeconds": 6,
+        "durationSeconds": 6,
+        "textEN": "Atlantic Ocean",
+        "textVI": "Đại Tây Dương",
+        "symbol": null,
+        "region": "northeast",
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a4",
+        "type": "highlightRegion",
+        "atSeconds": 12,
+        "durationSeconds": 7,
+        "textEN": "Mississippi & Missouri Rivers",
+        "textVI": "Sông Mississippi & Missouri",
+        "symbol": null,
+        "region": "midwest",
+        "cityName": null,
+        "year": null,
+        "items": null
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_092",
+    "questionIds": [
+      92,
+      93
+    ],
+    "titleEN": "Neighbors North and South",
+    "titleVI": "Láng Giềng Phía Bắc và Phía Nam",
+    "category": "geography",
+    "totalDurationSeconds": 18,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "The United States has two neighboring countries.",
+        "textVI": "Nước Mỹ có hai quốc gia láng giềng.",
+        "atSeconds": 0,
+        "durationSeconds": 4
+      },
+      {
+        "id": "n2",
+        "textEN": "Up north, thirteen states share a border with Canada, from Alaska to Maine.",
+        "textVI": "Ở phía Bắc, mười ba tiểu bang có chung biên giới với Canada, từ Alaska đến Maine.",
+        "atSeconds": 4,
+        "durationSeconds": 7
+      },
+      {
+        "id": "n3",
+        "textEN": "Down south, four states — California, Arizona, New Mexico, and Texas — border Mexico.",
+        "textVI": "Ở phía Nam, bốn tiểu bang — California, Arizona, New Mexico, và Texas — có chung biên giới với Mexico.",
+        "atSeconds": 11,
+        "durationSeconds": 7
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "mapUSA",
+        "atSeconds": 0,
+        "durationSeconds": 18,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "highlightRegion",
+        "atSeconds": 4,
+        "durationSeconds": 7,
+        "textEN": "Borders Canada",
+        "textVI": "Giáp Canada",
+        "symbol": null,
+        "region": "west",
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a3",
+        "type": "highlightRegion",
+        "atSeconds": 11,
+        "durationSeconds": 7,
+        "textEN": "Borders Mexico",
+        "textVI": "Giáp Mexico",
+        "symbol": null,
+        "region": "southwest",
+        "cityName": null,
+        "year": null,
+        "items": null
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_094",
+    "questionIds": [
+      94
+    ],
+    "titleEN": "A Capital Built for Government",
+    "titleVI": "Thủ Đô Được Xây Riêng Cho Chính Quyền",
+    "category": "geography",
+    "totalDurationSeconds": 13,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "Unlike most capitals, Washington, D.C. isn't inside any state.",
+        "textVI": "Khác với hầu hết các thủ đô, Washington, D.C. không thuộc tiểu bang nào cả.",
+        "atSeconds": 0,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n2",
+        "textEN": "It's its own special federal district, built specifically to be the seat of the national government.",
+        "textVI": "Đó là một đặc khu liên bang riêng, được xây dựng chuyên để làm trung tâm của chính phủ quốc gia.",
+        "atSeconds": 6,
+        "durationSeconds": 7
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "mapUSA",
+        "atSeconds": 0,
+        "durationSeconds": 13,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "dropPin",
+        "atSeconds": 6,
+        "durationSeconds": 7,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": "northeast",
+        "cityName": "Washington, D.C.",
+        "year": null,
+        "items": null
+      }
+    ],
+    "style": "richNarrative"
+  },
+  {
+    "id": "lsn_097",
+    "questionIds": [
+      96,
+      97
+    ],
+    "titleEN": "Fifty Stars, Thirteen Stripes",
+    "titleVI": "Năm Mươi Ngôi Sao, Mười Ba Sọc",
+    "category": "symbols",
+    "totalDurationSeconds": 24,
+    "narration": [
+      {
+        "id": "n1",
+        "textEN": "Look closely at the American flag and you'll find a whole history lesson.",
+        "textVI": "Nhìn kỹ lá cờ Mỹ, bạn sẽ thấy cả một bài học lịch sử.",
+        "atSeconds": 0,
+        "durationSeconds": 5
+      },
+      {
+        "id": "n2",
+        "textEN": "Thirteen stripes for the thirteen original colonies that declared independence together.",
+        "textVI": "Mười ba sọc tượng trưng cho mười ba thuộc địa ban đầu đã cùng nhau tuyên bố độc lập.",
+        "atSeconds": 5,
+        "durationSeconds": 6
+      },
+      {
+        "id": "n3",
+        "textEN": "And fifty stars — one for every state in the country today, from the Northeast all the way to the West Coast.",
+        "textVI": "Và năm mươi ngôi sao — mỗi ngôi sao đại diện cho một tiểu bang hiện nay, từ vùng Đông Bắc trải dài đến bờ Tây.",
+        "atSeconds": 11,
+        "durationSeconds": 7
+      },
+      {
+        "id": "n4",
+        "textEN": "Next time you see the flag, you're really looking at a map of the whole country.",
+        "textVI": "Lần tới khi nhìn thấy lá cờ, thực ra bạn đang nhìn thấy cả một tấm bản đồ đất nước.",
+        "atSeconds": 18,
+        "durationSeconds": 6
+      }
+    ],
+    "actions": [
+      {
+        "id": "a1",
+        "type": "flagReveal",
+        "atSeconds": 0,
+        "durationSeconds": 5,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a2",
+        "type": "bulletList",
+        "atSeconds": 5,
+        "durationSeconds": 6,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": [
+          {
+            "textEN": "13 stripes = 13 original colonies",
+            "textVI": "13 sọc = 13 thuộc địa ban đầu"
+          }
+        ]
+      },
+      {
+        "id": "a3",
+        "type": "mapUSA",
+        "atSeconds": 11,
+        "durationSeconds": 13,
+        "textEN": null,
+        "textVI": null,
+        "symbol": null,
+        "region": null,
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a4",
+        "type": "highlightRegion",
+        "atSeconds": 11,
+        "durationSeconds": 3,
+        "textEN": "50 states",
+        "textVI": "50 tiểu bang",
+        "symbol": null,
+        "region": "northeast",
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a5",
+        "type": "highlightRegion",
+        "atSeconds": 14,
+        "durationSeconds": 3,
+        "textEN": "50 states",
+        "textVI": "50 tiểu bang",
+        "symbol": null,
+        "region": "southeast",
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a6",
+        "type": "highlightRegion",
+        "atSeconds": 17,
+        "durationSeconds": 3,
+        "textEN": "50 states",
+        "textVI": "50 tiểu bang",
+        "symbol": null,
+        "region": "midwest",
+        "cityName": null,
+        "year": null,
+        "items": null
+      },
+      {
+        "id": "a7",
+        "type": "highlightRegion",
+        "atSeconds": 18,
+        "durationSeconds": 3,
+        "textEN": "50 states",
+        "textVI": "50 tiểu bang",
+        "symbol": null,
+        "region": "west",
+        "cityName": null,
+        "year": null,
+        "items": null
+      }
+    ],
+    "style": "richNarrative"
+  }
+]

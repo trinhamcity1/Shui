@@ -1,0 +1,77 @@
+/* Common */
+"app_name" = "Histudy";
+"common_ok" = "OK";
+"common_cancel" = "Cancel";
+"common_next" = "Next";
+"common_back" = "Back";
+"common_done" = "Done";
+"common_skip" = "Skip";
+"common_continue" = "Continue";
+
+/* Onboarding */
+"onboarding_welcome_title" = "Meet Ms. Lien";
+"onboarding_welcome_body" = "Your daily citizenship test tutor. Five to ten minutes a day, and we'll get you ready together.";
+"onboarding_choose_language_title" = "Choose your app language";
+"onboarding_name_title" = "What should Ms. Lien call you?";
+"onboarding_name_placeholder" = "Your name";
+"onboarding_state_title" = "Which state do you live in?";
+"onboarding_state_body" = "Some test questions depend on your state, like its capital and your Governor.";
+"onboarding_local_officials_title" = "Your local officials";
+"onboarding_local_officials_body" = "These change with elections, so add them yourself (or ask your preparer). You can always update this later in Settings.";
+"onboarding_senator1" = "U.S. Senator #1";
+"onboarding_senator2" = "U.S. Senator #2";
+"onboarding_representative" = "U.S. Representative";
+"onboarding_governor" = "Governor";
+"onboarding_goal_title" = "How many minutes a day?";
+"onboarding_goal_body" = "You can change this anytime. We recommend 5-10 minutes.";
+"onboarding_get_started" = "Get Started";
+
+/* Home */
+"home_start_session" = "Start today's session";
+"home_streak_label" = "day streak";
+"home_todays_session" = "Today's session";
+"home_all_caught_up" = "You're all caught up! Come back tomorrow for more.";
+"home_minutes_today" = "~%d min today";
+"home_tab_home" = "Home";
+"home_tab_progress" = "Progress";
+"home_tab_settings" = "Settings";
+
+/* Lesson */
+"lesson_continue_to_quiz" = "Continue to quiz";
+"lesson_skip" = "Skip";
+"lesson_replay" = "Replay";
+
+/* Quiz */
+"quiz_select_answer" = "Select the correct answer";
+"quiz_select_answer_plural" = "Select %d correct answers";
+"quiz_submit" = "Submit";
+"quiz_correct" = "Correct!";
+"quiz_incorrect" = "Not quite";
+"quiz_correct_answer_was" = "Correct answer:";
+"quiz_next_question" = "Next question";
+"quiz_finish_session" = "Finish session";
+"quiz_needs_profile_info" = "This answer depends on info you haven't added yet.";
+"quiz_go_to_settings" = "Add it in Settings";
+
+/* Session summary */
+"summary_title" = "Session complete";
+"summary_questions_answered" = "Questions answered";
+"summary_accuracy" = "Accuracy";
+"summary_done" = "Done";
+
+/* Progress */
+"progress_title" = "Your Progress";
+"progress_mastered" = "Mastered";
+"progress_learning" = "Learning";
+"progress_new" = "Not started";
+"progress_category_breakdown" = "By category";
+"progress_current_streak" = "Current streak";
+"progress_longest_streak" = "Longest streak";
+
+/* Settings */
+"settings_title" = "Settings";
+"settings_language" = "App language";
+"settings_daily_goal" = "Daily goal";
+"settings_local_officials" = "Your local officials";
+"settings_about" = "About Histudy";
+"settings_about_body" = "Histudy helps you study for the U.S. citizenship civics test, five to ten minutes a day.";
