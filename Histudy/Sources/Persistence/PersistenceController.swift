@@ -61,6 +61,14 @@ final class PersistenceController {
         (try? container.mainContext.fetch(FetchDescriptor<QuestionProgress>())) ?? []
     }
 
+    /// Records a completed session. Kept here (rather than letting callers
+    /// touch `container.mainContext` directly) so `ModelContext`/SwiftData
+    /// APIs stay confined to this file.
+    func logSession(_ log: SessionLog) {
+        container.mainContext.insert(log)
+        try? container.mainContext.save()
+    }
+
     func save() {
         try? container.mainContext.save()
     }

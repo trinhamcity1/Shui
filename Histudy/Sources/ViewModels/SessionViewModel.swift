@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 enum SessionPhase: Hashable {
@@ -93,12 +94,10 @@ final class SessionViewModel: ObservableObject {
             questionIds: questionIdsAnswered,
             questionsCorrect: correctCount
         )
-        PersistenceController.shared.container.mainContext.insert(log)
-
         profile.totalLessonsCompleted += lessonIdsWatched.count
         profile.totalQuizzesTaken += questionIdsAnswered.count
         profile.registerSessionDay()
-        PersistenceController.shared.save()
+        PersistenceController.shared.logSession(log)
 
         summaryLog = log
         summaryMessage = await tutorAI.sessionSummary(session: log, profile: profile)
