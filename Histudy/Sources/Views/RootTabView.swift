@@ -10,6 +10,7 @@ struct RootTabView: View {
             SettingsView()
                 .tabItem { Label(L10n.homeTabSettings.localized, systemImage: "gearshape.fill") }
         }
+        .tint(Theme.shell.gradientStart)
     }
 }
 

@@ -30,7 +30,7 @@ struct TutorCharacter: Codable {
     }
 }
 
-/// Facial expression driving `TutorCharacterView`.
+/// Expressive state driving `TutorLogoView`'s icon and pulse animation.
 enum CharacterEmotion: String, Codable, Hashable {
     case neutral, happy, encouraging, thinking, celebrating
 }

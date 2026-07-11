@@ -24,7 +24,7 @@ struct SessionFlowView: View {
             if sessionVM.phase != .summary {
                 Text("\(sessionVM.index + 1) / \(sessionVM.totalCount)")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.shell.metadata)
                     .padding(.top, 8)
             }
 
@@ -54,11 +54,13 @@ struct SessionFlowView: View {
                             }
                         }
                     }
+                    .histudyShellBackground()
                 }
             case .summary:
                 SessionSummaryView(sessionVM: sessionVM, language: language, onDone: { dismiss() })
             }
         }
+        .histudyShellBackground()
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(sessionVM.phase != .summary)
     }

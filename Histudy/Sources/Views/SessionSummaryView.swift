@@ -8,7 +8,7 @@ struct SessionSummaryView: View {
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
-            TutorCharacterView(emotion: .celebrating, isSpeaking: false)
+            TutorLogoView(emotion: .celebrating, size: 88)
             if let message = sessionVM.summaryMessage {
                 SpeechBubbleView(text: message.text(for: language))
             }
@@ -17,23 +17,25 @@ struct SessionSummaryView: View {
                     statRow(label: L10n.summaryQuestionsAnswered.localized, value: "\(log.questionsAnswered)")
                     statRow(label: L10n.summaryAccuracy.localized, value: accuracyText(log))
                 }
-                .padding()
-                .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .histudyCard()
             }
             Spacer()
             Button(L10n.summaryDone.localized, action: onDone)
-                .buttonStyle(.borderedProminent)
-                .frame(maxWidth: .infinity)
+                .buttonStyle(.histudyPill)
         }
         .padding()
+        .histudyShellBackground()
         .navigationTitle(L10n.summaryTitle.localized)
     }
 
     private func statRow(label: String, value: String) -> some View {
         HStack {
             Text(label)
+                .foregroundStyle(Theme.shell.metadata)
             Spacer()
-            Text(value).bold()
+            Text(value)
+                .bold()
+                .foregroundStyle(Theme.shell.ink)
         }
     }
 

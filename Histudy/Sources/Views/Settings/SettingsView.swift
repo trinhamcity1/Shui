@@ -15,10 +15,13 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.segmented)
                 }
+                .listRowBackground(Color.white)
 
                 Section(L10n.settingsDailyGoal.localized) {
                     Stepper("\(appState.profile.dailyGoalMinutes) min", value: dailyGoalBinding, in: 3...20)
+                        .foregroundStyle(Theme.shell.ink)
                 }
+                .listRowBackground(Color.white)
 
                 Section(L10n.settingsLocalOfficials.localized) {
                     Picker(L10n.onboardingStateTitle.localized, selection: stateBinding) {
@@ -32,13 +35,17 @@ struct SettingsView: View {
                     TextField(L10n.onboardingRepresentative.localized, text: fieldBinding(\.representative))
                     TextField(L10n.onboardingGovernor.localized, text: fieldBinding(\.governor))
                 }
+                .listRowBackground(Color.white)
 
                 Section(L10n.settingsAbout.localized) {
                     Text(L10n.settingsAboutBody.localized)
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.shell.metadata)
                 }
+                .listRowBackground(Color.white)
             }
+            .scrollContentBackground(.hidden)
+            .histudyShellBackground()
             .navigationTitle(L10n.settingsTitle.localized)
             .onAppear { localOfficials = appState.profile.localOfficials }
         }

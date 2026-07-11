@@ -1,22 +1,22 @@
 import SwiftUI
 
-/// A simple speech-bubble caption shown next to `TutorCharacterView`.
+/// A simple speech-bubble caption shown next to `TutorLogoView`.
 struct SpeechBubbleView: View {
     let text: String
 
     var body: some View {
         Text(text)
             .font(.body)
-            .foregroundStyle(.primary)
+            .foregroundStyle(Theme.shell.ink)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color(uiColor: .secondarySystemBackground))
+                RoundedRectangle(cornerRadius: Theme.shell.cornerRadiusCard, style: .continuous)
+                    .fill(Color.white)
             )
             .overlay(alignment: .bottomLeading) {
                 Triangle()
-                    .fill(Color(uiColor: .secondarySystemBackground))
+                    .fill(Color.white)
                     .frame(width: 16, height: 10)
                     .offset(x: 20, y: 9)
             }
@@ -35,8 +35,8 @@ private struct Triangle: Shape {
     }
 }
 
-/// Character portrait + speech bubble, the recurring "tutor speaks" unit
-/// used across onboarding, home, and session summary screens.
+/// Logo mark + speech bubble, the recurring "tutor speaks" unit used across
+/// onboarding, home, and session summary screens.
 struct TutorSpeechView: View {
     let message: TutorMessage
     let language: AppLanguage
@@ -44,9 +44,7 @@ struct TutorSpeechView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            TutorCharacterView(emotion: message.emotion, isSpeaking: isSpeaking)
-                .frame(width: 90, height: 105)
-                .scaleEffect(0.5, anchor: .top)
+            TutorLogoView(isSpeaking: isSpeaking, emotion: message.emotion, size: 48)
             SpeechBubbleView(text: message.text(for: language))
         }
     }

@@ -29,6 +29,10 @@ struct SceneCanvasView: View {
         }
         .animation(.easeInOut(duration: 0.3), value: actions.map(\.id))
         .frame(maxWidth: .infinity, minHeight: 260)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Theme.scene.canvas)
+        )
     }
 
     private var mapActions: [SceneAction] { actions.filter { $0.type == .mapUSA } }

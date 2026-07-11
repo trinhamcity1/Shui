@@ -45,6 +45,9 @@ enum L10n {
     static let lessonContinueToQuiz = "lesson_continue_to_quiz"
     static let lessonSkip = "lesson_skip"
     static let lessonReplay = "lesson_replay"
+    static let lessonMenuTitle = "lesson_menu_title"
+    static let lessonJumpToPart = "lesson_jump_to_part"
+    static let lessonChapterPickerTitle = "lesson_chapter_picker_title"
 
     // Quiz
     static let quizSelectAnswer = "quiz_select_answer"

@@ -20,6 +20,7 @@ struct HomeView: View {
                 }
                 .padding()
             }
+            .histudyShellBackground()
             .navigationTitle(L10n.appName.localized)
             .task { await viewModel.load(profile: appState.profile) }
             .navigationDestination(isPresented: $isPresentingSession) {
@@ -32,41 +33,40 @@ struct HomeView: View {
         HStack(spacing: 12) {
             Image(systemName: "flame.fill")
                 .font(.title2)
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.shell.gradientStart)
             VStack(alignment: .leading) {
                 Text("\(appState.profile.currentStreak)")
                     .font(.title.bold())
+                    .foregroundStyle(Theme.shell.ink)
                 Text(L10n.homeStreakLabel.localized)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.shell.metadata)
             }
             Spacer()
         }
-        .padding()
-        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .histudyCard()
     }
 
     private var sessionCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(L10n.homeTodaysSession.localized)
                 .font(.headline)
+                .foregroundStyle(Theme.shell.ink)
 
             if viewModel.plannedItemCount == 0 {
                 Text(L10n.homeAllCaughtUp.localized)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.shell.metadata)
             } else {
                 Text(String(format: L10n.homeMinutesToday.localized, viewModel.estimatedMinutes))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.shell.metadata)
 
                 Button(L10n.homeStartSession.localized) {
                     sessionItems = viewModel.buildSession(profile: appState.profile)
                     isPresentingSession = true
                 }
-                .buttonStyle(.borderedProminent)
-                .frame(maxWidth: .infinity)
+                .buttonStyle(.histudyPill)
             }
         }
-        .padding()
-        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .histudyCard()
     }
 }

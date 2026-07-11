@@ -71,6 +71,18 @@ final class LessonPlaybackViewModel: ObservableObject {
         play(language: language)
     }
 
+    /// Jumps to a specific point in the timeline (used by the "jump to a
+    /// part" chapter picker) and resumes narrating from there.
+    func seek(to time: Double, language: AppLanguage) {
+        pause()
+        currentTime = max(0, min(script.totalDurationSeconds, time))
+        isFinished = currentTime >= script.totalDurationSeconds
+        lastSpokenBeatID = nil
+        if !isFinished {
+            play(language: language)
+        }
+    }
+
     private func advance(by delta: Double, language: AppLanguage) {
         currentTime = min(script.totalDurationSeconds, currentTime + delta)
         if let beat = activeNarration, beat.id != lastSpokenBeatID {

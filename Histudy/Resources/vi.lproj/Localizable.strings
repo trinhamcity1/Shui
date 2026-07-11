@@ -40,6 +40,9 @@
 "lesson_continue_to_quiz" = "Tiếp tục đến bài kiểm tra";
 "lesson_skip" = "Bỏ qua";
 "lesson_replay" = "Xem lại";
+"lesson_menu_title" = "Tùy chọn bài học";
+"lesson_jump_to_part" = "Chuyển đến một phần…";
+"lesson_chapter_picker_title" = "Chuyển đến một phần";
 
 /* Quiz */
 "quiz_select_answer" = "Chọn câu trả lời đúng";

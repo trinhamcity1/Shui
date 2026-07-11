@@ -40,6 +40,9 @@
 "lesson_continue_to_quiz" = "Continue to quiz";
 "lesson_skip" = "Skip";
 "lesson_replay" = "Replay";
+"lesson_menu_title" = "Lesson options";
+"lesson_jump_to_part" = "Jump to a part…";
+"lesson_chapter_picker_title" = "Jump to a part";
 
 /* Quiz */
 "quiz_select_answer" = "Select the correct answer";

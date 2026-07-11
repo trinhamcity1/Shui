@@ -1,9 +1,37 @@
 import SwiftUI
 
-/// Individual "whiteboard" scene elements. Each is a small, self-contained
-/// SwiftUI view — together they're composed by `SceneCanvasView` into a
-/// lesson's timeline. Built entirely from vector shapes and SF Symbols so no
-/// external art assets are needed.
+/// Individual "whiteboard" scene elements, styled to `Theme.scene`: a flat
+/// vector-art look — matte canvas, sky-blue informational containers, red
+/// reserved only for emotional/semantic emphasis, and uniform charcoal
+/// 2-3px rounded-cap/join strokes mimicking hand-drawn digital ink. Each is
+/// a small, self-contained SwiftUI view — together they're composed by
+/// `SceneCanvasView` into a lesson's timeline. Built entirely from vector
+/// shapes and SF Symbols so no external art assets are needed.
+
+/// A stroke that "draws itself on" over `duration` seconds, the vector-art
+/// equivalent of a whiteboard pen sketching a line, used throughout this
+/// file for the staggered draw-in effect the theme calls for.
+private struct DrawOnStroke: ViewModifier {
+    var duration: Double = 0.6
+    var delay: Double = 0
+    @State private var progress: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(progress > 0 ? 1 : 0)
+            .onAppear {
+                withAnimation(.easeOut(duration: duration).delay(delay)) {
+                    progress = 1
+                }
+            }
+    }
+}
+
+private extension View {
+    func drawOn(duration: Double = 0.6, delay: Double = 0) -> some View {
+        modifier(DrawOnStroke(duration: duration, delay: delay))
+    }
+}
 
 struct TitleCardSceneView: View {
     let text: String
@@ -14,10 +42,12 @@ struct TitleCardSceneView: View {
             if let symbol {
                 Image(systemName: symbol)
                     .font(.system(size: 44))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(Theme.scene.stroke)
+                    .drawOn()
             }
             Text(text)
                 .font(.title2.bold())
+                .foregroundStyle(Theme.scene.stroke)
                 .multilineTextAlignment(.center)
         }
         .padding()
@@ -31,10 +61,17 @@ struct IconCalloutView: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: symbol)
-                .font(.system(size: 56))
-                .foregroundStyle(Color.accentColor)
+                .font(.system(size: 40))
+                .foregroundStyle(Theme.scene.accentRed)
+                .padding(20)
+                .overlay(
+                    Circle().stroke(Theme.scene.stroke, style: Theme.scene.strokeStyle)
+                )
+                .drawOn()
             if let caption {
-                Text(caption).font(.headline)
+                Text(caption)
+                    .font(.headline)
+                    .foregroundStyle(Theme.scene.stroke)
             }
         }
         .padding()
@@ -47,10 +84,16 @@ struct BulletListSceneView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            ForEach(items, id: \.self) { item in
-                Label(item.text(for: language), systemImage: "checkmark.circle.fill")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
+            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                Label {
+                    Text(item.text(for: language))
+                        .font(.headline)
+                        .foregroundStyle(Theme.scene.stroke)
+                } icon: {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Theme.scene.accentBlue)
+                }
+                .drawOn(delay: Double(index) * 0.15)
             }
         }
         .padding()
@@ -64,21 +107,25 @@ struct DocumentRevealView: View {
     var body: some View {
         VStack(spacing: 10) {
             if let symbol {
-                Image(systemName: symbol).font(.system(size: 36))
+                Image(systemName: symbol)
+                    .font(.system(size: 36))
+                    .foregroundStyle(Theme.scene.stroke)
             }
             Text(title)
                 .font(.title3.bold())
+                .foregroundStyle(Theme.scene.stroke)
                 .multilineTextAlignment(.center)
         }
         .padding(24)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(red: 0.96, green: 0.93, blue: 0.83))
+                .fill(Theme.scene.accentBlue.opacity(0.15))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color.brown.opacity(0.4), lineWidth: 2)
+                .stroke(Theme.scene.stroke, style: Theme.scene.strokeStyle)
         )
+        .drawOn()
     }
 }
 
@@ -93,10 +140,17 @@ struct TimelineBeatView: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(Capsule().fill(Color.accentColor))
-            Text(label).font(.headline)
+                .background(
+                    Capsule()
+                        .fill(Theme.scene.accentBlue)
+                        .overlay(Capsule().stroke(Theme.scene.stroke, style: Theme.scene.strokeStyle))
+                )
+            Text(label)
+                .font(.headline)
+                .foregroundStyle(Theme.scene.stroke)
         }
         .padding()
+        .drawOn()
     }
 }
 
@@ -106,16 +160,22 @@ struct ComparisonCardsView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            ForEach(items, id: \.self) { item in
+            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
                 Text(item.text(for: language))
                     .font(.subheadline.bold())
+                    .foregroundStyle(Theme.scene.stroke)
                     .multilineTextAlignment(.center)
                     .padding(10)
                     .frame(maxWidth: .infinity)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color.accentColor.opacity(0.15))
+                            .fill(Theme.scene.accentBlue.opacity(0.15))
                     )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(Theme.scene.stroke, style: Theme.scene.strokeStyle)
+                    )
+                    .drawOn(delay: Double(index) * 0.15)
             }
         }
         .padding()
@@ -128,13 +188,18 @@ struct QuoteSceneView: View {
     var body: some View {
         Text("\u{201C}\(text)\u{201D}")
             .font(.title3.italic())
+            .foregroundStyle(Theme.scene.stroke)
             .multilineTextAlignment(.center)
             .padding()
+            .drawOn()
     }
 }
 
 /// A stylized, non-cartographic U.S. flag: 13 stripes and a grid of stars,
-/// enough to teach the "13 stripes, 50 stars" civics fact visually.
+/// enough to teach the "13 stripes, 50 stars" civics fact visually. The
+/// flag's own red/white/blue are the literal subject matter, not a theme
+/// choice, but the outline follows the same charcoal vector-stroke treatment
+/// as everything else in the scene.
 struct FlagRevealView: View {
     var body: some View {
         GeometryReader { geo in
@@ -156,9 +221,10 @@ struct FlagRevealView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                .stroke(Theme.scene.stroke, style: Theme.scene.strokeStyle)
         )
         .padding()
+        .drawOn()
     }
 
     private var starGrid: some View {
@@ -187,7 +253,8 @@ struct MapPin: Identifiable {
 
 /// A schematic, illustrative map of the five U.S. regions used across the
 /// geography and history lessons. Positions are stylized for teaching, not
-/// cartographically precise state borders.
+/// cartographically precise state borders. Regions render as charcoal-
+/// stroked vector shapes, filled sky-blue when highlighted.
 struct USMapView: View {
     var highlightedRegions: Set<USRegion> = []
     var regionLabels: [USRegion: String] = [:]
@@ -204,12 +271,17 @@ struct USMapView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                ForEach(USRegion.allCases, id: \.self) { region in
+                ForEach(Array(USRegion.allCases.enumerated()), id: \.element) { index, region in
                     if let frame = Self.layout[region] {
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(color(for: region))
+                            .fill(fill(for: region))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .stroke(Theme.scene.stroke, style: Theme.scene.strokeStyle)
+                            )
                             .frame(width: frame.w * geo.size.width, height: frame.h * geo.size.height)
                             .position(x: frame.x * geo.size.width, y: frame.y * geo.size.height)
+                            .drawOn(delay: Double(index) * 0.1)
                     }
                 }
 
@@ -217,11 +289,13 @@ struct USMapView: View {
                     if let frame = Self.layout[pin.region] {
                         VStack(spacing: 2) {
                             Image(systemName: "mappin.circle.fill")
-                                .foregroundStyle(.red)
+                                .foregroundStyle(Theme.scene.accentRed)
                             Text(pin.city)
                                 .font(.caption2.bold())
+                                .foregroundStyle(Theme.scene.stroke)
                         }
                         .position(x: frame.x * geo.size.width, y: frame.y * geo.size.height)
+                        .drawOn()
                     }
                 }
 
@@ -229,13 +303,19 @@ struct USMapView: View {
                     if let frame = Self.layout[region], let label = regionLabels[region] {
                         Text(label)
                             .font(.caption.bold())
+                            .foregroundStyle(Theme.scene.stroke)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(.thinMaterial, in: Capsule())
+                            .background(
+                                Capsule()
+                                    .fill(Theme.scene.canvas)
+                                    .overlay(Capsule().stroke(Theme.scene.stroke, style: Theme.scene.strokeStyle))
+                            )
                             .position(
                                 x: frame.x * geo.size.width,
                                 y: max(14, frame.y * geo.size.height - frame.h * geo.size.height / 2 - 12)
                             )
+                            .drawOn()
                     }
                 }
             }
@@ -244,7 +324,7 @@ struct USMapView: View {
         .padding()
     }
 
-    private func color(for region: USRegion) -> Color {
-        highlightedRegions.contains(region) ? Color.accentColor : Color.gray.opacity(0.22)
+    private func fill(for region: USRegion) -> Color {
+        highlightedRegions.contains(region) ? Theme.scene.accentBlue.opacity(0.5) : Theme.scene.canvas
     }
 }
