@@ -71,6 +71,48 @@
 "progress_current_streak" = "Chuỗi ngày hiện tại";
 "progress_longest_streak" = "Chuỗi ngày dài nhất";
 
+/* Feed */
+"feed_tab" = "Bài học";
+"feed_swipe_for_next" = "Vuốt lên để xem bài tiếp theo";
+"feed_info_button" = "Chi tiết";
+"feed_ask_ai" = "Hỏi AI";
+
+/* Info & Community */
+"info_explanation_title" = "Về bài học này";
+"comments_title" = "Bình luận";
+"comments_placeholder" = "Viết bình luận…";
+"comments_send" = "Gửi";
+"comments_reply" = "Trả lời";
+"comments_empty" = "Chưa có bình luận nào — hãy là người đầu tiên!";
+"comments_guest_name" = "Khách";
+
+/* Sign-in & tiers */
+"signin_title" = "Lưu tiến độ của bạn";
+"signin_body" = "Đăng nhập để mở khóa tính năng cộng đồng và công cụ Pro như gia sư AI.";
+"signin_google" = "Tiếp tục với Google";
+"signin_facebook" = "Tiếp tục với Facebook";
+"signin_instagram" = "Tiếp tục với Instagram";
+"signin_later" = "Để sau";
+"tier_title" = "Chọn gói của bạn";
+"tier_free_title" = "Miễn phí";
+"tier_free_desc" = "Tất cả bài học, bài kiểm tra, và bình luận cộng đồng.";
+"tier_pro_title" = "Pro";
+"tier_pro_desc" = "Mọi thứ trong gói Miễn phí, cộng thêm trò chuyện với gia sư AI và phân tích kết quả nâng cao.";
+"pro_badge" = "PRO";
+"upgrade_title" = "Đây là tính năng Pro";
+"upgrade_body" = "Nâng cấp lên Pro để trò chuyện với gia sư AI và xem phân tích nâng cao.";
+"upgrade_cta" = "Nâng cấp lên Pro";
+"upgrade_later" = "Chưa phải bây giờ";
+
+/* AI chat */
+"chat_title" = "Gia Sư AI";
+"chat_opener" = "Bạn có thắc mắc gì về bài học này không? Cứ hỏi mình nhé.";
+"chat_placeholder" = "Hỏi về bài học này…";
+
+/* Pro analytics */
+"analytics_title" = "Độ chính xác theo chủ đề";
+"analytics_locked" = "Mở khóa phân tích độ chính xác với gói Pro";
+
 /* Settings */
 "settings_title" = "Cài Đặt";
 "settings_language" = "Ngôn ngữ ứng dụng";

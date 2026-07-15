@@ -8,6 +8,15 @@ struct CategoryMasterySummary: Identifiable {
     let mastered: Int
     let learning: Int
     let new: Int
+    /// Answer accuracy across studied questions in this category, 0...1,
+    /// or nil when nothing has been answered yet. Drives the pro-tier
+    /// analytics section.
+    let accuracy: Double?
+
+    var accuracyLabel: String {
+        guard let accuracy else { return "—" }
+        return "\(Int((accuracy * 100).rounded()))%"
+    }
 }
 
 @MainActor
@@ -34,6 +43,8 @@ final class ProgressViewModel: ObservableObject {
             var catMastered = 0
             var catLearning = 0
             var catNew = 0
+            var answeredCorrect = 0
+            var answeredTotal = 0
 
             for question in inCategory {
                 guard let progress = progressByID[question.id], !progress.isNew else {
@@ -45,6 +56,8 @@ final class ProgressViewModel: ObservableObject {
                 } else {
                     catLearning += 1
                 }
+                answeredCorrect += progress.timesCorrect
+                answeredTotal += progress.timesCorrect + progress.timesIncorrect
             }
 
             mastered += catMastered
@@ -56,7 +69,8 @@ final class ProgressViewModel: ObservableObject {
                 total: inCategory.count,
                 mastered: catMastered,
                 learning: catLearning,
-                new: catNew
+                new: catNew,
+                accuracy: answeredTotal > 0 ? Double(answeredCorrect) / Double(answeredTotal) : nil
             ))
         }
 

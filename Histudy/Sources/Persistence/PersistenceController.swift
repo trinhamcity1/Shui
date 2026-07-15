@@ -15,6 +15,8 @@ final class PersistenceController {
             UserProfile.self,
             QuestionProgress.self,
             SessionLog.self,
+            LessonComment.self,
+            TutorChatMessage.self,
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
         do {
@@ -66,6 +68,36 @@ final class PersistenceController {
     /// APIs stay confined to this file.
     func logSession(_ log: SessionLog) {
         container.mainContext.insert(log)
+        try? container.mainContext.save()
+    }
+
+    /// All comments for a lesson, oldest first. Threading (grouping replies
+    /// under their parent) is done in the view layer to keep the SwiftData
+    /// predicate simple.
+    func comments(for lessonID: String) -> [LessonComment] {
+        let predicate = #Predicate<LessonComment> { $0.lessonID == lessonID }
+        var descriptor = FetchDescriptor<LessonComment>(predicate: predicate)
+        descriptor.sortBy = [SortDescriptor(\.timestamp, order: .forward)]
+        return (try? container.mainContext.fetch(descriptor)) ?? []
+    }
+
+    func addComment(lessonID: String, authorName: String, text: String, parentID: UUID? = nil) {
+        let comment = LessonComment(lessonID: lessonID, authorName: authorName, text: text, parentID: parentID)
+        container.mainContext.insert(comment)
+        try? container.mainContext.save()
+    }
+
+    /// AI tutor chat history for a lesson, oldest first.
+    func chatMessages(for lessonID: String) -> [TutorChatMessage] {
+        let predicate = #Predicate<TutorChatMessage> { $0.lessonID == lessonID }
+        var descriptor = FetchDescriptor<TutorChatMessage>(predicate: predicate)
+        descriptor.sortBy = [SortDescriptor(\.timestamp, order: .forward)]
+        return (try? container.mainContext.fetch(descriptor)) ?? []
+    }
+
+    func addChatMessage(lessonID: String, isUser: Bool, text: String) {
+        let message = TutorChatMessage(lessonID: lessonID, isUser: isUser, text: text)
+        container.mainContext.insert(message)
         try? container.mainContext.save()
     }
 

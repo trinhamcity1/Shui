@@ -8,6 +8,9 @@ protocol TutorAIService {
     func greeting(profile: UserProfile) async -> TutorMessage
     func feedback(isCorrect: Bool, question: CivicsQuestion, profile: UserProfile) async -> TutorMessage
     func sessionSummary(session: SessionLog, profile: UserProfile) async -> TutorMessage
+    /// Pro-tier chat: answers a free-form question about a lesson, given
+    /// the user's earlier questions in this lesson's thread for continuity.
+    func chatReply(question: String, lesson: LessonScript, history: [String], profile: UserProfile) async -> TutorMessage
 }
 
 enum TutorAIServiceFactory {

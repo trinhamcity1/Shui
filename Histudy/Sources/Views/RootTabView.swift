@@ -3,8 +3,8 @@ import SwiftUI
 struct RootTabView: View {
     var body: some View {
         TabView {
-            HomeView()
-                .tabItem { Label(L10n.homeTabHome.localized, systemImage: "house.fill") }
+            FeedView()
+                .tabItem { Label(L10n.feedTab.localized, systemImage: "play.rectangle.fill") }
             ProgressDashboardView()
                 .tabItem { Label(L10n.homeTabProgress.localized, systemImage: "chart.bar.fill") }
             SettingsView()

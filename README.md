@@ -152,6 +152,49 @@ task, not something to bolt on by hard-coding a key into this codebase.
 session history — lives on-device via SwiftData. There's nothing to stand
 up to run the MVP.
 
+## TikTok-style feed & freemium (local-first)
+
+The primary interface is a full-screen **vertical paging feed** (`FeedView`):
+swipe up for the next lesson, down for the previous. Each page plays its
+whiteboard lesson, then presents a 1–2 question quiz, then nudges the
+learner onward. Miss a question and that lesson **resurfaces ~5 pages
+later** (`FeedPlanner.resurfaceIndex`) with a freshly shuffled option set —
+the SM-2 engine drives both the initial feed order and long-term review
+scheduling.
+
+The spec's prefetch/caching/progressive-playback requirements are satisfied
+trivially today: lesson "videos" are procedurally rendered from bundled
+JSON, so there is nothing to download and scrolling can't stall. When real
+streamed video (S3 + AVPlayer) lands, `FeedViewModel` is the place to add a
+prefetch window around the visible page.
+
+**Freemium flow**: after two completed feed lessons, a sign-in sheet
+appears (Google/Facebook/Instagram buttons — currently *simulated*: the
+choice is recorded locally, since real OAuth needs provider registrations
+plus Firebase Auth/Cognito). Then a Free/Pro tier choice. Free gets
+lessons, quizzes, and community comments; Pro unlocks the **AI tutor chat**
+(offline retrieval-based today, backend LLM via `TutorBackendURL` when
+configured) and the **accuracy-by-category analytics** section. "Upgrading"
+sets the tier locally — real payments need StoreKit + App Store Connect.
+
+**Local mirrors of the spec's backend tables** (swap the storage, keep the
+UI):
+
+| Spec table          | Local implementation                          |
+|---------------------|-----------------------------------------------|
+| Lessons             | Bundled `lessons.json` + `civics_questions.json` |
+| Quiz Questions      | `CivicsQuestion` + `QuizOptionBuilder` shuffling |
+| User Accounts       | `UserProfile` (tier, provider, sign-in state) |
+| User Progress       | `QuestionProgress` + `SessionLog` (SwiftData) |
+| Comments            | `LessonComment` (SwiftData, threaded via `parentID`) |
+| Pro User Questions  | `TutorChatMessage` (SwiftData, per lesson)    |
+
+**What still requires real infrastructure** (deliberately not faked in
+code): Firebase/Firestore or AWS RDS, S3 video hosting + AVPlayer streaming,
+real OAuth, StoreKit payments, cross-device comment sync, and a hosted LLM
+endpoint for generative tutoring. Each local piece above was shaped so that
+swap is additive.
+
 ## What's explicitly out of scope for this MVP
 
 - A second character, or character customization

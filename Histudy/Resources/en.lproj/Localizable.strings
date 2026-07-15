@@ -71,6 +71,48 @@
 "progress_current_streak" = "Current streak";
 "progress_longest_streak" = "Longest streak";
 
+/* Feed */
+"feed_tab" = "Lessons";
+"feed_swipe_for_next" = "Swipe up for the next lesson";
+"feed_info_button" = "Info";
+"feed_ask_ai" = "Ask AI";
+
+/* Info & Community */
+"info_explanation_title" = "About this lesson";
+"comments_title" = "Comments";
+"comments_placeholder" = "Add a comment…";
+"comments_send" = "Send";
+"comments_reply" = "Reply";
+"comments_empty" = "No comments yet — be the first!";
+"comments_guest_name" = "Guest";
+
+/* Sign-in & tiers */
+"signin_title" = "Save your progress";
+"signin_body" = "Sign in to unlock community features and pro tools like the AI tutor.";
+"signin_google" = "Continue with Google";
+"signin_facebook" = "Continue with Facebook";
+"signin_instagram" = "Continue with Instagram";
+"signin_later" = "Maybe later";
+"tier_title" = "Choose your plan";
+"tier_free_title" = "Free";
+"tier_free_desc" = "All lessons, quizzes, and community comments.";
+"tier_pro_title" = "Pro";
+"tier_pro_desc" = "Everything in Free, plus the AI tutor chat and advanced performance analytics.";
+"pro_badge" = "PRO";
+"upgrade_title" = "This is a Pro feature";
+"upgrade_body" = "Upgrade to Pro to chat with the AI tutor and see advanced analytics.";
+"upgrade_cta" = "Upgrade to Pro";
+"upgrade_later" = "Not now";
+
+/* AI chat */
+"chat_title" = "AI Tutor";
+"chat_opener" = "Do you have questions about this lesson? Ask me anything.";
+"chat_placeholder" = "Ask about this lesson…";
+
+/* Pro analytics */
+"analytics_title" = "Accuracy by category";
+"analytics_locked" = "Unlock accuracy analytics with Pro";
+
 /* Settings */
 "settings_title" = "Settings";
 "settings_language" = "App language";

@@ -3,6 +3,7 @@ import SwiftUI
 struct ProgressDashboardView: View {
     @StateObject private var viewModel = ProgressViewModel()
     @EnvironmentObject private var appState: AppState
+    @State private var showingUpgrade = false
 
     var body: some View {
         NavigationStack {
@@ -40,12 +41,26 @@ struct ProgressDashboardView: View {
                     }
                 }
                 .listRowBackground(Color.white)
+
+                Section(L10n.analyticsTitle.localized) {
+                    if appState.profile.isPro {
+                        ForEach(viewModel.categorySummaries) { summary in
+                            accuracyRow(summary)
+                        }
+                    } else {
+                        analyticsLockedRow
+                    }
+                }
+                .listRowBackground(Color.white)
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .histudyShellBackground()
             .navigationTitle(L10n.progressTitle.localized)
             .onAppear { viewModel.load() }
+            .sheet(isPresented: $showingUpgrade) {
+                UpgradePromptView()
+            }
         }
     }
 
@@ -69,5 +84,39 @@ struct ProgressDashboardView: View {
             Text("\(summary.mastered)/\(summary.total)")
                 .foregroundStyle(Theme.shell.metadata)
         }
+    }
+
+    private func accuracyRow(_ summary: CategoryMasterySummary) -> some View {
+        HStack {
+            if let info = summary.info {
+                Text(appState.profile.uiLanguage == .vietnamese ? info.nameVI : info.nameEN)
+                    .foregroundStyle(Theme.shell.ink)
+            }
+            Spacer()
+            Text(summary.accuracyLabel)
+                .bold()
+                .foregroundStyle(Theme.shell.ink)
+        }
+    }
+
+    private var analyticsLockedRow: some View {
+        Button {
+            showingUpgrade = true
+        } label: {
+            HStack {
+                Image(systemName: "lock.fill")
+                    .foregroundStyle(Theme.shell.gradientEnd)
+                Text(L10n.analyticsLocked.localized)
+                    .foregroundStyle(Theme.shell.metadata)
+                Spacer()
+                Text(L10n.proBadge.localized)
+                    .font(.caption2.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Theme.shell.accentGradient, in: Capsule())
+            }
+        }
+        .buttonStyle(.plain)
     }
 }

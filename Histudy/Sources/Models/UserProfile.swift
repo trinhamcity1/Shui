@@ -18,6 +18,15 @@ final class UserProfile {
     var dailyGoalMinutes: Int
     var hasCompletedOnboarding: Bool
 
+    // Freemium/account state. Declared with defaults so SwiftData can
+    // lightweight-migrate stores created before these fields existed.
+    var subscriptionTierRaw: String = SubscriptionTier.free.rawValue
+    var authProviderRaw: String?
+    var isSignedIn: Bool = false
+    /// Lessons completed in the feed, driving the "sign in after two
+    /// lessons" prompt.
+    var feedLessonsCompleted: Int = 0
+
     /// Encoded `LocalOfficialsProfile` (state, Senators, Representative,
     /// Governor) — stored as JSON since SwiftData models can't easily embed
     /// arbitrary Codable structs as first-class relationships for a value type.
@@ -48,6 +57,18 @@ final class UserProfile {
         get { AppLanguage(rawValue: uiLanguageRaw) ?? .vietnamese }
         set { uiLanguageRaw = newValue.rawValue }
     }
+
+    var subscriptionTier: SubscriptionTier {
+        get { SubscriptionTier(rawValue: subscriptionTierRaw) ?? .free }
+        set { subscriptionTierRaw = newValue.rawValue }
+    }
+
+    var authProvider: AuthProvider? {
+        get { authProviderRaw.flatMap(AuthProvider.init(rawValue:)) }
+        set { authProviderRaw = newValue?.rawValue }
+    }
+
+    var isPro: Bool { subscriptionTier == .pro }
 
     var localOfficials: LocalOfficialsProfile {
         get {

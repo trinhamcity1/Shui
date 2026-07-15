@@ -76,6 +76,48 @@ enum L10n {
     static let progressCurrentStreak = "progress_current_streak"
     static let progressLongestStreak = "progress_longest_streak"
 
+    // Feed
+    static let feedTab = "feed_tab"
+    static let feedSwipeForNext = "feed_swipe_for_next"
+    static let feedInfoButton = "feed_info_button"
+    static let feedAskAI = "feed_ask_ai"
+
+    // Info & Community
+    static let infoExplanationTitle = "info_explanation_title"
+    static let commentsTitle = "comments_title"
+    static let commentsPlaceholder = "comments_placeholder"
+    static let commentsSend = "comments_send"
+    static let commentsReply = "comments_reply"
+    static let commentsEmpty = "comments_empty"
+    static let commentsGuestName = "comments_guest_name"
+
+    // Sign-in & tiers
+    static let signinTitle = "signin_title"
+    static let signinBody = "signin_body"
+    static let signinGoogle = "signin_google"
+    static let signinFacebook = "signin_facebook"
+    static let signinInstagram = "signin_instagram"
+    static let signinLater = "signin_later"
+    static let tierTitle = "tier_title"
+    static let tierFreeTitle = "tier_free_title"
+    static let tierFreeDesc = "tier_free_desc"
+    static let tierProTitle = "tier_pro_title"
+    static let tierProDesc = "tier_pro_desc"
+    static let proBadge = "pro_badge"
+    static let upgradeTitle = "upgrade_title"
+    static let upgradeBody = "upgrade_body"
+    static let upgradeCTA = "upgrade_cta"
+    static let upgradeLater = "upgrade_later"
+
+    // AI chat
+    static let chatTitle = "chat_title"
+    static let chatOpener = "chat_opener"
+    static let chatPlaceholder = "chat_placeholder"
+
+    // Pro analytics
+    static let analyticsTitle = "analytics_title"
+    static let analyticsLocked = "analytics_locked"
+
     // Settings
     static let settingsTitle = "settings_title"
     static let settingsLanguage = "settings_language"

@@ -61,6 +61,19 @@ final class RemoteLLMTutorAI: TutorAIService {
         return await fallback.sessionSummary(session: log, profile: profile)
     }
 
+    func chatReply(question: String, lesson: LessonScript, history: [String], profile: UserProfile) async -> TutorMessage {
+        let context = [
+            "question": question,
+            "lessonTitle": lesson.titleEN,
+            "lessonQuestionIds": lesson.questionIds.map(String.init).joined(separator: ","),
+            "history": history.suffix(5).joined(separator: "\n"),
+        ]
+        if let message = await request(kind: "chat", context: context) {
+            return message
+        }
+        return await fallback.chatReply(question: question, lesson: lesson, history: history, profile: profile)
+    }
+
     private struct RemoteResponse: Decodable {
         let textEN: String
         let textVI: String
