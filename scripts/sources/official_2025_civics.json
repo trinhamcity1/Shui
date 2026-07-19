@@ -1,0 +1,1932 @@
+[
+  {
+    "officialId2025": 1,
+    "category": "gov_principles",
+    "questionEN": "What is the form of government of the United States?",
+    "answersEN": [
+      "Republic",
+      "Constitution-based federal republic",
+      "Representative democracy"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 2,
+    "category": "gov_principles",
+    "questionEN": "What is the supreme law of the land?",
+    "answersEN": [
+      "(U.S.) Constitution"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 3,
+    "category": "gov_principles",
+    "questionEN": "Name one thing the U.S. Constitution does.",
+    "answersEN": [
+      "Forms the government",
+      "Defines powers of government",
+      "Defines the parts of government",
+      "Protects the rights of the people"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 4,
+    "category": "gov_principles",
+    "questionEN": "The U.S. Constitution starts with the words “We the People.” What does “We the People” mean?",
+    "answersEN": [
+      "Self-government",
+      "Popular sovereignty",
+      "Consent of the governed",
+      "People should govern themselves",
+      "(Example of) social contract"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 5,
+    "category": "gov_principles",
+    "questionEN": "How are changes made to the U.S. Constitution?",
+    "answersEN": [
+      "Amendments",
+      "The amendment process"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 6,
+    "category": "gov_principles",
+    "questionEN": "What does the Bill of Rights protect?",
+    "answersEN": [
+      "(The basic) rights of Americans",
+      "(The basic) rights of people living in the United States"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 7,
+    "category": "gov_principles",
+    "questionEN": "How many amendments does the U.S. Constitution have?",
+    "answersEN": [
+      "Twenty-seven (27)"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 8,
+    "category": "gov_principles",
+    "questionEN": "Why is the Declaration of Independence important?",
+    "answersEN": [
+      "It says America is free from British control.",
+      "It says all people are created equal.",
+      "It identifies inherent rights.",
+      "It identifies individual freedoms."
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 9,
+    "category": "gov_principles",
+    "questionEN": "What founding document said the American colonies were free from Britain?",
+    "answersEN": [
+      "Declaration of Independence"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 10,
+    "category": "gov_principles",
+    "questionEN": "Name two important ideas from the Declaration of Independence and the U.S. Constitution.",
+    "answersEN": [
+      "Equality",
+      "Liberty",
+      "Social contract",
+      "Natural rights",
+      "Limited government",
+      "Self-government"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 2,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 11,
+    "category": "gov_principles",
+    "questionEN": "The words “Life, Liberty, and the pursuit of Happiness” are in what founding document?",
+    "answersEN": [
+      "Declaration of Independence"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 12,
+    "category": "gov_principles",
+    "questionEN": "What is the economic system of the United States?",
+    "answersEN": [
+      "Capitalism",
+      "Free market economy"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 13,
+    "category": "gov_principles",
+    "questionEN": "What is the rule of law?",
+    "answersEN": [
+      "Everyone must follow the law.",
+      "Leaders must obey the law.",
+      "Government must obey the law.",
+      "No one is above the law."
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 14,
+    "category": "gov_principles",
+    "questionEN": "Many documents influenced the U.S. Constitution. Name one.",
+    "answersEN": [
+      "Declaration of Independence",
+      "Articles of Confederation",
+      "Federalist Papers",
+      "Anti-Federalist Papers",
+      "Virginia Declaration of Rights",
+      "Fundamental Orders of Connecticut",
+      "Mayflower Compact",
+      "Iroquois Great Law of Peace"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 15,
+    "category": "gov_principles",
+    "questionEN": "There are three branches of government. Why?",
+    "answersEN": [
+      "So one part does not become too powerful",
+      "Checks and balances",
+      "Separation of powers"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 16,
+    "category": "gov_system",
+    "questionEN": "Name the three branches of government.",
+    "answersEN": [
+      "Legislative, executive, and judicial",
+      "Congress, president, and the courts"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 3,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 17,
+    "category": "gov_system",
+    "questionEN": "The President of the United States is in charge of which branch of government?",
+    "answersEN": [
+      "Executive branch"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 18,
+    "category": "gov_system",
+    "questionEN": "What part of the federal government writes laws?",
+    "answersEN": [
+      "(U.S.) Congress",
+      "(U.S. or national) legislature",
+      "Legislative branch"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 19,
+    "category": "gov_system",
+    "questionEN": "What are the two parts of the U.S. Congress?",
+    "answersEN": [
+      "Senate and House (of Representatives)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 2,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 20,
+    "category": "gov_system",
+    "questionEN": "Name one power of the U.S. Congress.",
+    "answersEN": [
+      "Writes laws",
+      "Declares war",
+      "Makes the federal budget"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 21,
+    "category": "gov_system",
+    "questionEN": "How many U.S. senators are there?",
+    "answersEN": [
+      "One hundred (100)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 22,
+    "category": "gov_system",
+    "questionEN": "How long is a term for a U.S. senator?",
+    "answersEN": [
+      "Six (6) years"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 23,
+    "category": "gov_system",
+    "questionEN": "Who is one of your state’s U.S. senators now?",
+    "answersEN": [],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": "Answers will vary. [District of Columbia residents and residents of U.S. territories should answer that D.C. (or the territory where the applicant lives) has no U.S. senators.]",
+    "dynamicType": "userStateOfficeholder",
+    "officeholderRole": "stateSenators"
+  },
+  {
+    "officialId2025": 24,
+    "category": "gov_system",
+    "questionEN": "How many voting members are in the House of Representatives?",
+    "answersEN": [
+      "Four hundred thirty-five (435)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 25,
+    "category": "gov_system",
+    "questionEN": "How long is a term for a member of the House of Representatives?",
+    "answersEN": [
+      "Two (2) years"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 26,
+    "category": "gov_system",
+    "questionEN": "Why do U.S. representatives serve shorter terms than U.S. senators?",
+    "answersEN": [
+      "To more closely follow public opinion"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 27,
+    "category": "gov_system",
+    "questionEN": "How many senators does each state have?",
+    "answersEN": [
+      "Two (2)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 28,
+    "category": "gov_system",
+    "questionEN": "Why does each state have two senators?",
+    "answersEN": [
+      "Equal representation (for small states)",
+      "The Great Compromise (Connecticut Compromise)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 29,
+    "category": "gov_system",
+    "questionEN": "Name your U.S. representative.",
+    "answersEN": [],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": "Answers will vary. [Residents of territories with nonvoting Delegates or Resident Commissioners may provide the name of that Delegate or Commissioner. Also acceptable is any statement that the territory has no (voting) representatives in Congress.]",
+    "dynamicType": "userStateOfficeholder",
+    "officeholderRole": "representative"
+  },
+  {
+    "officialId2025": 30,
+    "category": "gov_system",
+    "questionEN": "What is the name of the Speaker of the House of Representatives now?",
+    "answersEN": [],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": "Visit uscis.gov/citizenship/testupdates for the name of the Speaker of the House of Representatives.",
+    "dynamicType": "nationalOfficeholder",
+    "officeholderRole": "speakerOfHouse"
+  },
+  {
+    "officialId2025": 31,
+    "category": "gov_system",
+    "questionEN": "Who does a U.S. senator represent?",
+    "answersEN": [
+      "Citizens of their state",
+      "People of their state"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 32,
+    "category": "gov_system",
+    "questionEN": "Who elects U.S. senators?",
+    "answersEN": [
+      "Citizens from their state"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 33,
+    "category": "gov_system",
+    "questionEN": "Who does a member of the House of Representatives represent?",
+    "answersEN": [
+      "Citizens in their (congressional) district",
+      "Citizens in their district",
+      "People from their (congressional) district",
+      "People in their district"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 34,
+    "category": "gov_system",
+    "questionEN": "Who elects members of the House of Representatives?",
+    "answersEN": [
+      "Citizens from their (congressional) district"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 35,
+    "category": "gov_system",
+    "questionEN": "Some states have more representatives than other states. Why?",
+    "answersEN": [
+      "(Because of) the state’s population",
+      "(Because) they have more people",
+      "(Because) some states have more people"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 36,
+    "category": "gov_system",
+    "questionEN": "The President of the United States is elected for how many years?",
+    "answersEN": [
+      "Four (4) years"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 37,
+    "category": "gov_system",
+    "questionEN": "The President of the United States can serve only two terms. Why?",
+    "answersEN": [
+      "(Because of) the 22nd Amendment",
+      "To keep the president from becoming too powerful"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 38,
+    "category": "gov_system",
+    "questionEN": "What is the name of the President of the United States now?",
+    "answersEN": [],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": "Visit uscis.gov/citizenship/testupdates for the name of the President of the United States.",
+    "dynamicType": "nationalOfficeholder",
+    "officeholderRole": "president"
+  },
+  {
+    "officialId2025": 39,
+    "category": "gov_system",
+    "questionEN": "What is the name of the Vice President of the United States now?",
+    "answersEN": [],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": "Visit uscis.gov/citizenship/testupdates for the name of the Vice President of the United States.",
+    "dynamicType": "nationalOfficeholder",
+    "officeholderRole": "vicePresident"
+  },
+  {
+    "officialId2025": 40,
+    "category": "gov_system",
+    "questionEN": "If the president can no longer serve, who becomes president?",
+    "answersEN": [
+      "The Vice President (of the United States)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 41,
+    "category": "gov_system",
+    "questionEN": "Name one power of the president.",
+    "answersEN": [
+      "Signs bills into law",
+      "Vetoes bills",
+      "Enforces laws",
+      "Commander in Chief (of the military)",
+      "Chief diplomat",
+      "Appoints federal judges"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 42,
+    "category": "gov_system",
+    "questionEN": "Who is Commander in Chief of the U.S. military?",
+    "answersEN": [
+      "The President (of the United States)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 43,
+    "category": "gov_system",
+    "questionEN": "Who signs bills to become laws?",
+    "answersEN": [
+      "The President (of the United States)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 44,
+    "category": "gov_system",
+    "questionEN": "Who vetoes bills?",
+    "answersEN": [
+      "The President (of the United States)"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 45,
+    "category": "gov_system",
+    "questionEN": "Who appoints federal judges?",
+    "answersEN": [
+      "The President (of the United States)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 46,
+    "category": "gov_system",
+    "questionEN": "The executive branch has many parts. Name one.",
+    "answersEN": [
+      "President (of the United States)",
+      "Cabinet",
+      "Federal departments and agencies"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 47,
+    "category": "gov_system",
+    "questionEN": "What does the President’s Cabinet do?",
+    "answersEN": [
+      "Advises the President (of the United States)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 48,
+    "category": "gov_system",
+    "questionEN": "What are two Cabinet-level positions?",
+    "answersEN": [
+      "Attorney General",
+      "Secretary of Agriculture",
+      "Secretary of Commerce",
+      "Secretary of Education",
+      "Secretary of Energy",
+      "Secretary of Health and Human Services",
+      "Secretary of Homeland Security",
+      "Secretary of Housing and Urban Development",
+      "Secretary of the Interior",
+      "Secretary of Labor",
+      "Secretary of State",
+      "Secretary of Transportation",
+      "Secretary of the Treasury",
+      "Secretary of Veterans Affairs",
+      "Secretary of War (Defense)",
+      "Vice-President",
+      "Administrator of the Environmental Protection Agency",
+      "Administrator of the Small Business Administration",
+      "Director of the Central Intelligence Agency",
+      "Director of the Office of Management and Budget",
+      "Director of National Intelligence",
+      "United States Trade Representative"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 2,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 49,
+    "category": "gov_system",
+    "questionEN": "Why is the Electoral College important?",
+    "answersEN": [
+      "It decides who is elected president.",
+      "It provides a compromise between the popular election of the president and congressional selection."
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 50,
+    "category": "gov_system",
+    "questionEN": "What is one part of the judicial branch?",
+    "answersEN": [
+      "Supreme Court",
+      "Federal Courts"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 51,
+    "category": "gov_system",
+    "questionEN": "What does the judicial branch do?",
+    "answersEN": [
+      "Reviews laws",
+      "Explains laws",
+      "Resolves disputes (disagreements) about the law",
+      "Decides if a law goes against the (U.S.) Constitution"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 52,
+    "category": "gov_system",
+    "questionEN": "What is the highest court in the United States?",
+    "answersEN": [
+      "Supreme Court"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 53,
+    "category": "gov_system",
+    "questionEN": "How many seats are on the Supreme Court?",
+    "answersEN": [
+      "Nine (9)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 54,
+    "category": "gov_system",
+    "questionEN": "How many Supreme Court justices are usually needed to decide a case?",
+    "answersEN": [
+      "Five (5)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 55,
+    "category": "gov_system",
+    "questionEN": "How long do Supreme Court justices serve?",
+    "answersEN": [
+      "(For) life",
+      "Lifetime appointment",
+      "(Until) retirement"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 56,
+    "category": "gov_system",
+    "questionEN": "Supreme Court justices serve for life. Why?",
+    "answersEN": [
+      "To be independent (of politics)",
+      "To limit outside (political) influence"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 57,
+    "category": "gov_system",
+    "questionEN": "Who is the Chief Justice of the United States now?",
+    "answersEN": [],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": "Visit uscis.gov/citizenship/testupdates for the name of the Chief Justice of the United States.",
+    "dynamicType": "nationalOfficeholder",
+    "officeholderRole": "chiefJustice"
+  },
+  {
+    "officialId2025": 58,
+    "category": "gov_system",
+    "questionEN": "Name one power that is only for the federal government.",
+    "answersEN": [
+      "Print paper money",
+      "Mint coins",
+      "Declare war",
+      "Create an army",
+      "Make treaties",
+      "Set foreign policy"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 59,
+    "category": "gov_system",
+    "questionEN": "Name one power that is only for the states.",
+    "answersEN": [
+      "Provide schooling and education",
+      "Provide protection (police)",
+      "Provide safety (fire departments)",
+      "Give a driver’s license",
+      "Approve zoning and land use"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 60,
+    "category": "gov_system",
+    "questionEN": "What is the purpose of the 10th Amendment?",
+    "answersEN": [
+      "(It states that the) powers not given to the federal government belong to the states or to the people."
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 61,
+    "category": "gov_system",
+    "questionEN": "Who is the governor of your state now?",
+    "answersEN": [],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": "Answers will vary. [District of Columbia residents should answer that D.C. does not have a governor.]",
+    "dynamicType": "userStateOfficeholder",
+    "officeholderRole": "governor"
+  },
+  {
+    "officialId2025": 62,
+    "category": "gov_system",
+    "questionEN": "What is the capital of your state?",
+    "answersEN": [],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": "Answers will vary. [District of Columbia residents should answer that D.C. is not a state and does not have a capital. Residents of U.S. territories should name the capital of the territory.]",
+    "dynamicType": "userStateCapital",
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 63,
+    "category": "gov_rights",
+    "questionEN": "There are four amendments to the U.S. Constitution about who can vote. Describe one of them.",
+    "answersEN": [
+      "Citizens eighteen (18) and older (can vote).",
+      "You don’t have to pay (a poll tax) to vote.",
+      "Any citizen can vote. (Women and men can vote.)",
+      "A male citizen of any race (can vote)."
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 64,
+    "category": "gov_rights",
+    "questionEN": "Who can vote in federal elections, run for federal office, and serve on a jury in the United States?",
+    "answersEN": [
+      "Citizens",
+      "Citizens of the United States",
+      "U.S. citizens"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 65,
+    "category": "gov_rights",
+    "questionEN": "What are three rights of everyone living in the United States?",
+    "answersEN": [
+      "Freedom of expression",
+      "Freedom of speech",
+      "Freedom of assembly",
+      "Freedom to petition the government",
+      "Freedom of religion",
+      "The right to bear arms"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 3,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 66,
+    "category": "gov_rights",
+    "questionEN": "What do we show loyalty to when we say the Pledge of Allegiance?",
+    "answersEN": [
+      "The United States",
+      "The flag"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 67,
+    "category": "gov_rights",
+    "questionEN": "Name two promises that new citizens make in the Oath of Allegiance.",
+    "answersEN": [
+      "Give up loyalty to other countries",
+      "Defend the (U.S.) Constitution",
+      "Obey the laws of the United States",
+      "Serve in the military (if needed)",
+      "Serve (help, do important work for) the nation (if needed)",
+      "Be loyal to the United States"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 2,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 68,
+    "category": "gov_rights",
+    "questionEN": "How can people become United States citizens?",
+    "answersEN": [
+      "Be born in the United States, under the conditions set by the 14th Amendment",
+      "Naturalize",
+      "Derive citizenship (under conditions set by Congress)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 69,
+    "category": "gov_rights",
+    "questionEN": "What are two examples of civic participation in the United States?",
+    "answersEN": [
+      "Vote",
+      "Run for office",
+      "Join a political party",
+      "Help with a campaign",
+      "Join a civic group",
+      "Join a community group",
+      "Give an elected official your opinion (on an issue)",
+      "Contact elected officials",
+      "Support or oppose an issue or policy",
+      "Write to a newspaper"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 2,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 70,
+    "category": "gov_rights",
+    "questionEN": "What is one way Americans can serve their country?",
+    "answersEN": [
+      "Vote",
+      "Pay taxes",
+      "Obey the law",
+      "Serve in the military",
+      "Run for office",
+      "Work for local, state, or federal government"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 71,
+    "category": "gov_rights",
+    "questionEN": "Why is it important to pay federal taxes?",
+    "answersEN": [
+      "Required by law",
+      "All people pay to fund the federal government",
+      "Required by the (U.S.) Constitution (16th Amendment)",
+      "Civic duty"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 72,
+    "category": "gov_rights",
+    "questionEN": "It is important for all men age 18 through 25 to register for the Selective Service. Name one reason why.",
+    "answersEN": [
+      "Required by law",
+      "Civic duty",
+      "Makes the draft fair, if needed"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 73,
+    "category": "history_colonial",
+    "questionEN": "The colonists came to America for many reasons. Name one.",
+    "answersEN": [
+      "Freedom",
+      "Political liberty",
+      "Religious freedom",
+      "Economic opportunity",
+      "Escape persecution"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 74,
+    "category": "history_colonial",
+    "questionEN": "Who lived in America before the Europeans arrived?",
+    "answersEN": [
+      "American Indians",
+      "Native Americans"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 75,
+    "category": "history_colonial",
+    "questionEN": "What group of people was taken and sold as slaves?",
+    "answersEN": [
+      "Africans",
+      "People from Africa"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 76,
+    "category": "history_colonial",
+    "questionEN": "What war did the Americans fight to win independence from Britain?",
+    "answersEN": [
+      "American Revolution",
+      "The (American) Revolutionary War",
+      "War for (American) Independence"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 77,
+    "category": "history_colonial",
+    "questionEN": "Name one reason why the Americans declared independence from Britain.",
+    "answersEN": [
+      "High taxes",
+      "Taxation without representation",
+      "British soldiers stayed in Americans’ houses (boarding, quartering)",
+      "They did not have self-government",
+      "Boston Massacre",
+      "Boston Tea Party (Tea Act)",
+      "Stamp Act",
+      "Sugar Act",
+      "Townshend Acts",
+      "Intolerable (Coercive) Acts"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 78,
+    "category": "history_colonial",
+    "questionEN": "Who wrote the Declaration of Independence?",
+    "answersEN": [
+      "(Thomas) Jefferson"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 79,
+    "category": "history_colonial",
+    "questionEN": "When was the Declaration of Independence adopted?",
+    "answersEN": [
+      "July 4, 1776"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 80,
+    "category": "history_colonial",
+    "questionEN": "The American Revolution had many important events. Name one.",
+    "answersEN": [
+      "(Battle of) Bunker Hill",
+      "Declaration of Independence",
+      "Washington Crossing the Delaware (Battle of Trenton)",
+      "(Battle of) Saratoga",
+      "Valley Forge (Encampment)",
+      "(Battle of) Yorktown (British surrender at Yorktown)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 81,
+    "category": "history_colonial",
+    "questionEN": "There were 13 original states. Name five.",
+    "answersEN": [
+      "New Hampshire",
+      "Massachusetts",
+      "Rhode Island",
+      "Connecticut",
+      "New York",
+      "New Jersey",
+      "Pennsylvania",
+      "Delaware",
+      "Maryland",
+      "Virginia",
+      "North Carolina",
+      "South Carolina",
+      "Georgia"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 5,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 82,
+    "category": "history_colonial",
+    "questionEN": "What founding document was written in 1787?",
+    "answersEN": [
+      "(U.S.) Constitution"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 83,
+    "category": "history_colonial",
+    "questionEN": "The Federalist Papers supported the passage of the U.S. Constitution. Name one of the writers.",
+    "answersEN": [
+      "(James) Madison",
+      "(Alexander) Hamilton",
+      "(John) Jay",
+      "Publius"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 84,
+    "category": "history_colonial",
+    "questionEN": "Why were the Federalist Papers important?",
+    "answersEN": [
+      "They helped people understand the (U.S.) Constitution.",
+      "They supported passing the (U.S.) Constitution."
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 85,
+    "category": "history_colonial",
+    "questionEN": "Benjamin Franklin is famous for many things. Name one.",
+    "answersEN": [
+      "Founded the first free public libraries",
+      "First Postmaster General of the United States",
+      "Helped write the Declaration of Independence",
+      "Inventor",
+      "U.S. diplomat"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 86,
+    "category": "history_colonial",
+    "questionEN": "George Washington is famous for many things. Name one.",
+    "answersEN": [
+      "“Father of Our Country”",
+      "First president of the United States",
+      "General of the Continental Army",
+      "President of the Constitutional Convention"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 87,
+    "category": "history_colonial",
+    "questionEN": "Thomas Jefferson is famous for many things. Name one.",
+    "answersEN": [
+      "Writer of the Declaration of Independence",
+      "Third president of the United States",
+      "Doubled the size of the United States (Louisiana Purchase)",
+      "First Secretary of State",
+      "Founded the University of Virginia",
+      "Writer of the Virginia Statute on Religious Freedom"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 88,
+    "category": "history_colonial",
+    "questionEN": "James Madison is famous for many things. Name one.",
+    "answersEN": [
+      "“Father of the Constitution”",
+      "Fourth president of the United States",
+      "President during the War of 1812",
+      "One of the writers of the Federalist Papers"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 89,
+    "category": "history_colonial",
+    "questionEN": "Alexander Hamilton is famous for many things. Name one.",
+    "answersEN": [
+      "First Secretary of the Treasury",
+      "One of the writers of the Federalist Papers",
+      "Helped establish the First Bank of the United States",
+      "Aide to General George Washington",
+      "Member of the Continental Congress"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 90,
+    "category": "history_1800s",
+    "questionEN": "What territory did the United States buy from France in 1803?",
+    "answersEN": [
+      "Louisiana Territory",
+      "Louisiana"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 91,
+    "category": "history_1800s",
+    "questionEN": "Name one war fought by the United States in the 1800s.",
+    "answersEN": [
+      "War of 1812",
+      "Mexican-American War",
+      "Civil War",
+      "Spanish-American War"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 92,
+    "category": "history_1800s",
+    "questionEN": "Name the U.S. war between the North and the South.",
+    "answersEN": [
+      "The Civil War"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 93,
+    "category": "history_1800s",
+    "questionEN": "The Civil War had many important events. Name one.",
+    "answersEN": [
+      "(Battle of) Fort Sumter",
+      "Emancipation Proclamation",
+      "(Battle of) Vicksburg",
+      "(Battle of) Gettysburg",
+      "Sherman’s March",
+      "(Surrender at) Appomattox",
+      "(Battle of) Antietam/Sharpsburg",
+      "Lincoln was assassinated."
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 94,
+    "category": "history_1800s",
+    "questionEN": "Abraham Lincoln is famous for many things. Name one.",
+    "answersEN": [
+      "Freed the slaves (Emancipation Proclamation)",
+      "Saved (or preserved) the Union",
+      "Led the United States during the Civil War",
+      "16th president of the United States",
+      "Delivered the Gettysburg Address"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 95,
+    "category": "history_1800s",
+    "questionEN": "What did the Emancipation Proclamation do?",
+    "answersEN": [
+      "Freed the slaves",
+      "Freed slaves in the Confederacy",
+      "Freed slaves in the Confederate states",
+      "Freed slaves in most Southern states"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 96,
+    "category": "history_1800s",
+    "questionEN": "What U.S. war ended slavery?",
+    "answersEN": [
+      "The Civil War"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 97,
+    "category": "history_1800s",
+    "questionEN": "What amendment says all persons born or naturalized in the United States, and subject to the jurisdiction thereof, are U.S. citizens?",
+    "answersEN": [
+      "14th Amendment"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 98,
+    "category": "history_1800s",
+    "questionEN": "When did all men get the right to vote?",
+    "answersEN": [
+      "After the Civil War",
+      "During Reconstruction",
+      "(With the) 15th Amendment",
+      "1870"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 99,
+    "category": "history_1800s",
+    "questionEN": "Name one leader of the women’s rights movement in the 1800s.",
+    "answersEN": [
+      "Susan B. Anthony",
+      "Elizabeth Cady Stanton",
+      "Sojourner Truth",
+      "Harriet Tubman",
+      "Lucretia Mott",
+      "Lucy Stone"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 100,
+    "category": "history_recent",
+    "questionEN": "Name one war fought by the United States in the 1900s.",
+    "answersEN": [
+      "World War I",
+      "World War II",
+      "Korean War",
+      "Vietnam War",
+      "(Persian) Gulf War"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 101,
+    "category": "history_recent",
+    "questionEN": "Why did the United States enter World War I?",
+    "answersEN": [
+      "Because Germany attacked U.S. (civilian) ships",
+      "To support the Allied Powers (England, France, Italy, and Russia)",
+      "To oppose the Central Powers (Germany, Austria-Hungary, the Ottoman Empire, and Bulgaria)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 102,
+    "category": "history_recent",
+    "questionEN": "When did all women get the right to vote?",
+    "answersEN": [
+      "1920",
+      "After World War I",
+      "(With the) 19th Amendment"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 103,
+    "category": "history_recent",
+    "questionEN": "What was the Great Depression?",
+    "answersEN": [
+      "Longest economic recession in modern history"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 104,
+    "category": "history_recent",
+    "questionEN": "When did the Great Depression start?",
+    "answersEN": [
+      "The Great Crash (1929)",
+      "Stock market crash of 1929"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 105,
+    "category": "history_recent",
+    "questionEN": "Who was president during the Great Depression and World War II?",
+    "answersEN": [
+      "(Franklin) Roosevelt"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 106,
+    "category": "history_recent",
+    "questionEN": "Why did the United States enter World War II?",
+    "answersEN": [
+      "(Bombing of) Pearl Harbor",
+      "Japanese attacked Pearl Harbor",
+      "To support the Allied Powers (England, France, and Russia)",
+      "To oppose the Axis Powers (Germany, Italy, and Japan)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 107,
+    "category": "history_recent",
+    "questionEN": "Dwight Eisenhower is famous for many things. Name one.",
+    "answersEN": [
+      "General during World War II",
+      "President at the end of (during) the Korean War",
+      "34th president of the United States",
+      "Signed the Federal-Aid Highway Act of 1956 (Created the Interstate System)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 108,
+    "category": "history_recent",
+    "questionEN": "Who was the United States’ main rival during the Cold War?",
+    "answersEN": [
+      "Soviet Union",
+      "USSR",
+      "Russia"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 109,
+    "category": "history_recent",
+    "questionEN": "During the Cold War, what was one main concern of the United States?",
+    "answersEN": [
+      "Communism",
+      "Nuclear war"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 110,
+    "category": "history_recent",
+    "questionEN": "Why did the United States enter the Korean War?",
+    "answersEN": [
+      "To stop the spread of communism"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 111,
+    "category": "history_recent",
+    "questionEN": "Why did the United States enter the Vietnam War?",
+    "answersEN": [
+      "To stop the spread of communism"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 112,
+    "category": "history_recent",
+    "questionEN": "What did the civil rights movement do?",
+    "answersEN": [
+      "Fought to end racial discrimination"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 113,
+    "category": "history_recent",
+    "questionEN": "Martin Luther King, Jr. is famous for many things. Name one.",
+    "answersEN": [
+      "Fought for civil rights",
+      "Worked for equality for all Americans",
+      "Worked to ensure that people would “not be judged by the color of their skin, but by the content of their character”"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 114,
+    "category": "history_recent",
+    "questionEN": "Why did the United States enter the Persian Gulf War?",
+    "answersEN": [
+      "To force the Iraqi military from Kuwait"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 115,
+    "category": "history_recent",
+    "questionEN": "What major event happened on September 11, 2001 in the United States?",
+    "answersEN": [
+      "Terrorists attacked the United States",
+      "Terrorists took over two planes and crashed them into the World Trade Center in New York City",
+      "Terrorists took over a plane and crashed into the Pentagon in Arlington, Virginia",
+      "Terrorists took over a plane originally aimed at Washington, D.C., and crashed in a field in Pennsylvania"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 116,
+    "category": "history_recent",
+    "questionEN": "Name one U.S. military conflict after the September 11, 2001 attacks.",
+    "answersEN": [
+      "(Global) War on Terror",
+      "War in Afghanistan",
+      "War in Iraq"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 117,
+    "category": "history_recent",
+    "questionEN": "Name one American Indian tribe in the United States.",
+    "answersEN": [
+      "Apache",
+      "Blackfeet",
+      "Cayuga",
+      "Cherokee",
+      "Cheyenne",
+      "Chippewa",
+      "Choctaw",
+      "Creek",
+      "Crow",
+      "Hopi",
+      "Huron",
+      "Inupiat",
+      "Lakota",
+      "Mohawk",
+      "Mohegan",
+      "Navajo",
+      "Oneida",
+      "Onondaga",
+      "Pueblo",
+      "Seminole",
+      "Seneca",
+      "Shawnee",
+      "Sioux",
+      "Teton",
+      "Tuscarora"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": "For a complete list of tribes, please visit bia.gov.",
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 118,
+    "category": "history_recent",
+    "questionEN": "Name one example of an American innovation.",
+    "answersEN": [
+      "Light bulb",
+      "Automobile (cars, internal combustion engine)",
+      "Skyscrapers",
+      "Airplane",
+      "Assembly line",
+      "Landing on the moon",
+      "Integrated circuit (IC)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 119,
+    "category": "symbols",
+    "questionEN": "What is the capital of the United States?",
+    "answersEN": [
+      "Washington, D.C."
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 120,
+    "category": "symbols",
+    "questionEN": "Where is the Statue of Liberty?",
+    "answersEN": [
+      "New York (Harbor)",
+      "Liberty Island"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": "Also acceptable are New Jersey, near New York City, and on the Hudson (River).",
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 121,
+    "category": "symbols",
+    "questionEN": "Why does the flag have 13 stripes?",
+    "answersEN": [
+      "(Because there were) 13 original colonies",
+      "(Because the stripes) represent the original colonies"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 122,
+    "category": "symbols",
+    "questionEN": "Why does the flag have 50 stars?",
+    "answersEN": [
+      "(Because there is) one star for each state",
+      "(Because) each star represents a state",
+      "(Because there are) 50 states"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 123,
+    "category": "symbols",
+    "questionEN": "What is the name of the national anthem?",
+    "answersEN": [
+      "The Star-Spangled Banner"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 124,
+    "category": "symbols",
+    "questionEN": "The Nation’s first motto was “E Pluribus Unum.” What does that mean?",
+    "answersEN": [
+      "Out of many, one",
+      "We all become one"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 125,
+    "category": "holidays",
+    "questionEN": "What is Independence Day?",
+    "answersEN": [
+      "A holiday to celebrate U.S. independence (from Britain)",
+      "The country’s birthday"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 126,
+    "category": "holidays",
+    "questionEN": "Name three national U.S. holidays.",
+    "answersEN": [
+      "New Year’s Day",
+      "Martin Luther King, Jr. Day",
+      "Presidents Day (Washington’s Birthday)",
+      "Memorial Day",
+      "Juneteenth",
+      "Independence Day",
+      "Labor Day",
+      "Columbus Day",
+      "Veterans Day",
+      "Thanksgiving Day",
+      "Christmas Day"
+    ],
+    "is65_20_2025": true,
+    "requiredAnswerCount": 3,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 127,
+    "category": "holidays",
+    "questionEN": "What is Memorial Day?",
+    "answersEN": [
+      "A holiday to honor soldiers who died in military service"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  },
+  {
+    "officialId2025": 128,
+    "category": "holidays",
+    "questionEN": "What is Veterans Day?",
+    "answersEN": [
+      "A holiday to honor people in the (U.S.) military",
+      "A holiday to honor people who have served (in the U.S. military)"
+    ],
+    "is65_20_2025": false,
+    "requiredAnswerCount": 1,
+    "note": null,
+    "dynamicType": null,
+    "officeholderRole": null
+  }
+]
