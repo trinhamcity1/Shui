@@ -16,7 +16,16 @@ xcuserdata/
 # CocoaPods (not used, but ignore if introduced later)
 Pods/
 
-# Placeholder video generator output — regenerate with
-# scripts/placeholder_videos/generate_placeholders.py; the copies actually
-# bundled into the app live in Shui/Resources/Videos/.
-scripts/placeholder_videos/out/
+# Secrets — never commit. R2 keys and model API keys belong in Cloud Functions
+# secrets; service accounts stay on the machine that runs admin scripts.
+*.env
+serviceAccountKey*.json
+*-service-account.json
+
+# Firebase tooling
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+functions/node_modules/
+functions/lib/

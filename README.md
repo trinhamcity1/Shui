@@ -1,266 +1,165 @@
-# Shui — U.S. Citizenship Civics Tutor
+# Shui
 
-A native iOS app that helps Vietnamese-speaking immigrants prepare for the
-U.S. citizenship civics test in daily 5-10 minute sessions with an
-AI-adaptive tutor character, "Ms. Lien" (Chị Liên).
+An educational short-video platform for iOS: TikTok's interaction model applied to
+learning instead of to idle scrolling. Videos *are* the lessons, every lesson ends in a
+quiz, learners pick subjects deliberately, and an AI tutor checks retention through
+conversation.
 
-This repo is the two-week MVP described in the product brief: **one
-character, a solid 100-question bank, and a working end-to-end learning
-loop** — lesson → quiz → adaptive scheduling — rather than a partially
-wired-up version of the full long-term vision (100 fully produced videos,
-a live backend, a second character). See **Scope decisions** below for what
-that means concretely.
+English only. iPhone, portrait, iOS 17+.
 
-## Requirements
+**The product test every feature has to pass:** does this help someone learn, or does it
+just keep them scrolling? No infinite algorithmic firehose, no streak guilt, no autoplay
+past a quiz the learner hasn't engaged with. When knowledge retention and session
+retention conflict, knowledge wins.
 
-- Xcode 15+ (targets iOS 17, uses SwiftData + Swift Concurrency)
+## Status
 
-## Setup
+Being built in phases — see [`prompts/README.md`](prompts/README.md) for the full plan
+and one prompt per phase.
 
-`Shui.xcodeproj` is committed to the repo, so you don't need XcodeGen
-installed to open and run the app:
+| Phase | Scope | State |
+|---|---|---|
+| 0 | Foundation: strip the dead lesson engine, English-only, Firebase SDK, clean build | **in progress** |
+| 1 | Firestore model, security rules, Cloud Functions, R2 upload pipeline, seed content | not started |
+| 2 | Vertical video feed + end-of-video quiz + playback | not started |
+| 3 | Categories, topic pages, auth, profile, progress, likes, comments | not started |
+| 4 | AI tutor: grounded chat + proactive retention checks | not started |
+| 5 | In-app creator console: topics, uploads, quiz builder, publish controls | not started |
+| 6 | Browser dashboard for bulk authoring | not started |
 
-```bash
-open Shui.xcodeproj
-```
+Phases 0–3 are the shippable core. Phase 4 is the differentiator. Phases 5–6 are what
+make the app maintainable without touching code.
 
-Select the `Shui` scheme and run on an iOS 17+ simulator or device.
-
-`Shui.xcodeproj` is generated from `project.yml` via
-[XcodeGen](https://github.com/yonaskolb/XcodeGen) and checked in as a
-convenience. If you edit `project.yml` (add a target, change a build
-setting), regenerate and commit the result:
-
-```bash
-brew install xcodegen   # one-time
-xcodegen generate
-```
-
-> **This project was authored in a Linux container with no Xcode available**,
-> so the Swift/SwiftUI/SwiftData app code itself has not been compiled —
-> that fundamentally requires macOS. What *was* verified from this session:
-> content JSON was validated against the Swift model shapes, localization
-> keys were checked for 1:1 EN/VI parity, enum raw values were checked
-> against JSON, and — since XcodeGen is pure Swift/Foundation with no Apple
-> SDK dependency — a Swift 6.1 toolchain was installed and used to build
-> XcodeGen from source right here and actually run `xcodegen generate`
-> against `project.yml`, producing the real, valid `Shui.xcodeproj` now
-> committed in this repo (not hand-written). So the project file itself is
-> known-good; **please still treat the first build of the Swift code in
-> Xcode as the real smoke test**, not a formality. If something doesn't
-> compile, it's most likely a small signature mismatch, not a structural
-> problem — the codebase is organized so any one fix should be localized to
-> a single file.
+**Right now the app is a shell.** Three tabs, each a placeholder naming the phase that
+fills it in. There is no feed, no auth, no content, and no backend wired up yet. That is
+the intended end state of Phase 0 — an honest, compiling starting point rather than a
+half-migrated app that lies about what works.
 
 ## Architecture
 
+SwiftUI + MVVM with a repository layer.
+
 ```
 Shui/
-  App/              ShuiApp.swift (entry point), AppState (shared services)
-  Resources/
-    Content/         Bundled JSON: 100 questions, lesson scripts, categories,
-                      state capitals, current officials, character dialogue
-    en.lproj/vi.lproj Localizable.strings (UI chrome only, see below)
-    Assets.xcassets   App icon slot + accent color (no character art needed)
-    Videos/           One 60s vertical MP4 per flagship lesson. Currently
-                      generated placeholders, not real content — see below
+  App/              ShuiApp (entry point), AppState, GoogleService-Info.plist
   Sources/
-    Models/          Codable content models + SwiftData models (UserProfile,
-                      QuestionProgress, SessionLog)
-    Persistence/      ContentStore (loads bundled JSON), PersistenceController
-                      (SwiftData)
-    LearningEngine/   SM-2 spaced repetition, session planner, quiz grading
-    AI/               TutorAIService protocol + rule-based/remote impls,
-                      SpeechNarrator (AVSpeechSynthesizer)
-    Localization/     LocalizationManager (bundle-swizzle) + typed L10n keys
-    ViewModels/        One per screen/flow
-    Views/            SwiftUI, organized by feature
-ShuiTests/          Unit tests for the learning engine + content integrity
-scripts/
-  generate_content.py  Generates everything under Resources/Content/ — the
-                        100-question bank and lesson scripts are authored
-                        here as structured Python data, not hand-typed JSON
-  placeholder_videos/  ffmpeg generator for the stand-in lesson videos
+    Learning/       SM-2 review scheduling, quiz grading
+    Playback/       AVPlayerLayer-backed chrome-less video playback
+    Models/         Local-cache SwiftData models
+    Persistence/    PersistenceController — local prefs, read cache, offline queue
+    Support/        FirebaseBootstrap, Strings
+    Theme/          Design tokens (mirrored by the web dashboard in Phase 6)
+    Views/          SwiftUI, organized by feature
+  Resources/        Assets.xcassets only — no bundled content
+ShuiTests/          Unit tests for pure logic
+prompts/            One build prompt per phase
+scripts/            Admin utilities and content sources
 ```
 
-`scripts/generate_content.py` is the source of truth for all bundled
-content. If you need to edit a question, an explanation, or a lesson
-script, edit that file and re-run `python3 scripts/generate_content.py`
-rather than hand-editing the generated JSON.
+Rules that later phases depend on:
 
-## Scope decisions (read this before demoing or extending)
+- **Views never touch Firestore, R2, or `URLSession` directly.** Everything goes through
+  a repository protocol with a live implementation and an in-memory fake for tests and
+  previews. Phase 1 adds `Sources/Data/`.
+- **Firebase imports are confined** to `Sources/Data/` and `Support/FirebaseBootstrap.swift`.
+  `git grep "import Firebase"` outside those must return nothing.
+- Async/await throughout. No completion handlers; no Combine except where SwiftUI
+  requires `ObservableObject`.
+- One `@MainActor` ViewModel per screen.
 
-**100-question bank: fully real.** All 100 official USCIS civics
-questions are included, each with its accepted English answer(s), a
-Vietnamese explanation written with narrative/mnemonic context (not just a
-translated fact), and a category matching USCIS's own grouping.
+### Backend
 
-**Time-sensitive answers are not hard-coded.** Questions like "who is the
-President now" or "who is the Speaker of the House" change over time, and
-questions like "who is your Governor" or "your state's capital" depend on
-where the learner lives. Baking in a specific name would silently go stale
-in a way that actively misleads someone studying for a real interview. So:
-- National officeholders (President, VP, Speaker, Chief Justice, President's
-  party) are resolved from `current_officials.json`, which currently ships
-  with placeholder strings and a `sourceNote` telling you to fill it in and
-  verify against uscis.gov/house.gov/senate.gov before release.
-- The learner's own Senators/Representative/Governor are entered once
-  during onboarding (or by a preparer helping them) and stored locally.
-- State capitals are static facts and are safely bundled (`state_capitals.json`).
+Firebase project `shui-prod`.
 
-**16 flagship lessons are hand-authored in the "whiteboard, narrative, not
-just facts" style** described in the brief — e.g. the 50-stars/13-stripes
-flag lesson walks through the five U.S. regions on a map, the same idea
-called out in the product brief for teaching "50 states." Together they
-cover 31 of the 100 questions. **The other 69 questions use an
-auto-generated flashcard-style lesson** (`FallbackLessonBuilder`) built from
-the question's own quick-fact and explanation text, so every one of the 100
-questions has a narrated lesson + quiz today — just not all with the full
-custom-animated treatment yet. Expanding coverage is additive: add an entry
-to the `LESSONS` list in `generate_content.py`, nothing else changes.
+- **Auth** — Sign in with Apple + email/password, both enabled. Anonymous auth for guest
+  browsing, upgraded via account linking.
+- **Firestore** — all structured data: categories, topics, video metadata, quizzes,
+  comments, progress, roles. Local persistence enabled.
+- **Cloud Functions** (TypeScript, 2nd gen) — anything needing a secret or that must not
+  be trusted to the client: R2 upload signing, counter maintenance, quiz grading, the AI
+  tutor proxy, role assignment.
+- **No Firebase Storage.** Video lives in Cloudflare R2.
 
-**"Whiteboard animation" is rendered live in SwiftUI, not pre-rendered
-video.** There was no way to produce 100 professionally animated video
-files for this MVP. Instead, `SceneCanvasView` plays back a lesson's JSON
-timeline as procedurally drawn scenes (a stylized 5-region U.S. map, city
-pins, document/timeline/flag graphics, etc.) synced to on-device narration
-via `AVSpeechSynthesizer`. This is a deliberate trade-off: it ships today
-with no asset pipeline, it's trivially bilingual (swap the narration text,
-nothing re-renders), and it's small (no video files in the app bundle) —
-but it is not the same visual fidelity as a hand-animated video, and if you
-later commission real animation, `LessonScript`/`SceneAction` would need a
-video-backed lesson style alongside this one.
+### Video storage
 
-**Quizzes are multiple-choice, not free-text.** This grades unambiguously
-on-device, keeps a 5-10 minute session fast, and doesn't penalize someone
-still building English confidence for a typo. Distractors are drawn from
-other questions in the same category.
+Cloudflare R2, bucket `shui-videos`, public base
+`https://pub-29f895ffbdcf49779204f67d1a69af9b.r2.dev`.
 
-**"AI-powered personalization" is a real spaced-repetition engine, not
-marketing copy — but the in-character dialogue is rule-based, not an LLM,
-by default.** `SpacedRepetitionScheduler` (SM-2) and `SessionPlanner`
-concretely change which questions come up and in what order based on the
-learner's actual performance — that's the adaptive part, and it works fully
-offline. Ms. Lien's reactions ("that's right!", "let's look at that again")
-come from `RuleBasedTutorAI`, a small pool of bilingual lines in
-`character.json`, also fully offline. There's a `RemoteLLMTutorAI`
-implementation ready to go if you want real generative dialogue — but it
-deliberately expects a backend URL (`TutorBackendURL` in `Info.plist`) that
-*you* operate, which holds the actual model API key server-side. An iOS
-app should never embed an LLM API key directly (it can be extracted from
-the shipped binary); wiring up generative dialogue safely is a follow-up
-task, not something to bolt on by hard-coding a key into this codebase.
+Uploads go direct from client to R2 using a presigned URL minted by a Cloud Function. R2
+access keys live in Function secrets and never in the app, the repo, or Firestore.
 
-**No accounts, no server.** Everything — profile, progress, streaks,
-session history — lives on-device via SwiftData. There's nothing to stand
-up to run the MVP.
+## Setup
 
-## TikTok-style feed & freemium (local-first)
-
-The primary interface is a full-screen **vertical paging feed** (`FeedView`):
-swipe up for the next lesson, down for the previous. Each page plays its
-whiteboard lesson, then presents a 1–2 question quiz, then nudges the
-learner onward. Miss a question and that lesson **resurfaces ~5 pages
-later** (`FeedPlanner.resurfaceIndex`) with a freshly shuffled option set —
-the SM-2 engine drives both the initial feed order and long-term review
-scheduling.
-
-The spec's prefetch/caching/progressive-playback requirements are satisfied
-trivially today: lesson "videos" are procedurally rendered from bundled
-JSON, so there is nothing to download and scrolling can't stall. When real
-streamed video (S3 + AVPlayer) lands, `FeedViewModel` is the place to add a
-prefetch window around the visible page.
-
-**Freemium flow**: after two completed feed lessons, a sign-in sheet
-appears (Google/Facebook/Instagram buttons — currently *simulated*: the
-choice is recorded locally, since real OAuth needs provider registrations
-plus Firebase Auth/Cognito). Then a Free/Pro tier choice. Free gets
-lessons, quizzes, and community comments; Pro unlocks the **AI tutor chat**
-(offline retrieval-based today, backend LLM via `TutorBackendURL` when
-configured) and the **accuracy-by-category analytics** section. "Upgrading"
-sets the tier locally — real payments need StoreKit + App Store Connect.
-
-**Local mirrors of the spec's backend tables** (swap the storage, keep the
-UI):
-
-| Spec table          | Local implementation                          |
-|---------------------|-----------------------------------------------|
-| Lessons             | Bundled `lessons.json` + `civics_questions.json` |
-| Quiz Questions      | `CivicsQuestion` + `QuizOptionBuilder` shuffling |
-| User Accounts       | `UserProfile` (tier, provider, sign-in state) |
-| User Progress       | `QuestionProgress` + `SessionLog` (SwiftData) |
-| Comments            | `LessonComment` (SwiftData, threaded via `parentID`) |
-| Pro User Questions  | `TutorChatMessage` (SwiftData, per lesson)    |
-
-**What still requires real infrastructure** (deliberately not faked in
-code): Firebase/Firestore or AWS RDS, S3 video hosting + AVPlayer streaming,
-real OAuth, StoreKit payments, cross-device comment sync, and a hosted LLM
-endpoint for generative tutoring. Each local piece above was shaped so that
-swap is additive.
-
-## Lesson videos (placeholders today)
-
-Each of the 16 flagship lessons carries a bundled 60s vertical MP4 in
-`Shui/Resources/Videos/`, named `<lessonId>.mp4`. **These are generated
-placeholders, not real teaching content** — each one shows the lesson's
-real title in English and Vietnamese, a filling progress bar, and a live
-timer on the app's own canvas color. They exist so playback, seeking,
-paging, and prefetch can be built and tested against real H.264 files
-before any money is spent on produced video.
-
-Regenerate them with:
-
-```
-python3 scripts/placeholder_videos/generate_placeholders.py
-cp scripts/placeholder_videos/out/*.mp4 Shui/Resources/Videos/
+```sh
+brew install xcodegen
+xcodegen generate
+open Shui.xcodeproj
 ```
 
-`LessonScript` resolves a video in this priority order (see
-`resolvedVideoURL`):
+Never hand-edit `Shui.xcodeproj` — edit `project.yml`, re-run `xcodegen generate`, and
+commit both. The Firebase SDK resolves as a Swift Package on first open, which takes a
+few minutes.
 
-1. `videoURLString` — a remote/CDN URL. Null everywhere today; this is the
-   field cloud hosting will populate.
-2. `videoFileName` — a file bundled in the app. What all 16 lessons use now.
-3. Neither — the feed falls back to the procedural SwiftUI whiteboard
-   renderer, which is what every non-flagship question already does via
-   `FallbackLessonBuilder`.
+### Firebase
 
-So swapping a placeholder for a real video is a one-file drop-in, and
-moving to cloud hosting is a metadata change — neither requires touching
-playback code.
+`Shui/App/GoogleService-Info.plist` is committed. Firebase iOS client configs are not
+secrets — they identify the project, they don't grant access; access is controlled by
+security rules and Auth.
 
-## What's explicitly out of scope for this MVP
+> **The Google Cloud API key in that plist must stay restricted to the iOS bundle ID
+> `com.shui.app` and to the Firebase APIs the app actually uses.** An unrestricted key is
+> a real problem even though the plist itself is public. If you regenerate the key or
+> create a new one, re-apply the restriction.
 
-- A second character, or character customization
-- A real backend for the LLM tutor (the hook exists; the service doesn't)
-- Hand-animated video assets
-- App Store submission assets (real icon artwork, screenshots, privacy
-  manifest beyond the minimum, TestFlight configuration)
-- A legal/accuracy review of the civics content against uscis.gov — do this
-  before any real user relies on this app for an actual interview
+Emulator suite (Phase 1 onward):
+
+```sh
+firebase emulators:start          # Firestore, Auth, Functions
+```
+
+Point the app at it by passing `-useFirebaseEmulator` as a launch argument in the Xcode
+scheme (debug builds only).
+
+## Where content comes from
+
+**The creator console, not the repo.** There is no bundled content and no content
+generator script. Topics, videos, and quizzes are authored in-app (Phase 5) or in the web
+dashboard (Phase 6), stored in Firestore, with video in R2.
+
+`scripts/seed_civics.ts` (Phase 1) exists to bootstrap a fresh environment and for local
+emulator work — not as a place to add content.
+
+`scripts/sources/official_2025_civics.json` is a verbatim transcription of the current
+official USCIS civics test (form M-1778 (09/25), 128 questions with accepted answers).
+It's a source document, used once by the seed script.
 
 ## Testing
 
-`ShuiTests` covers the parts that are pure logic and worth locking down:
-- `SpacedRepetitionSchedulerTests` — SM-2 math (interval growth, ease floor, due-date logic)
-- `QuizGradingTests` — multiple-choice grading and distractor generation
-- `SessionPlannerTests` — due-before-new ordering, time-budget behavior
-- `ContentStoreTests` — the 100-question bank loads completely, every
-  question resolves to a lesson, dynamic questions never ship a stale
-  static answer
+Unit tests cover pure logic — review scheduling, grading, feed ordering, validation.
+Security rules get emulator tests, including a failing-path test per rule. No UI snapshot
+tests.
 
-Run via ⌘U in Xcode, or `xcodebuild test -scheme Shui -destination
-'platform=iOS Simulator,name=iPhone 15'` from the command line.
+```sh
+xcodebuild test -scheme Shui -destination 'platform=iOS Simulator,name=iPhone 15'
+```
 
-## Roadmap (post-MVP)
+This codebase was originally authored on Linux and went a long time without ever being
+compiled. A green build is the minimum bar, not a formality.
 
-1. Author remaining lesson scripts in `generate_content.py` to bring all
-   100 questions up to the full narrative/whiteboard treatment.
-2. Stand up the small backend `RemoteLLMTutorAI` expects, and point
-   `TutorBackendURL` at it, for real generative tutor dialogue.
-3. Content accuracy pass: verify all 100 answers and fill in
-   `current_officials.json` against uscis.gov before shipping to real users.
-4. A second character / character choice.
-5. Push notifications for the daily reminder (not included — no
-   notification scheduling code exists yet).
-6. Real app icon and launch assets, TestFlight, App Store metadata.
+## Honest notes
+
+- **Nothing is wired to a backend yet.** Phase 0 removed the simulated auth and fake
+  subscription tiers rather than leaving them to be mistaken for real ones. Phase 1
+  stands up Firestore and Functions; Phase 3 adds real sign-in.
+- **The AI tutor does not exist yet.** The previous keyword-matching "AI" was deleted.
+  Phase 4 builds the real one, with all model calls behind a Cloud Function so no API key
+  ships in the binary.
+- **Time-sensitive civics questions are deliberately excluded** from the seeded content —
+  the sitting President, Vice President, Speaker, Chief Justice, governing party, and the
+  learner's own Senators, Representative, Governor, and state capital. The older version
+  of this app shipped placeholder strings as the correct answers to those. A "your
+  officials" feature is a real product decision, not a data-entry task.
+- **Not built, deliberately:** push notifications, voice mode for the tutor, real
+  full-text search, localization, StoreKit/paid tiers, server-side user blocking. See the
+  end of [`prompts/phase-06-web-dashboard.md`](prompts/phase-06-web-dashboard.md) for the
+  reasoning on each.
