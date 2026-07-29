@@ -9,6 +9,11 @@ configs:
   Debug: debug
   Release: release
 
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    minVersion: 11.0.0
+
 targets:
   Shui:
     type: application
@@ -18,6 +23,16 @@ targets:
       - path: Shui/App
       - path: Shui/Sources
       - path: Shui/Resources
+    dependencies:
+      # No FirebaseStorage — video lives in Cloudflare R2.
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseFunctions
+      - package: Firebase
+        product: FirebaseAnalytics
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.shui.app
