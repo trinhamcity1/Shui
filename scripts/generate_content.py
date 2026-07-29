@@ -555,20 +555,28 @@ def action(id, type, at, dur, **kw):
          "items": kw.get("items")}
     return a
 
+R2_PUBLIC_BASE_URL = "https://pub-29f895ffbdcf49779204f67d1a69af9b.r2.dev"
+
 def lesson(id, question_ids, titleEN, titleVI, category, narration, actions, video_file=None):
-    """Every flagship lesson ships with a bundled video named after its id
-    (see scripts/placeholder_videos/). Pass video_file=False for a lesson
-    that should fall back to the procedural whiteboard renderer instead;
-    videoURLString stays None until videos move to cloud hosting, at which
-    point it takes priority over the bundled file."""
+    """Every flagship lesson ships with a video uploaded to R2 (see
+    scripts/upload_videos_to_r2.py), named after its id. Pass
+    video_file=False for a lesson that should fall back to the procedural
+    whiteboard renderer instead. videoURLString (R2) takes unconditional
+    priority over videoFileName (bundled) in LessonScript.resolvedVideoURL
+    — there's no runtime fallback to the bundled copy if the URL fails to
+    load, so the bundled file is currently dead weight in the app bundle
+    once a lesson has a URL. Kept for now since it's zero-cost to leave in
+    place; worth revisiting if offline playback matters before real videos
+    replace these placeholders."""
     total = max([n["atSeconds"] + n["durationSeconds"] for n in narration] +
                 [a["atSeconds"] + a["durationSeconds"] for a in actions] + [0.0])
     if video_file is None:
         video_file = f"{id}.mp4"
+    video_url = f"{R2_PUBLIC_BASE_URL}/{video_file}" if video_file else None
     return {"id": id, "questionIds": question_ids, "titleEN": titleEN, "titleVI": titleVI,
             "category": category, "totalDurationSeconds": round(total, 1),
             "narration": narration, "actions": actions, "style": "richNarrative",
-            "videoURLString": None, "videoFileName": video_file or None}
+            "videoURLString": video_url, "videoFileName": video_file or None}
 
 LESSONS = [
 lesson("lsn_001", [1], "The Rulebook Above All Rules", "Cuốn Luật Đứng Trên Mọi Luật", GOV_PRINCIPLES,
