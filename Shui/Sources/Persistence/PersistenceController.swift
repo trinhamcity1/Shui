@@ -1,9 +1,12 @@
 import Foundation
 import SwiftData
 
-/// Owns the on-device SwiftData store for user progress. Study content
-/// itself (`ContentStore`) is bundled JSON and never written to; only the
-/// user's own profile and progress live in this local database.
+/// Owns the on-device SwiftData store.
+///
+/// Scope is deliberately narrow: **local preferences, a read cache, and an
+/// offline queue.** Firestore is the source of truth for everything else. If
+/// you find yourself reaching for this to answer "what is this learner's
+/// progress", that belongs in a repository under `Sources/Data/` instead.
 @MainActor
 final class PersistenceController {
     static let shared = PersistenceController()
@@ -13,8 +16,6 @@ final class PersistenceController {
     private init(inMemory: Bool = false) {
         let schema = Schema([
             UserProfile.self,
-            QuestionProgress.self,
-            SessionLog.self,
             LessonComment.self,
             TutorChatMessage.self,
         ])
@@ -31,11 +32,12 @@ final class PersistenceController {
         PersistenceController(inMemory: true)
     }
 
-    /// Fetches the single local profile, creating one on first launch.
+    // MARK: - Local preferences
+
+    /// Fetches the single local preferences record, creating one on first launch.
     func fetchOrCreateProfile() -> UserProfile {
         let context = container.mainContext
-        let descriptor = FetchDescriptor<UserProfile>()
-        if let existing = try? context.fetch(descriptor).first {
+        if let existing = try? context.fetch(FetchDescriptor<UserProfile>()).first {
             return existing
         }
         let profile = UserProfile()
@@ -44,60 +46,46 @@ final class PersistenceController {
         return profile
     }
 
-    /// Fetches (or lazily creates) the progress record for a question.
-    func fetchOrCreateProgress(for questionId: Int) -> QuestionProgress {
-        let context = container.mainContext
-        let predicate = #Predicate<QuestionProgress> { $0.questionId == questionId }
-        var descriptor = FetchDescriptor<QuestionProgress>(predicate: predicate)
-        descriptor.fetchLimit = 1
-        if let existing = try? context.fetch(descriptor).first {
-            return existing
-        }
-        let progress = QuestionProgress(questionId: questionId)
-        context.insert(progress)
-        try? context.save()
-        return progress
-    }
+    // MARK: - Comment cache
 
-    func allProgress() -> [QuestionProgress] {
-        (try? container.mainContext.fetch(FetchDescriptor<QuestionProgress>())) ?? []
-    }
-
-    /// Records a completed session. Kept here (rather than letting callers
-    /// touch `container.mainContext` directly) so `ModelContext`/SwiftData
-    /// APIs stay confined to this file.
-    func logSession(_ log: SessionLog) {
-        container.mainContext.insert(log)
-        try? container.mainContext.save()
-    }
-
-    /// All comments for a lesson, oldest first. Threading (grouping replies
-    /// under their parent) is done in the view layer to keep the SwiftData
-    /// predicate simple.
-    func comments(for lessonID: String) -> [LessonComment] {
-        let predicate = #Predicate<LessonComment> { $0.lessonID == lessonID }
+    /// Cached comments for a video, oldest first. Threading is assembled in the
+    /// view layer to keep the predicate simple.
+    func cachedComments(forVideo videoID: String) -> [LessonComment] {
+        let predicate = #Predicate<LessonComment> { $0.videoID == videoID }
         var descriptor = FetchDescriptor<LessonComment>(predicate: predicate)
         descriptor.sortBy = [SortDescriptor(\.timestamp, order: .forward)]
         return (try? container.mainContext.fetch(descriptor)) ?? []
     }
 
-    func addComment(lessonID: String, authorName: String, text: String, parentID: UUID? = nil) {
-        let comment = LessonComment(lessonID: lessonID, authorName: authorName, text: text, parentID: parentID)
+    /// Comments composed offline and not yet accepted by the server.
+    func pendingComments() -> [LessonComment] {
+        let predicate = #Predicate<LessonComment> { $0.isPendingUpload }
+        var descriptor = FetchDescriptor<LessonComment>(predicate: predicate)
+        descriptor.sortBy = [SortDescriptor(\.timestamp, order: .forward)]
+        return (try? container.mainContext.fetch(descriptor)) ?? []
+    }
+
+    func insert(_ comment: LessonComment) {
         container.mainContext.insert(comment)
         try? container.mainContext.save()
     }
 
-    /// AI tutor chat history for a lesson, oldest first.
-    func chatMessages(for lessonID: String) -> [TutorChatMessage] {
-        let predicate = #Predicate<TutorChatMessage> { $0.lessonID == lessonID }
+    // MARK: - AI thread cache
+
+    func cachedChatMessages(forVideo videoID: String) -> [TutorChatMessage] {
+        let predicate = #Predicate<TutorChatMessage> { $0.videoID == videoID }
         var descriptor = FetchDescriptor<TutorChatMessage>(predicate: predicate)
         descriptor.sortBy = [SortDescriptor(\.timestamp, order: .forward)]
         return (try? container.mainContext.fetch(descriptor)) ?? []
     }
 
-    func addChatMessage(lessonID: String, isUser: Bool, text: String) {
-        let message = TutorChatMessage(lessonID: lessonID, isUser: isUser, text: text)
+    func insert(_ message: TutorChatMessage) {
         container.mainContext.insert(message)
+        try? container.mainContext.save()
+    }
+
+    func delete<T: PersistentModel>(_ object: T) {
+        container.mainContext.delete(object)
         try? container.mainContext.save()
     }
 
