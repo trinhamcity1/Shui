@@ -91,6 +91,7 @@
 		AB602371EAF247A9046FE3E3 /* lsn_088.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = B5923561D1327C68140E259D /* lsn_088.mp4 */; };
 		052FED18E42144AC7E70963B /* lsn_092.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = FF0D22281D3C7444E5BD5E08 /* lsn_092.mp4 */; };
 		C82C273B6FFBEE4F829431E9 /* lsn_094.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = F656E42B0C16F8E3001E6DD9 /* lsn_094.mp4 */; };
+		A46B4E6E4CCEA52CD62FD334 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6486F774C511ADFF7E080139 /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -191,6 +192,7 @@
 		B5923561D1327C68140E259D /* lsn_088.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = lsn_088.mp4; sourceTree = "<group>"; };
 		FF0D22281D3C7444E5BD5E08 /* lsn_092.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = lsn_092.mp4; sourceTree = "<group>"; };
 		F656E42B0C16F8E3001E6DD9 /* lsn_094.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = lsn_094.mp4; sourceTree = "<group>"; };
+		6486F774C511ADFF7E080139 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -281,6 +283,7 @@
 			children = (
 				C919133B4D7274BED3280A3A /* AppState.swift */,
 				7906B7099FD52298081700F8 /* ShuiApp.swift */,
+				6486F774C511ADFF7E080139 /* GoogleService-Info.plist */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -572,6 +575,7 @@
 				AB602371EAF247A9046FE3E3 /* lsn_088.mp4 in Resources */,
 				052FED18E42144AC7E70963B /* lsn_092.mp4 in Resources */,
 				C82C273B6FFBEE4F829431E9 /* lsn_094.mp4 in Resources */,
+				A46B4E6E4CCEA52CD62FD334 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
