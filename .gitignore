@@ -15,3 +15,8 @@ xcuserdata/
 
 # CocoaPods (not used, but ignore if introduced later)
 Pods/
+
+# Placeholder video generator output — regenerate with
+# scripts/placeholder_videos/generate_placeholders.py; the copies actually
+# bundled into the app live in Histudy/Resources/Videos/.
+scripts/placeholder_videos/out/

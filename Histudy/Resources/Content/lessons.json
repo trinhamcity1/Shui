@@ -110,7 +110,9 @@
         ]
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": "lsn_001.mp4"
   },
   {
     "id": "lsn_006",
@@ -207,7 +209,9 @@
         ]
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": null
   },
   {
     "id": "lsn_013",
@@ -302,7 +306,9 @@
         ]
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": null
   },
   {
     "id": "lsn_017",
@@ -424,7 +430,9 @@
         "items": null
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": null
   },
   {
     "id": "lsn_021",
@@ -513,7 +521,9 @@
         "items": null
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": null
   },
   {
     "id": "lsn_058",
@@ -581,7 +591,9 @@
         ]
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": null
   },
   {
     "id": "lsn_061",
@@ -656,7 +668,9 @@
         "items": null
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": null
   },
   {
     "id": "lsn_063",
@@ -734,7 +748,9 @@
         "items": null
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": null
   },
   {
     "id": "lsn_064",
@@ -848,7 +864,9 @@
         "items": null
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": null
   },
   {
     "id": "lsn_066",
@@ -904,7 +922,9 @@
         "items": null
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": "lsn_066.mp4"
   },
   {
     "id": "lsn_073",
@@ -993,7 +1013,9 @@
         "items": null
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": null
   },
   {
     "id": "lsn_075",
@@ -1074,7 +1096,9 @@
         ]
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": null
   },
   {
     "id": "lsn_088",
@@ -1164,7 +1188,9 @@
         "items": null
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": null
   },
   {
     "id": "lsn_092",
@@ -1240,7 +1266,9 @@
         "items": null
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": null
   },
   {
     "id": "lsn_094",
@@ -1295,7 +1323,9 @@
         "items": null
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": null
   },
   {
     "id": "lsn_097",
@@ -1435,6 +1465,8 @@
         "items": null
       }
     ],
-    "style": "richNarrative"
+    "style": "richNarrative",
+    "videoURLString": null,
+    "videoFileName": "lsn_097.mp4"
   }
 ]

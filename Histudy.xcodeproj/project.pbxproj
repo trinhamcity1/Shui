@@ -73,6 +73,11 @@
 		FBD30990B74A342DB2C7B173 /* lessons.json in Resources */ = {isa = PBXBuildFile; fileRef = 9F84AB338D24AF6E22D26D2A /* lessons.json */; };
 		FCBA04FA7F7948D4F8105BD9 /* TutorAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59B4904DD9F4F0F1A9251A43 /* TutorAIService.swift */; };
 		FD8BEDBADA376A1F7422E1DB /* SceneElementViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35A61A5AF3D90763B10C2F4F /* SceneElementViews.swift */; };
+		23863F17F0F08FD5D376233D /* VideoPlaybackController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC227FCA386A643A707F1080 /* VideoPlaybackController.swift */; };
+		D1C2ED2876DF5211217478E4 /* VideoPlayerLayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC9B76AEC10F2A3142071CF9 /* VideoPlayerLayerView.swift */; };
+		809C71977EC2E69855ABBE2B /* lsn_001.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = AE0F6ED287ED0CCA88359724 /* lsn_001.mp4 */; };
+		37AE71BD7584FCF7F05BA14D /* lsn_066.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 11073180E350F0EE654A0661 /* lsn_066.mp4 */; };
+		6C7F8FC0911555DFFFB03B04 /* lsn_097.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = FA277B9B1A90D76A1D63CF81 /* lsn_097.mp4 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -155,6 +160,11 @@
 		F3CC9E8202432C26216393C3 /* QuizViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuizViewModel.swift; sourceTree = "<group>"; };
 		F5B45586A9CCF8BD799CABDC /* AppLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLanguage.swift; sourceTree = "<group>"; };
 		FA59CE3FFD16FB0FA68ED140 /* SessionPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionPlanner.swift; sourceTree = "<group>"; };
+		BC227FCA386A643A707F1080 /* VideoPlaybackController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlaybackController.swift; sourceTree = "<group>"; };
+		FC9B76AEC10F2A3142071CF9 /* VideoPlayerLayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerLayerView.swift; sourceTree = "<group>"; };
+		AE0F6ED287ED0CCA88359724 /* lsn_001.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = lsn_001.mp4; sourceTree = "<group>"; };
+		11073180E350F0EE654A0661 /* lsn_066.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = lsn_066.mp4; sourceTree = "<group>"; };
+		FA277B9B1A90D76A1D63CF81 /* lsn_097.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = lsn_097.mp4; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -179,6 +189,7 @@
 				76610465950458AAC7DC1583 /* Assets.xcassets */,
 				0974D0BD13A01F5972A175AB /* Localizable.strings */,
 				EDC02053425C5BD35DE4260C /* Content */,
+				9861E8F4D8DE512748DF93DC /* Videos */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -283,6 +294,8 @@
 				C14D86C0B5A25195311C05DF /* FeedView.swift */,
 				B038368ED5E060BB4C7C787F /* LessonInfoSheet.swift */,
 				E4E325BF77A8894B7D030704 /* TutorChatView.swift */,
+				BC227FCA386A643A707F1080 /* VideoPlaybackController.swift */,
+				FC9B76AEC10F2A3142071CF9 /* VideoPlayerLayerView.swift */,
 			);
 			path = Feed;
 			sourceTree = "<group>";
@@ -402,6 +415,16 @@
 			path = Histudy;
 			sourceTree = "<group>";
 		};
+		9861E8F4D8DE512748DF93DC /* Videos */ = {
+			isa = PBXGroup;
+			children = (
+				AE0F6ED287ED0CCA88359724 /* lsn_001.mp4 */,
+				11073180E350F0EE654A0661 /* lsn_066.mp4 */,
+				FA277B9B1A90D76A1D63CF81 /* lsn_097.mp4 */,
+			);
+			path = Videos;
+			sourceTree = "<group>";
+		};
 		FF097D51400F7DE72518A56F /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
@@ -494,6 +517,9 @@
 				2BC69BE89639AF983BB53367 /* current_officials.json in Resources */,
 				FBD30990B74A342DB2C7B173 /* lessons.json in Resources */,
 				704ED264A1FA73A4874C0045 /* state_capitals.json in Resources */,
+				809C71977EC2E69855ABBE2B /* lsn_001.mp4 in Resources */,
+				37AE71BD7584FCF7F05BA14D /* lsn_066.mp4 in Resources */,
+				6C7F8FC0911555DFFFB03B04 /* lsn_097.mp4 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -557,6 +583,8 @@
 				C03E12E477287AF13D9E4E90 /* TutorChatView.swift in Sources */,
 				882D8A13CB4952DD71B81A61 /* TutorLogoView.swift in Sources */,
 				66BD9A51C0F0A404272B45C5 /* UserProfile.swift in Sources */,
+				23863F17F0F08FD5D376233D /* VideoPlaybackController.swift in Sources */,
+				D1C2ED2876DF5211217478E4 /* VideoPlayerLayerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

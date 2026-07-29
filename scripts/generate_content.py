@@ -555,12 +555,13 @@ def action(id, type, at, dur, **kw):
          "items": kw.get("items")}
     return a
 
-def lesson(id, question_ids, titleEN, titleVI, category, narration, actions):
+def lesson(id, question_ids, titleEN, titleVI, category, narration, actions, video_file=None):
     total = max([n["atSeconds"] + n["durationSeconds"] for n in narration] +
                 [a["atSeconds"] + a["durationSeconds"] for a in actions] + [0.0])
     return {"id": id, "questionIds": question_ids, "titleEN": titleEN, "titleVI": titleVI,
             "category": category, "totalDurationSeconds": round(total, 1),
-            "narration": narration, "actions": actions, "style": "richNarrative"}
+            "narration": narration, "actions": actions, "style": "richNarrative",
+            "videoURLString": None, "videoFileName": video_file}
 
 LESSONS = [
 lesson("lsn_001", [1], "The Rulebook Above All Rules", "Cuốn Luật Đứng Trên Mọi Luật", GOV_PRINCIPLES,
@@ -574,7 +575,8 @@ lesson("lsn_001", [1], "The Rulebook Above All Rules", "Cuốn Luật Đứng Tr
        {"textEN": "State laws", "textVI": "Luật tiểu bang"},
        {"textEN": "The President", "textVI": "Tổng thống"}]),
    action("a3", "documentReveal", 11, 5, textEN="The Constitution", textVI="Hiến Pháp", symbol="scroll"),
-   action("a4", "bulletList", 16, 5, items=[{"textEN": "Supreme law of the land", "textVI": "Luật tối cao của đất nước"}])]),
+   action("a4", "bulletList", 16, 5, items=[{"textEN": "Supreme law of the land", "textVI": "Luật tối cao của đất nước"}])],
+  video_file="lsn_001.mp4"),
 
 lesson("lsn_006", [5, 6], "Five Freedoms, One Hand", "Năm Quyền Tự Do, Một Bàn Tay", GOV_PRINCIPLES,
   [beat("n1", "The first ten amendments are called the Bill of Rights.", "Mười tu chính án đầu tiên được gọi là Tuyên ngôn Nhân quyền.", 0, 5),
@@ -658,7 +660,8 @@ lesson("lsn_066", [65, 66], "Philadelphia, Summer of 1787", "Philadelphia, Mùa 
   [beat("n1", "Eleven years after independence, the Founding Fathers gathered in Philadelphia.", "Mười một năm sau khi độc lập, các nhà lập quốc tụ họp tại Philadelphia.", 0, 6),
    beat("n2", "Their mission: write the rulebook for a brand-new government. The result was the Constitution.", "Nhiệm vụ của họ: viết ra cuốn luật cho một chính phủ hoàn toàn mới. Kết quả là bản Hiến pháp.", 6, 7)],
   [action("a1", "timeline", 0, 6, year=1787, textEN="Constitutional Convention", textVI="Hội Nghị Lập Hiến"),
-   action("a2", "documentReveal", 6, 7, textEN="The Constitution", textVI="Hiến Pháp", symbol="building.columns")]),
+   action("a2", "documentReveal", 6, 7, textEN="The Constitution", textVI="Hiến Pháp", symbol="building.columns")],
+  video_file="lsn_066.mp4"),
 
 lesson("lsn_073", [73, 74], "A Nation Divided", "Một Quốc Gia Chia Cắt", HIST_1800S,
   [beat("n1", "By the 1860s, the North and South disagreed bitterly over slavery.", "Đến những năm 1860, miền Bắc và miền Nam bất đồng sâu sắc về chế độ nô lệ.", 0, 6),
@@ -711,7 +714,8 @@ lesson("lsn_097", [96, 97], "Fifty Stars, Thirteen Stripes", "Năm Mươi Ngôi 
    action("a4", "highlightRegion", 11, 3, region="northeast", textEN="50 states", textVI="50 tiểu bang"),
    action("a5", "highlightRegion", 14, 3, region="southeast", textEN="50 states", textVI="50 tiểu bang"),
    action("a6", "highlightRegion", 17, 3, region="midwest", textEN="50 states", textVI="50 tiểu bang"),
-   action("a7", "highlightRegion", 18, 3, region="west", textEN="50 states", textVI="50 tiểu bang")]),
+   action("a7", "highlightRegion", 18, 3, region="west", textEN="50 states", textVI="50 tiểu bang")],
+  video_file="lsn_097.mp4"),
 ]
 
 lesson_ids = {l["id"] for l in LESSONS}

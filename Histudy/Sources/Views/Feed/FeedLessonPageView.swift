@@ -12,6 +12,7 @@ struct FeedLessonPageView: View {
 
     @EnvironmentObject private var appState: AppState
     @StateObject private var lessonVM: LessonPlaybackViewModel
+    @StateObject private var videoController: VideoPlaybackController
 
     private enum PagePhase { case watching, quiz, done }
     @State private var phase: PagePhase = .watching
@@ -30,23 +31,35 @@ struct FeedLessonPageView: View {
             script: lesson,
             narrator: narrator
         ))
+        _videoController = StateObject(wrappedValue: VideoPlaybackController(url: lesson.resolvedVideoURL))
     }
 
     private var language: AppLanguage { appState.profile.uiLanguage }
     private var quizQuestions: [CivicsQuestion] { feedVM.quizQuestions(for: entry) }
+    /// Whether this page has a real produced/placeholder video to play
+    /// instead of the procedural whiteboard scene renderer.
+    private var isVideoBacked: Bool { lesson.resolvedVideoURL != nil }
+    private var progressFraction: Double { isVideoBacked ? videoController.progressFraction : lessonVM.progressFraction }
 
     var body: some View {
         ZStack {
-            Theme.scene.canvas.ignoresSafeArea()
+            if isVideoBacked {
+                VideoPlayerLayerView(player: videoController.player)
+                    .ignoresSafeArea()
+            } else {
+                Theme.scene.canvas.ignoresSafeArea()
+            }
 
             VStack(spacing: 12) {
-                ProgressView(value: lessonVM.progressFraction)
+                ProgressView(value: progressFraction)
                     .tint(Theme.shell.gradientStart)
                     .padding(.horizontal)
                     .padding(.top, 8)
 
-                SceneCanvasView(actions: lessonVM.activeActions, language: language)
-                    .padding(.horizontal)
+                if !isVideoBacked {
+                    SceneCanvasView(actions: lessonVM.activeActions, language: language)
+                        .padding(.horizontal)
+                }
 
                 Spacer(minLength: 0)
             }
@@ -64,21 +77,25 @@ struct FeedLessonPageView: View {
         .clipped()
         .onChange(of: isActive) { _, nowActive in
             if nowActive {
-                lessonVM.play(language: language)
+                startPlayback()
             } else {
-                lessonVM.pause()
+                pausePlayback()
             }
         }
         .onChange(of: lessonVM.isFinished) { _, finished in
-            guard finished, phase == .watching else { return }
+            guard !isVideoBacked, finished, phase == .watching else { return }
+            startQuiz()
+        }
+        .onChange(of: videoController.isFinished) { _, finished in
+            guard isVideoBacked, finished, phase == .watching else { return }
             startQuiz()
         }
         .onAppear {
             if isActive {
-                lessonVM.play(language: language)
+                startPlayback()
             }
         }
-        .onDisappear { lessonVM.pause() }
+        .onDisappear { pausePlayback() }
         .sheet(isPresented: $showingInfo) {
             LessonInfoSheet(lesson: lesson)
         }
@@ -100,7 +117,7 @@ struct FeedLessonPageView: View {
                     Text(language == .vietnamese ? lesson.titleVI : lesson.titleEN)
                         .font(.headline)
                         .foregroundStyle(Theme.scene.stroke)
-                    if phase == .watching, let beat = lessonVM.activeNarration {
+                    if !isVideoBacked, phase == .watching, let beat = lessonVM.activeNarration {
                         Text(beat.text(for: language))
                             .font(.subheadline)
                             .foregroundStyle(Theme.scene.stroke.opacity(0.8))
@@ -137,7 +154,11 @@ struct FeedLessonPageView: View {
                     phase = .watching
                     quizIndex = 0
                     quizVM = nil
-                    lessonVM.restart(language: language)
+                    if isVideoBacked {
+                        videoController.restart()
+                    } else {
+                        lessonVM.restart(language: language)
+                    }
                 }
             }
             .padding(.trailing, 14)
@@ -211,6 +232,24 @@ struct FeedLessonPageView: View {
                 .fill(Color.white.opacity(0.95))
                 .shadow(radius: 10)
         )
+    }
+
+    // MARK: - Playback
+
+    private func startPlayback() {
+        if isVideoBacked {
+            videoController.play()
+        } else {
+            lessonVM.play(language: language)
+        }
+    }
+
+    private func pausePlayback() {
+        if isVideoBacked {
+            videoController.pause()
+        } else {
+            lessonVM.pause()
+        }
     }
 
     // MARK: - Quiz flow

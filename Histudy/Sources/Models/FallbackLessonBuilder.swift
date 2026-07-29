@@ -35,7 +35,9 @@ enum FallbackLessonBuilder {
             totalDurationSeconds: 12,
             narration: narration,
             actions: actions,
-            style: .quickFact
+            style: .quickFact,
+            videoURLString: nil,
+            videoFileName: nil
         )
     }
 }
