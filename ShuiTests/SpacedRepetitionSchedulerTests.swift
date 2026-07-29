@@ -3,55 +3,65 @@ import XCTest
 
 final class SpacedRepetitionSchedulerTests: XCTestCase {
     func testFailingResetsIntervalAndRepetitions() {
-        let progress = QuestionProgress(questionId: 1)
-        progress.repetitions = 3
-        progress.intervalDays = 10
+        var state = ReviewState.new()
+        state.repetitions = 3
+        state.intervalDays = 10
 
-        SpacedRepetitionScheduler.schedule(progress, grade: .again)
+        let next = SpacedRepetitionScheduler.schedule(state, grade: .again)
 
-        XCTAssertEqual(progress.repetitions, 0)
-        XCTAssertEqual(progress.intervalDays, 1)
-        XCTAssertEqual(progress.timesIncorrect, 1)
+        XCTAssertEqual(next.repetitions, 0)
+        XCTAssertEqual(next.intervalDays, 1)
     }
 
     func testPassingGrowsIntervalAcrossRepetitions() {
-        let progress = QuestionProgress(questionId: 1)
         let now = Date()
+        var state = ReviewState.new(now: now)
 
-        SpacedRepetitionScheduler.schedule(progress, grade: .good, now: now)
-        XCTAssertEqual(progress.repetitions, 1)
-        XCTAssertEqual(progress.intervalDays, 1)
+        state = SpacedRepetitionScheduler.schedule(state, grade: .good, now: now)
+        XCTAssertEqual(state.repetitions, 1)
+        XCTAssertEqual(state.intervalDays, 1)
 
-        SpacedRepetitionScheduler.schedule(progress, grade: .good, now: now)
-        XCTAssertEqual(progress.repetitions, 2)
-        XCTAssertEqual(progress.intervalDays, 6)
+        state = SpacedRepetitionScheduler.schedule(state, grade: .good, now: now)
+        XCTAssertEqual(state.repetitions, 2)
+        XCTAssertEqual(state.intervalDays, 6)
 
-        let intervalBefore = progress.intervalDays
-        SpacedRepetitionScheduler.schedule(progress, grade: .good, now: now)
-        XCTAssertEqual(progress.repetitions, 3)
-        XCTAssertGreaterThan(progress.intervalDays, intervalBefore)
+        let intervalBefore = state.intervalDays
+        state = SpacedRepetitionScheduler.schedule(state, grade: .good, now: now)
+        XCTAssertEqual(state.repetitions, 3)
+        XCTAssertGreaterThan(state.intervalDays, intervalBefore)
     }
 
     func testEaseFactorNeverDropsBelowMinimum() {
-        let progress = QuestionProgress(questionId: 1)
+        var state = ReviewState.new()
         for _ in 0..<25 {
-            SpacedRepetitionScheduler.schedule(progress, grade: .again)
+            state = SpacedRepetitionScheduler.schedule(state, grade: .again)
         }
-        XCTAssertGreaterThanOrEqual(progress.easeFactor, SpacedRepetitionScheduler.minimumEaseFactor)
+        XCTAssertGreaterThanOrEqual(state.easeFactor, SpacedRepetitionScheduler.minimumEaseFactor)
     }
 
     func testIsDueRespectsDueDate() {
-        let progress = QuestionProgress(questionId: 1)
         let now = Date()
-        progress.dueDate = now.addingTimeInterval(3600)
-        XCTAssertFalse(SpacedRepetitionScheduler.isDue(progress, now: now))
+        var state = ReviewState.new(now: now)
 
-        progress.dueDate = now.addingTimeInterval(-3600)
-        XCTAssertTrue(SpacedRepetitionScheduler.isDue(progress, now: now))
+        state.dueDate = now.addingTimeInterval(3600)
+        XCTAssertFalse(SpacedRepetitionScheduler.isDue(state, now: now))
+
+        state.dueDate = now.addingTimeInterval(-3600)
+        XCTAssertTrue(SpacedRepetitionScheduler.isDue(state, now: now))
     }
 
-    func testNewProgressIsImmediatelyDue() {
-        let progress = QuestionProgress(questionId: 1)
-        XCTAssertTrue(progress.isNew)
+    func testNewStateIsImmediatelyDue() {
+        let now = Date()
+        let state = ReviewState.new(now: now)
+        XCTAssertTrue(state.isNew)
+        XCTAssertTrue(SpacedRepetitionScheduler.isDue(state, now: now))
+    }
+
+    func testScheduleDoesNotMutateTheInputState() {
+        let original = ReviewState.new()
+        _ = SpacedRepetitionScheduler.schedule(original, grade: .good)
+        XCTAssertEqual(original.repetitions, 0)
+        XCTAssertEqual(original.intervalDays, 0)
+        XCTAssertNil(original.lastReviewedAt)
     }
 }

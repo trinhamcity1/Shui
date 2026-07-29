@@ -24,24 +24,9 @@ final class QuizGradingTests: XCTestCase {
         XCTAssertFalse(QuizGrader.isCorrect(selected: [a, c], requiredCorrect: 2))
     }
 
-    func testOptionBuilderAlwaysIncludesACorrectOption() {
-        let store = ContentStore.shared
-        guard let question = store.question(id: 97) else { return XCTFail("missing question 97") }
-        let (options, requiredCorrect) = QuizOptionBuilder.build(
-            for: question, allQuestions: store.questions, localOfficials: LocalOfficialsProfile()
-        )
-        XCTAssertGreaterThan(requiredCorrect, 0)
-        XCTAssertTrue(options.contains { $0.isCorrect })
-        XCTAssertEqual(Set(options.map(\.text)).count, options.count, "options should not contain duplicate text")
-    }
-
-    func testOptionBuilderReturnsEmptyForUnresolvedDynamicQuestion() {
-        let store = ContentStore.shared
-        guard let question = store.question(id: 20) else { return XCTFail("missing question 20") }
-        let (options, requiredCorrect) = QuizOptionBuilder.build(
-            for: question, allQuestions: store.questions, localOfficials: LocalOfficialsProfile()
-        )
-        XCTAssertTrue(options.isEmpty)
-        XCTAssertEqual(requiredCorrect, 0)
+    func testZeroRequiredCorrectIsNeverCorrect() {
+        let a = QuizOption(text: "A", isCorrect: true)
+        XCTAssertFalse(QuizGrader.isCorrect(selected: [a], requiredCorrect: 0))
+        XCTAssertFalse(QuizGrader.isCorrect(selected: [], requiredCorrect: 0))
     }
 }
