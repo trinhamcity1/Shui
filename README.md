@@ -1,4 +1,4 @@
-# Histudy — U.S. Citizenship Civics Tutor
+# Shui — U.S. Citizenship Civics Tutor
 
 A native iOS app that helps Vietnamese-speaking immigrants prepare for the
 U.S. citizenship civics test in daily 5-10 minute sessions with an
@@ -17,16 +17,16 @@ that means concretely.
 
 ## Setup
 
-`Histudy.xcodeproj` is committed to the repo, so you don't need XcodeGen
+`Shui.xcodeproj` is committed to the repo, so you don't need XcodeGen
 installed to open and run the app:
 
 ```bash
-open Histudy.xcodeproj
+open Shui.xcodeproj
 ```
 
-Select the `Histudy` scheme and run on an iOS 17+ simulator or device.
+Select the `Shui` scheme and run on an iOS 17+ simulator or device.
 
-`Histudy.xcodeproj` is generated from `project.yml` via
+`Shui.xcodeproj` is generated from `project.yml` via
 [XcodeGen](https://github.com/yonaskolb/XcodeGen) and checked in as a
 convenience. If you edit `project.yml` (add a target, change a build
 setting), regenerate and commit the result:
@@ -44,7 +44,7 @@ xcodegen generate
 > against JSON, and — since XcodeGen is pure Swift/Foundation with no Apple
 > SDK dependency — a Swift 6.1 toolchain was installed and used to build
 > XcodeGen from source right here and actually run `xcodegen generate`
-> against `project.yml`, producing the real, valid `Histudy.xcodeproj` now
+> against `project.yml`, producing the real, valid `Shui.xcodeproj` now
 > committed in this repo (not hand-written). So the project file itself is
 > known-good; **please still treat the first build of the Swift code in
 > Xcode as the real smoke test**, not a formality. If something doesn't
@@ -55,13 +55,15 @@ xcodegen generate
 ## Architecture
 
 ```
-Histudy/
-  App/              HistudyApp.swift (entry point), AppState (shared services)
+Shui/
+  App/              ShuiApp.swift (entry point), AppState (shared services)
   Resources/
     Content/         Bundled JSON: 100 questions, lesson scripts, categories,
                       state capitals, current officials, character dialogue
     en.lproj/vi.lproj Localizable.strings (UI chrome only, see below)
     Assets.xcassets   App icon slot + accent color (no character art needed)
+    Videos/           One 60s vertical MP4 per flagship lesson. Currently
+                      generated placeholders, not real content — see below
   Sources/
     Models/          Codable content models + SwiftData models (UserProfile,
                       QuestionProgress, SessionLog)
@@ -73,11 +75,12 @@ Histudy/
     Localization/     LocalizationManager (bundle-swizzle) + typed L10n keys
     ViewModels/        One per screen/flow
     Views/            SwiftUI, organized by feature
-HistudyTests/          Unit tests for the learning engine + content integrity
+ShuiTests/          Unit tests for the learning engine + content integrity
 scripts/
   generate_content.py  Generates everything under Resources/Content/ — the
                         100-question bank and lesson scripts are authored
                         here as structured Python data, not hand-typed JSON
+  placeholder_videos/  ffmpeg generator for the stand-in lesson videos
 ```
 
 `scripts/generate_content.py` is the source of truth for all bundled
@@ -195,6 +198,37 @@ real OAuth, StoreKit payments, cross-device comment sync, and a hosted LLM
 endpoint for generative tutoring. Each local piece above was shaped so that
 swap is additive.
 
+## Lesson videos (placeholders today)
+
+Each of the 16 flagship lessons carries a bundled 60s vertical MP4 in
+`Shui/Resources/Videos/`, named `<lessonId>.mp4`. **These are generated
+placeholders, not real teaching content** — each one shows the lesson's
+real title in English and Vietnamese, a filling progress bar, and a live
+timer on the app's own canvas color. They exist so playback, seeking,
+paging, and prefetch can be built and tested against real H.264 files
+before any money is spent on produced video.
+
+Regenerate them with:
+
+```
+python3 scripts/placeholder_videos/generate_placeholders.py
+cp scripts/placeholder_videos/out/*.mp4 Shui/Resources/Videos/
+```
+
+`LessonScript` resolves a video in this priority order (see
+`resolvedVideoURL`):
+
+1. `videoURLString` — a remote/CDN URL. Null everywhere today; this is the
+   field cloud hosting will populate.
+2. `videoFileName` — a file bundled in the app. What all 16 lessons use now.
+3. Neither — the feed falls back to the procedural SwiftUI whiteboard
+   renderer, which is what every non-flagship question already does via
+   `FallbackLessonBuilder`.
+
+So swapping a placeholder for a real video is a one-file drop-in, and
+moving to cloud hosting is a metadata change — neither requires touching
+playback code.
+
 ## What's explicitly out of scope for this MVP
 
 - A second character, or character customization
@@ -207,7 +241,7 @@ swap is additive.
 
 ## Testing
 
-`HistudyTests` covers the parts that are pure logic and worth locking down:
+`ShuiTests` covers the parts that are pure logic and worth locking down:
 - `SpacedRepetitionSchedulerTests` — SM-2 math (interval growth, ease floor, due-date logic)
 - `QuizGradingTests` — multiple-choice grading and distractor generation
 - `SessionPlannerTests` — due-before-new ordering, time-budget behavior
@@ -215,7 +249,7 @@ swap is additive.
   question resolves to a lesson, dynamic questions never ship a stale
   static answer
 
-Run via ⌘U in Xcode, or `xcodebuild test -scheme Histudy -destination
+Run via ⌘U in Xcode, or `xcodebuild test -scheme Shui -destination
 'platform=iOS Simulator,name=iPhone 15'` from the command line.
 
 ## Roadmap (post-MVP)
