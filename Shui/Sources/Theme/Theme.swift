@@ -1,26 +1,8 @@
 import SwiftUI
 
-/// Central design tokens for Shui's two visual systems:
-/// - `Theme.scene` styles the procedurally-rendered lesson "whiteboard" videos
-///   (`SceneCanvasView` and friends) — a flat vector-art, hand-drawn-ink look.
-/// - `Theme.shell` styles the surrounding app chrome (Home, Onboarding, Quiz,
-///   Progress, Settings) — a warm, soft, highly-rounded look.
+/// Central design tokens for the app shell — a warm, soft, highly-rounded
+/// look. The web dashboard mirrors these values; keep them in sync.
 enum Theme {
-    enum scene {
-        /// Matte, off-white "physical whiteboard under studio light" canvas,
-        /// rather than a stark digital white.
-        static let canvas = Color(hex: 0xECECEC)
-        /// Primary containers for informational/messaging content.
-        static let accentBlue = Color(hex: 0x5BC5F2)
-        /// Reserved *exclusively* for emotional/semantic emphasis (a key
-        /// fact, a highlighted icon) — never used as a general accent.
-        static let accentRed = Color(hex: 0xE11D48)
-        /// All vector line-art strokes: map regions, icons, borders.
-        static let stroke = Color(hex: 0x1E293B)
-        static let strokeWidth: CGFloat = 2.5
-        static let strokeStyle = StrokeStyle(lineWidth: strokeWidth, lineCap: .round, lineJoin: .round)
-    }
-
     enum shell {
         /// Warm off-white — soft and domestic rather than cold tech-white.
         static let canvas = Color(hex: 0xF4F3EF)
@@ -51,7 +33,7 @@ extension Color {
     }
 }
 
-/// A soft, rounded card matching the Theme 2 shell aesthetic.
+/// A soft, rounded card matching the shell aesthetic.
 struct ShuiCardStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
@@ -63,8 +45,7 @@ struct ShuiCardStyle: ViewModifier {
     }
 }
 
-/// A pill-shaped button, filled with the gradient accent or outlined,
-/// matching the Theme 2 "rounded-full" interactive pill spec.
+/// A pill-shaped button, filled with the gradient accent or outlined.
 struct ShuiPillButtonStyle: ButtonStyle {
     var filled: Bool = true
 

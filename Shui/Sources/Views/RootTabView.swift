@@ -1,34 +1,47 @@
 import SwiftUI
 
+/// The three-tab shell. Each tab is a placeholder until its phase lands:
+/// Learn is the video feed (Phase 2), Explore is categories and topics
+/// (Phase 3), Profile is progress, likes, and settings (Phase 3).
 struct RootTabView: View {
     var body: some View {
         TabView {
-            FeedView()
-                .tabItem { Label(L10n.feedTab.localized, systemImage: "play.rectangle.fill") }
-            ProgressDashboardView()
-                .tabItem { Label(L10n.homeTabProgress.localized, systemImage: "chart.bar.fill") }
-            SettingsView()
-                .tabItem { Label(L10n.homeTabSettings.localized, systemImage: "gearshape.fill") }
+            PhasePlaceholderView(title: Strings.learnTab, phase: 2, detail: "The video feed lives here.")
+                .tabItem { Label(Strings.learnTab, systemImage: "play.rectangle.fill") }
+            PhasePlaceholderView(title: Strings.exploreTab, phase: 3, detail: "Categories and topics live here.")
+                .tabItem { Label(Strings.exploreTab, systemImage: "square.grid.2x2.fill") }
+            PhasePlaceholderView(title: Strings.profileTab, phase: 3, detail: "Progress, likes, and settings live here.")
+                .tabItem { Label(Strings.profileTab, systemImage: "person.crop.circle.fill") }
         }
         .tint(Theme.shell.gradientStart)
     }
 }
 
-/// Decides between the first-run onboarding flow and the main tab bar,
-/// re-created (via `.id`) whenever the UI language changes so every screen
-/// picks up the newly selected `Localizable.strings` bundle.
-struct RootView: View {
-    @EnvironmentObject private var appState: AppState
-    @ObservedObject private var localization = LocalizationManager.shared
+/// A launchable stub, not a mockup. Says which phase fills the tab in so an
+/// empty screen never reads as a bug.
+struct PhasePlaceholderView: View {
+    let title: String
+    let phase: Int
+    let detail: String
 
     var body: some View {
-        Group {
-            if appState.profile.hasCompletedOnboarding {
-                RootTabView()
-            } else {
-                OnboardingView()
-            }
+        VStack(spacing: 8) {
+            Text("Coming in phase \(phase)")
+                .font(.headline)
+                .foregroundStyle(Theme.shell.ink)
+            Text(detail)
+                .font(.subheadline)
+                .foregroundStyle(Theme.shell.metadata)
+                .multilineTextAlignment(.center)
         }
-        .id(localization.currentLanguage)
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .shuiShellBackground()
+    }
+}
+
+struct RootView: View {
+    var body: some View {
+        RootTabView()
     }
 }
