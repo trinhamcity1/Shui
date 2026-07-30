@@ -10,8 +10,10 @@ import UniformTypeIdentifiers
 /// this view itself never imports Firebase.
 ///
 /// Sign in with an account `bootstrap-admin.ts` has already granted
-/// `creator` or `admin`, against a topic id that already exists (the seeded
-/// civics topic id is `uscis-civics-2025`).
+/// `creator` or `admin`. "Create Test Topic" makes a throwaway topic owned
+/// by whoever's signed in, so this doesn't depend on `seed_civics.ts` having
+/// run — or type in an existing topic id (the seeded civics topic id is
+/// `uscis-civics-2025`) if you'd rather test against that.
 struct DebugUploadPipelineView: View {
     @EnvironmentObject private var environment: AppEnvironment
 
@@ -46,6 +48,8 @@ struct DebugUploadPipelineView: View {
                 Section("2. Pick a local video and run the pipeline") {
                     TextField("Topic ID", text: $topicID)
                         .textInputAutocapitalization(.never)
+                    Button("Create Test Topic") { Task { await createTestTopic() } }
+                        .disabled(isBusy)
                     Button("Choose File…") { isPickerPresented = true }
                     if let pickedFileURL {
                         Text(pickedFileURL.lastPathComponent).font(.caption)
@@ -102,6 +106,41 @@ struct DebugUploadPipelineView: View {
             log("✅ Created account \(email) — now run bootstrap-admin.ts, then Sign In")
         } catch {
             log("❌ Create account failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func createTestTopic() async {
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            let draft = Topic(
+                id: nil,
+                title: "Debug Test Topic",
+                subtitle: "Created from the debug screen",
+                description: "",
+                categoryId: "exam-prep",
+                coverImageURL: nil,
+                visibility: .private,
+                createdBy: "",
+                createdByName: "Debug",
+                createdAt: nil,
+                updatedAt: nil,
+                publishedAt: nil,
+                videoCount: 0,
+                totalDurationSec: 0,
+                learnerCount: 0,
+                tags: [],
+                isDeleted: false
+            )
+            let created = try await environment.topics.create(draft)
+            guard let id = created.id else {
+                log("❌ Created topic but got no id back")
+                return
+            }
+            topicID = id
+            log("✅ Created test topic \(id) — Topic ID field updated")
+        } catch {
+            log("❌ Create topic failed: \(error.localizedDescription)")
         }
     }
 
