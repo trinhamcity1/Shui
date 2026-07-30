@@ -59,6 +59,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.shui.tests
         SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: YES
 
 schemes:
   Shui:
