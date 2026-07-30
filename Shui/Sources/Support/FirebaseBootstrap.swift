@@ -30,6 +30,17 @@ enum FirebaseBootstrap {
         Firestore.firestore().settings = settings
 
         isConfigured = true
+
+        // Deliberately explicit rather than relying on Firebase's own console
+        // output, which varies by SDK version. FirebaseApp.app() returning the
+        // configured instance — as opposed to nil — is the actual signal that
+        // GoogleService-Info.plist was found and parsed; printing its
+        // projectID confirms it's this project, not a stale or mismatched one.
+        if let app = FirebaseApp.app() {
+            print("✅ FirebaseBootstrap: configured project '\(app.options.projectID ?? "?")', bundle '\(app.options.bundleID)'")
+        } else {
+            print("❌ FirebaseBootstrap: FirebaseApp.configure() ran but FirebaseApp.app() is nil — GoogleService-Info.plist is likely missing from the target's Copy Bundle Resources.")
+        }
     }
 
     // MARK: - Accessors
