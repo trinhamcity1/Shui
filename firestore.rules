@@ -1,0 +1,279 @@
+rules_version = '2';
+
+// Deny by default. Every collection below gets an explicit rule; nothing
+// falls through to an implicit allow.
+//
+// Role always comes from the custom claim on the ID token
+// (request.auth.token.role), never from the users/{uid} document — the
+// Firestore copy is a display mirror only, and trusting it would let any
+// signed-in client grant themselves creator/admin by writing their own doc.
+//
+// A recurring pattern below: several fields exist only as denormalized
+// counters or fan-out state that a Cloud Function maintains
+// (videos.likeCount, topics.videoCount, topics.visibility and its fan-out
+// to topicVisibility, users.role/streaks/totals/handle). Rules allow the
+// *document* to be updated by its owner, but explicitly forbid touching
+// those specific fields from a direct client write — the corresponding
+// callable (createVideoUpload, setTopicVisibility, toggleLike, assignRole,
+// ...) uses the Admin SDK, which is not subject to these rules at all, so
+// forbidding the field here is what actually forces those changes through
+// the validated path instead of a stray client write reaching the same
+// field by coincidence.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Helpers ----------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isNotGuest() {
+      return isSignedIn()
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function hasRole(r) {
+      return isSignedIn() && request.auth.token.role == r;
+    }
+
+    function isCreator() {
+      return hasRole('creator') || hasRole('admin');
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function unchangedOrAbsent(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    // ---- categories/{categoryId} ------------------------------------
+    // Fixed taxonomy. Anyone can read it; only admins edit it (category
+    // *management* — creators pick from this set, they don't extend it).
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update: if isAdmin();
+      allow delete: if false; // categories are deactivated (isActive), never deleted
+    }
+
+    // ---- topics/{topicId} --------------------------------------------
+
+    function topicIsPublic(topic) {
+      return topic.visibility == 'public' && topic.isDeleted == false;
+    }
+
+    function isTopicOwnerOrAdmin(topic) {
+      return isSignedIn() && (topic.createdBy == request.auth.uid || isAdmin());
+    }
+
+    match /topics/{topicId} {
+      allow read: if topicIsPublic(resource.data) || isTopicOwnerOrAdmin(resource.data);
+
+      allow create: if isCreator()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.visibility == 'private'
+        && request.resource.data.isDeleted == false;
+
+      // Plain field edits (title, subtitle, description, cover image, tags)
+      // go straight from the topic editor to Firestore. Visibility changes
+      // and the denormalized counters are Function-only — setTopicVisibility
+      // handles the publish gate and the fan-out to child videos, and the
+      // counters are maintained by triggers — so both are excluded here even
+      // though the owner can otherwise update this document directly.
+      allow update: if isTopicOwnerOrAdmin(resource.data)
+        && unchangedOrAbsent([
+          'visibility', 'publishedAt', 'videoCount',
+          'totalDurationSec', 'learnerCount', 'createdBy',
+        ]);
+
+      // Soft delete is an update (isDeleted: true) performed by the
+      // softDeleteTopic callable via the Admin SDK, which bypasses rules
+      // entirely — so a real Firestore "delete" is never legitimate here.
+      allow delete: if false;
+    }
+
+    // ---- videos/{videoId} --------------------------------------------
+    // All client writes are denied — every field, including status and
+    // visibility, is set by a Cloud Function (createVideoUpload,
+    // finalizeVideoUpload, setVideoVisibility, softDeleteVideo, the view/like/
+    // completion counters). This is the strictest collection in the schema:
+    // a learner's quiz score and a creator's publish state must never be
+    // trusted to a client write.
+
+    function videoIsPublic(video) {
+      return video.status == 'ready'
+        && video.visibility == 'public'
+        && video.topicVisibility == 'public'
+        && video.isDeleted == false;
+    }
+
+    function isVideoOwnerOrAdmin(video) {
+      return isSignedIn() && (video.createdBy == request.auth.uid || isAdmin());
+    }
+
+    match /videos/{videoId} {
+      allow read: if videoIsPublic(resource.data) || isVideoOwnerOrAdmin(resource.data);
+      allow write: if false;
+
+      // ---- videos/{videoId}/quiz/current --------------------------
+      // Prompts and options only — see quiz/answers below. Same visibility
+      // rule as the parent video.
+      match /quiz/current {
+        allow read: if videoIsPublic(get(/databases/$(database)/documents/videos/$(videoId)).data)
+          || isVideoOwnerOrAdmin(get(/databases/$(database)/documents/videos/$(videoId)).data);
+        allow write: if false;
+      }
+
+      // ---- videos/{videoId}/quiz/answers ---------------------------
+      // correctOptionIds + explanation. Never readable by a non-owner — this
+      // is the document that keeps submitQuizAttempt honest: the client
+      // reading quiz/current can see the questions, but grading needs the
+      // callable to consult this doc server-side, and no signed-in client
+      // (including the video's own creator's *learners*) can read it directly.
+      match /quiz/answers {
+        allow read: if isVideoOwnerOrAdmin(get(/databases/$(database)/documents/videos/$(videoId)).data);
+        allow write: if false;
+      }
+
+      // ---- videos/{videoId}/comments/{commentId} --------------------
+      match /comments/{commentId} {
+        allow read: if videoIsPublic(get(/databases/$(database)/documents/videos/$(videoId)).data)
+          || isVideoOwnerOrAdmin(get(/databases/$(database)/documents/videos/$(videoId)).data);
+
+        allow create: if isNotGuest()
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() >= 1
+          && request.resource.data.text.size() <= 1000
+          && request.resource.data.likeCount == 0
+          && request.resource.data.replyCount == 0
+          && request.resource.data.reportCount == 0;
+
+        // Author, within 15 minutes of creation, editing only text/editedAt.
+        allow update: if isSignedIn()
+          && resource.data.uid == request.auth.uid
+          && request.time < resource.data.createdAt + duration.value(15, 'm')
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() >= 1
+          && request.resource.data.text.size() <= 1000
+          ||
+          // Soft delete (isDeleted: true) by the author or an admin, at any
+          // time, touching no other field — the thread keeps its shape.
+          (isSignedIn()
+            && (resource.data.uid == request.auth.uid || isAdmin())
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isDeleted'])
+            && request.resource.data.isDeleted == true);
+
+        allow delete: if false; // soft delete only, see update above
+      }
+
+      // ---- videos/{videoId}/aiThreads/{uid} + messages --------------
+      // The thread and its messages are Function-only writes (aiTutorMessage
+      // assembles context server-side and persists both sides of the
+      // exchange); the owner can read their own thread to resume it.
+      match /aiThreads/{uid} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+
+        match /messages/{messageId} {
+          allow read: if isOwner(uid);
+          allow write: if false;
+        }
+      }
+    }
+
+    // ---- users/{uid} --------------------------------------------------
+
+    match /users/{uid} {
+      // No field on this document is sensitive on its own (email lives in
+      // Firebase Auth, not here) — displayName/handle/photo/bio are meant to
+      // be public, and role/streaks/totals are the "public-profile subset"
+      // the spec describes. Firestore rules can't redact individual fields
+      // on a read, so the honest implementation is: the whole document is
+      // the public subset.
+      allow read: if true;
+
+      allow create: if isOwner(uid)
+        && request.resource.data.role == 'learner'
+        && request.resource.data.currentStreak == 0
+        && request.resource.data.longestStreak == 0
+        && request.resource.data.totalVideosCompleted == 0
+        && request.resource.data.totalQuizzesPassed == 0;
+
+      allow update: if isOwner(uid)
+        && unchangedOrAbsent([
+          'role', 'currentStreak', 'longestStreak',
+          'totalVideosCompleted', 'totalQuizzesPassed', 'handle',
+        ]);
+
+      allow delete: if false; // deleteAccount callable, phase 3
+
+      // ---- users/{uid}/topicProgress/{topicId} ------------------------
+      // ---- users/{uid}/videoProgress/{videoId} ------------------------
+      // Written only by submitQuizAttempt / markVideoCompleted, inside a
+      // transaction, via the Admin SDK.
+      match /topicProgress/{topicId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+      match /videoProgress/{videoId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      // ---- users/{uid}/likes/{videoId} --------------------------------
+      // Written only by toggleLike, so the like count it drives can't drift
+      // from the source of truth.
+      match /likes/{videoId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      // ---- users/{uid}/aiUsage/{yyyy-mm-dd} ---------------------------
+      // Rate-limit counters. Owner can read their own usage (to render "12 of
+      // 30 today"); only aiTutorMessage increments it.
+      match /aiUsage/{day} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+    }
+
+    // ---- handles/{handle} ----------------------------------------------
+    // Reserved transactionally by claimHandle via the Admin SDK. No
+    // legitimate client read or write.
+    match /handles/{handle} {
+      allow read, write: if false;
+    }
+
+    // ---- viewEvents/{eventId} -------------------------------------------
+    // Fire-and-forget view pings. Clients only ever create one per view;
+    // only the flushViewCounts scheduled Function reads and drains them into
+    // videos.viewCount, which is why read is denied even to the reporter.
+
+    match /viewEvents/{eventId} {
+      allow read: if false;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.videoId is string;
+      allow update, delete: if false;
+    }
+
+    // ---- reports/{reportId} ---------------------------------------------
+
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isNotGuest()
+        && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.status == 'open';
+      allow update, delete: if false; // admin actions go through the dashboard's Function
+    }
+  }
+}
