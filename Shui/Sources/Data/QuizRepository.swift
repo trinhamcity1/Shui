@@ -31,10 +31,10 @@ struct FirestoreQuizRepository: QuizRepository {
             "answers": answers.map { ["questionId": $0.questionId, "selectedOptionIds": $0.selectedOptionIds] },
         ]
         let result = try await functions.httpsCallable("submitQuizAttempt").call(payload)
-        guard let raw = result.data else {
+        guard JSONSerialization.isValidJSONObject(result.data) else {
             throw RepositoryError.malformedResponse
         }
-        let data = try JSONSerialization.data(withJSONObject: raw)
+        let data = try JSONSerialization.data(withJSONObject: result.data)
         return try JSONDecoder().decode(QuizResult.self, from: data)
     }
 }
