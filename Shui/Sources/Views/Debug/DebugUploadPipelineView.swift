@@ -34,6 +34,13 @@ struct DebugUploadPipelineView: View {
                     SecureField("Password", text: $password)
                     Button("Sign In") { Task { await signIn() } }
                         .disabled(email.isEmpty || password.isEmpty || isBusy)
+                    Button("Create Account") { Task { await createAccount() } }
+                        .disabled(email.isEmpty || password.isEmpty || isBusy)
+                    Text("No signup screen exists yet (Phase 3). A new account starts as " +
+                         "role \"learner\" — run bootstrap-admin.ts against this same " +
+                         "project/emulator before it can call creator-only functions.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("2. Pick a local video and run the pipeline") {
@@ -84,6 +91,17 @@ struct DebugUploadPipelineView: View {
             log("✅ Signed in as \(email)")
         } catch {
             log("❌ Sign-in failed: \(error.localizedDescription)")
+        }
+    }
+
+    private func createAccount() async {
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            try await DebugAuth.createAccount(email: email, password: password)
+            log("✅ Created account \(email) — now run bootstrap-admin.ts, then Sign In")
+        } catch {
+            log("❌ Create account failed: \(error.localizedDescription)")
         }
     }
 

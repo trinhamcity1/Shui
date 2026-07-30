@@ -19,6 +19,7 @@ Pods/
 # Secrets — never commit. R2 keys and model API keys belong in Cloud Functions
 # secrets; service accounts stay on the machine that runs admin scripts.
 *.env
+*.secret.local
 serviceAccountKey*.json
 *-service-account.json
 

@@ -12,5 +12,14 @@ enum DebugAuth {
     static func signIn(email: String, password: String) async throws {
         _ = try await Auth.auth().signIn(withEmail: email, password: password)
     }
+
+    /// Phase 1 has no signup screen yet — this exists purely so the debug
+    /// screen has a way to get *some* account to test against without a
+    /// side trip to the Firebase console. A fresh account is role "learner"
+    /// (the onUserCreated trigger's default); it still needs
+    /// bootstrap-admin.ts before creator-only callables will accept it.
+    static func createAccount(email: String, password: String) async throws {
+        _ = try await Auth.auth().createUser(withEmail: email, password: password)
+    }
 }
 #endif
