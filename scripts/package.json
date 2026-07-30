@@ -1,0 +1,17 @@
+{
+  "name": "shui-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "seed:civics": "ts-node seed_civics.ts",
+    "bootstrap-admin": "ts-node bootstrap-admin.ts"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.16.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  }
+}
