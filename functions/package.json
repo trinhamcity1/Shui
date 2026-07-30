@@ -14,6 +14,7 @@
     "test:functions": "jest --testPathPattern='src/.*\\.test\\.ts'",
     "test:rules": "firebase emulators:exec --only firestore \"jest --testPathPattern='test/.*\\.test\\.ts'\"",
     "seed:local": "firebase emulators:exec --only firestore,auth \"npm --prefix ../scripts run seed:civics\"",
+    "secrets:push": "bash scripts/set-r2-secrets.sh",
     "test": "npm run test:functions && npm run test:rules"
   },
   "dependencies": {

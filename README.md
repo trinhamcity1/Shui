@@ -157,17 +157,22 @@ R2 secrets deployed — this hasn't been run yet.
 
 R2 credentials are Cloud Functions secrets, never client config:
 `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`,
-`R2_PUBLIC_BASE_URL`. Set them once against the real project with:
+`R2_PUBLIC_BASE_URL`. Set them once against the real project — get R2 values from
+the Cloudflare dashboard (R2 → Manage API tokens → Create API token, scoped to the
+`shui-videos` bucket):
 
 ```sh
-firebase functions:secrets:set R2_ACCOUNT_ID
-firebase functions:secrets:set R2_ACCESS_KEY_ID
-firebase functions:secrets:set R2_SECRET_ACCESS_KEY
-firebase functions:secrets:set R2_BUCKET
-firebase functions:secrets:set R2_PUBLIC_BASE_URL
+cd functions
+cp .secrets.local.env.example .secrets.local.env   # gitignored — fill in real values
+npm run secrets:push                                # pushes all five in one go
 ```
 
-They're never required for emulator work — only for `firebase deploy`.
+`secrets:push` runs `scripts/set-r2-secrets.sh`, which reads `.secrets.local.env` and
+calls `firebase functions:secrets:set` for each of the five names — no manual
+copy-pasting into interactive prompts, and no real values ever touch git. Re-run it
+whenever a credential rotates; a function already deployed needs a fresh
+`firebase deploy --only functions` afterward to pick up the new value. Secrets are
+never required for emulator work — only for a real `firebase deploy`.
 
 ### Bootstrapping an admin and seeding the civics content
 
