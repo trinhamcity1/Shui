@@ -30,11 +30,12 @@ and one prompt per phase.
 Phases 0–3 are the shippable core. Phase 4 is the differentiator. Phases 5–6 are what
 make the app maintainable without touching code.
 
-**The app UI is still a shell.** Three tabs, each a placeholder naming the phase that
-fills it in — Phase 2 is the first phase that puts anything on screen. Phase 1 stood up
-the real backend (Firestore schema, security rules, Cloud Functions, R2 upload pipeline)
-and the Swift repository layer that talks to it, but nothing in `Sources/Views/` calls
-into it yet.
+**The consumer app UI is still a shell.** Three tabs, each a placeholder naming the phase
+that fills it in — Phase 2 is the first phase that puts real consumer-facing content on
+screen. Phase 1 stood up the real backend (Firestore schema, security rules, Cloud
+Functions, R2 upload pipeline) and the Swift repository layer that talks to it; the one
+thing in `Sources/Views/` that calls into it is a debug-only fourth tab that proves the
+upload pipeline works end to end (see below), not a consumer feature.
 
 ## Architecture
 
@@ -53,6 +54,7 @@ Shui/
     Support/        FirebaseBootstrap, Strings
     Theme/          Design tokens (mirrored by the web dashboard in Phase 6)
     Views/          SwiftUI, organized by feature
+      Debug/        #if DEBUG-only screens, never shipped in release
   Resources/        Assets.xcassets only — no bundled content
 ShuiTests/          Unit tests for pure logic
 functions/          Cloud Functions (TypeScript, 2nd gen) — callables, triggers, schemas
@@ -140,9 +142,16 @@ validation) and `test:rules` (`firebase emulators:exec` wrapping a Jest suite th
 denied path for every row in the rules table below). Both need no Firebase login; the
 emulator doesn't talk to any real project.
 
-Point the app at the emulator by calling `FirebaseBootstrap.useEmulators()` (guarded
-`#if DEBUG`) before any Firestore/Auth/Functions use — wire it to a debug-only launch
-argument in the Xcode scheme once a phase actually needs it.
+The app points at the emulator when launched with `-useFirebaseEmulator` (see
+`ShuiApp.swift`'s `AppDelegate`) — add that as a launch argument on the scheme for
+debug-only runs against `npm run emulate`.
+
+A debug-only fourth tab, `DebugUploadPipelineView` (`#if DEBUG`, deleted or replaced once
+Phase 2 has a real upload flow), exercises §8.4 of the phase doc end to end: sign in with
+an account `bootstrap-admin.ts` granted `creator`/`admin`, pick a local video file, and
+watch it go through `createVideoUpload` → a direct PUT to R2 → `finalizeVideoUpload` →
+playback from `playbackURL` in `AVPlayer`. It needs a real device or simulator and real
+R2 secrets deployed — this hasn't been run yet.
 
 ### Secrets
 

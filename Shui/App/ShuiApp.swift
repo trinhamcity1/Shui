@@ -24,11 +24,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 struct ShuiApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appState = AppState()
+    @StateObject private var appEnvironment = AppEnvironment.live()
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(appState)
+                .environmentObject(appEnvironment)
         }
         .modelContainer(PersistenceController.shared.container)
     }

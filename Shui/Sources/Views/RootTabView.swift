@@ -12,6 +12,10 @@ struct RootTabView: View {
                 .tabItem { Label(Strings.exploreTab, systemImage: "square.grid.2x2.fill") }
             PhasePlaceholderView(title: Strings.profileTab, phase: 3, detail: "Progress, likes, and settings live here.")
                 .tabItem { Label(Strings.profileTab, systemImage: "person.crop.circle.fill") }
+            #if DEBUG
+            DebugUploadPipelineView()
+                .tabItem { Label("Debug", systemImage: "ladybug.fill") }
+            #endif
         }
         .tint(Theme.shell.gradientStart)
     }
