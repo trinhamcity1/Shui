@@ -1,0 +1,47 @@
+{
+  "name": "shui-functions",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "serve": "npm run build && firebase emulators:start --only functions,firestore,auth",
+    "emulate": "npm run build && firebase emulators:start --only functions,firestore,auth",
+    "test:functions": "jest --testPathPattern='src/.*\\.test\\.ts'",
+    "test:rules": "firebase emulators:exec --only firestore \"jest --testPathPattern='test/.*\\.test\\.ts'\"",
+    "seed:local": "firebase emulators:exec --only firestore,auth \"npm --prefix ../scripts run seed:civics\"",
+    "test": "npm run test:functions && npm run test:rules"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.658.0",
+    "@aws-sdk/s3-request-presigner": "^3.658.0",
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.0.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "@types/jest": "^29.5.13",
+    "@types/node": "^20.16.10",
+    "firebase": "^10.14.1",
+    "firebase-functions-test": "^3.3.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.2"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/src",
+      "<rootDir>/test"
+    ],
+    "testMatch": [
+      "**/*.test.ts"
+    ]
+  }
+}
