@@ -15,7 +15,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "91D660373A0AB535F80A93F2"
+               BlueprintIdentifier = "25DFE00869AC2C301C46BAD2"
                BuildableName = "Shui.app"
                BlueprintName = "Shui"
                ReferencedContainer = "container:Shui.xcodeproj">
@@ -29,7 +29,7 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "09721E46ACE376FDF80A3779"
+               BlueprintIdentifier = "B8A4C27456FCAE7D6204AF8C"
                BuildableName = "ShuiTests.xctest"
                BlueprintName = "ShuiTests"
                ReferencedContainer = "container:Shui.xcodeproj">
@@ -46,7 +46,7 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "91D660373A0AB535F80A93F2"
+            BlueprintIdentifier = "25DFE00869AC2C301C46BAD2"
             BuildableName = "Shui.app"
             BlueprintName = "Shui"
             ReferencedContainer = "container:Shui.xcodeproj">
@@ -54,10 +54,11 @@
       </MacroExpansion>
       <Testables>
          <TestableReference
-            skipped = "NO">
+            skipped = "NO"
+            parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "09721E46ACE376FDF80A3779"
+               BlueprintIdentifier = "B8A4C27456FCAE7D6204AF8C"
                BuildableName = "ShuiTests.xctest"
                BlueprintName = "ShuiTests"
                ReferencedContainer = "container:Shui.xcodeproj">
@@ -81,7 +82,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "91D660373A0AB535F80A93F2"
+            BlueprintIdentifier = "25DFE00869AC2C301C46BAD2"
             BuildableName = "Shui.app"
             BlueprintName = "Shui"
             ReferencedContainer = "container:Shui.xcodeproj">
@@ -100,7 +101,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "91D660373A0AB535F80A93F2"
+            BlueprintIdentifier = "25DFE00869AC2C301C46BAD2"
             BuildableName = "Shui.app"
             BlueprintName = "Shui"
             ReferencedContainer = "container:Shui.xcodeproj">
