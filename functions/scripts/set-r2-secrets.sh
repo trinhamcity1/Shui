@@ -29,10 +29,10 @@ SECRET_NAMES=(R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET R2_P
 for name in "${SECRET_NAMES[@]}"; do
   value="$(grep -E "^${name}=" "$ENV_FILE" | head -n1 | cut -d '=' -f2- | tr -d '\r')"
   if [ -z "$value" ]; then
-    echo "Skipping $name — empty or missing in $ENV_FILE." >&2
+    echo "Skipping ${name} - empty or missing in $ENV_FILE." >&2
     continue
   fi
-  echo "Setting $name…"
+  echo "Setting ${name}..."
   printf '%s' "$value" | firebase functions:secrets:set "$name" --data-file=- --force
 done
 
