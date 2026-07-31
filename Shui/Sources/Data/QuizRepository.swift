@@ -5,6 +5,9 @@ import Foundation
 protocol QuizRepository {
     func quiz(forVideo videoId: String) async throws -> Quiz?
     func submit(videoId: String, answers: [QuizAttemptAnswer]) async throws -> QuizResult
+    /// Creator-only (Phase 5 builds the real authoring UI around this) —
+    /// exposed now so debug/test flows can attach a quiz to a video.
+    func saveQuiz(videoId: String, questions: [QuizQuestionDraft], passThreshold: Double) async throws
 }
 
 struct FirestoreQuizRepository: QuizRepository {
@@ -37,6 +40,25 @@ struct FirestoreQuizRepository: QuizRepository {
         let data = try JSONSerialization.data(withJSONObject: result.data)
         return try JSONDecoder().decode(QuizResult.self, from: data)
     }
+
+    func saveQuiz(videoId: String, questions: [QuizQuestionDraft], passThreshold: Double) async throws {
+        let payload: [String: Any] = [
+            "videoId": videoId,
+            "passThreshold": passThreshold,
+            "questions": questions.map { question in
+                [
+                    "id": question.id,
+                    "prompt": question.prompt,
+                    "options": question.options.map { ["id": $0.id, "text": $0.text] },
+                    "correctOptionIds": question.correctOptionIds,
+                    "requiredCorrectCount": question.requiredCorrectCount,
+                    "explanation": question.explanation,
+                    "orderIndex": question.orderIndex,
+                ] as [String: Any]
+            },
+        ]
+        _ = try await functions.httpsCallable("saveQuiz").call(payload)
+    }
 }
 
 final class InMemoryQuizRepository: QuizRepository {
@@ -59,5 +81,23 @@ final class InMemoryQuizRepository: QuizRepository {
 
     func submit(videoId: String, answers: [QuizAttemptAnswer]) async throws -> QuizResult {
         resultProvider(videoId, answers)
+    }
+
+    func saveQuiz(videoId: String, questions: [QuizQuestionDraft], passThreshold: Double) async throws {
+        quizzes[videoId] = Quiz(
+            version: (quizzes[videoId]?.version ?? 0) + 1,
+            questions: questions.map {
+                QuizQuestion(
+                    id: $0.id,
+                    prompt: $0.prompt,
+                    options: $0.options,
+                    requiredCorrectCount: $0.requiredCorrectCount,
+                    orderIndex: $0.orderIndex
+                )
+            },
+            passThreshold: passThreshold,
+            updatedBy: "preview-user",
+            updatedAt: nil
+        )
     }
 }

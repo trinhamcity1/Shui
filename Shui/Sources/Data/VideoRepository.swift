@@ -1,5 +1,6 @@
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseFunctions
 import Foundation
 
 protocol VideoRepository {
@@ -12,15 +13,24 @@ protocol VideoRepository {
     func videos(withIds ids: [String]) async throws -> [Video]
     func video(id: String) async throws -> Video?
     func recordView(videoId: String, watchedSeconds: Double, completed: Bool) async throws
+    /// Creator-only (Phase 5 builds the real authoring UI around this) —
+    /// exposed now so debug/test flows can publish a video.
+    func setVisibility(videoId: String, visibility: Video.Visibility) async throws
 }
 
 struct FirestoreVideoRepository: VideoRepository {
     private let db: Firestore
     private let auth: Auth
+    private let functions: Functions
 
-    init(db: Firestore = FirebaseBootstrap.firestore, auth: Auth = FirebaseBootstrap.auth) {
+    init(
+        db: Firestore = FirebaseBootstrap.firestore,
+        auth: Auth = FirebaseBootstrap.auth,
+        functions: Functions = FirebaseBootstrap.functions
+    ) {
         self.db = db
         self.auth = auth
+        self.functions = functions
     }
 
     func feed(categoryId: String?, limit: Int, after cursor: PageCursor?) async throws -> Page<Video> {
@@ -104,6 +114,13 @@ struct FirestoreVideoRepository: VideoRepository {
             "createdAt": FieldValue.serverTimestamp(),
         ])
     }
+
+    func setVisibility(videoId: String, visibility: Video.Visibility) async throws {
+        _ = try await functions.httpsCallable("setVideoVisibility").call([
+            "videoId": videoId,
+            "visibility": visibility.rawValue,
+        ])
+    }
 }
 
 final class InMemoryVideoRepository: VideoRepository {
@@ -144,5 +161,10 @@ final class InMemoryVideoRepository: VideoRepository {
 
     func recordView(videoId: String, watchedSeconds: Double, completed: Bool) async throws {
         recordedViews.append((videoId, watchedSeconds, completed))
+    }
+
+    func setVisibility(videoId: String, visibility: Video.Visibility) async throws {
+        guard let index = videos.firstIndex(where: { $0.id == videoId }) else { return }
+        videos[index].visibility = visibility
     }
 }

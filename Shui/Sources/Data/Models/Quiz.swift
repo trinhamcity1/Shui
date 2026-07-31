@@ -31,6 +31,19 @@ struct QuizAttemptAnswer: Codable {
     var selectedOptionIds: [String]
 }
 
+/// The creator-side shape of a question — unlike `QuizQuestion`, this one
+/// does carry the answer key, since authoring a quiz means defining it.
+/// Used only by `QuizRepository.saveQuiz`, never returned by a read.
+struct QuizQuestionDraft: Codable {
+    var id: String
+    var prompt: String
+    var options: [QuizOption]
+    var correctOptionIds: [String]
+    var requiredCorrectCount: Int
+    var explanation: String
+    var orderIndex: Int
+}
+
 struct QuizQuestionResult: Codable, Identifiable {
     var questionId: String
     var wasCorrect: Bool

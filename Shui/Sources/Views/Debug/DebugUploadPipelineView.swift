@@ -66,6 +66,18 @@ struct DebugUploadPipelineView: View {
                             .frame(height: 300)
                         Text("status: \(readyVideo.status.rawValue)")
                     }
+
+                    Section("4. Attach a quiz and publish") {
+                        Text("The Learn tab only shows ready, quizzed, public videos under a " +
+                             "public topic. This attaches a throwaway 1-question quiz, then " +
+                             "publishes both the video and its topic so it shows up there.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Button("Attach test quiz + publish") {
+                            Task { await attachQuizAndPublish(videoId: readyVideo.id) }
+                        }
+                        .disabled(isBusy)
+                    }
                 }
 
                 Section("Log") {
@@ -192,6 +204,43 @@ struct DebugUploadPipelineView: View {
             readyVideo = video
         } catch {
             log("❌ Pipeline failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// `setVideoVisibility` requires `hasQuiz`, and `setTopicVisibility`
+    /// requires at least one ready video — so this has to run in that order:
+    /// save the quiz first, then publish the video, then the topic.
+    private func attachQuizAndPublish(videoId: String?) async {
+        guard let videoId else { return }
+        isBusy = true
+        defer { isBusy = false }
+
+        do {
+            log("Saving test quiz…")
+            let question = QuizQuestionDraft(
+                id: "debug-q1",
+                prompt: "This is a debug placeholder question — is this a test quiz?",
+                options: [
+                    QuizOption(id: "a", text: "Yes, this is a test"),
+                    QuizOption(id: "b", text: "No"),
+                ],
+                correctOptionIds: ["a"],
+                requiredCorrectCount: 1,
+                explanation: "This quiz exists only to satisfy the publish precondition.",
+                orderIndex: 0
+            )
+            try await environment.quizzes.saveQuiz(videoId: videoId, questions: [question], passThreshold: 0.6)
+            log("✅ Quiz saved")
+
+            log("Publishing video…")
+            try await environment.videos.setVisibility(videoId: videoId, visibility: .public)
+            log("✅ Video published")
+
+            log("Publishing topic \(topicID)…")
+            try await environment.topics.setVisibility(topicId: topicID, visibility: .public)
+            log("✅ Topic published — check the Learn tab")
+        } catch {
+            log("❌ Attach/publish failed: \(error.localizedDescription)")
         }
     }
 }
