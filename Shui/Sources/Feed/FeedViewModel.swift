@@ -78,6 +78,26 @@ final class FeedViewModel: ObservableObject {
         Task { await loadMoreMixed() }
     }
 
+    /// Rebuilds the feed from scratch — pull-to-refresh, and the only way to
+    /// pick up content published after the feed already loaded once.
+    /// `loadInitial()` alone only ever appends further pages, so simply
+    /// calling it again wouldn't show anything newly published; TabView also
+    /// keeps this view's `@StateObject` alive across tab switches, so there's
+    /// no view-lifecycle event that would trigger a fresh load on its own.
+    func refresh() async {
+        playerPool.reset()
+        pages = []
+        currentIndex = 0
+        dueForReviewPool = []
+        continueTopicPool = []
+        newInInterestsCursor = nil
+        everythingElseCursor = nil
+        hasMoreNewInInterests = true
+        hasMoreEverythingElse = true
+        hasLoadedInitialBuckets = false
+        await loadInitial()
+    }
+
     private func loadTopic(topicId: String, startingAtVideoId: String?) async {
         do {
             let videos = try await environment.videos.videos(inTopic: topicId)

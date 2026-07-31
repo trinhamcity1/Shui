@@ -179,6 +179,18 @@ final class FeedPlayerPool: ObservableObject {
         }
     }
 
+    /// Detaches every pooled slot and clears all tracked state — for when the
+    /// feed itself is rebuilt from scratch (pull-to-refresh), since old slot
+    /// indices no longer correspond to anything once `pages` is replaced.
+    func reset() {
+        for slot in slots {
+            detach(slot)
+        }
+        states = [:]
+        progress = [:]
+        lastActiveIndex = nil
+    }
+
     private func isPlaying(_ state: PlaybackState?) -> Bool {
         if case .playing = state { return true }
         return false

@@ -36,7 +36,11 @@ struct FeedView: View {
         if viewModel.isInitialLoading {
             ProgressView().tint(.white)
         } else if viewModel.pages.isEmpty {
-            FeedEmptyStateView(dueReviewCount: 0, onExplore: { onExploreRequested?() })
+            ScrollView {
+                FeedEmptyStateView(dueReviewCount: 0, onExplore: { onExploreRequested?() })
+                    .frame(width: geo.size.width, height: geo.size.height)
+            }
+            .refreshable { await viewModel.refresh() }
         } else {
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(spacing: 0) {
@@ -64,6 +68,7 @@ struct FeedView: View {
             }
             .scrollTargetBehavior(.paging)
             .scrollPosition(id: $scrollPositionID)
+            .refreshable { await viewModel.refresh() }
         }
     }
 
