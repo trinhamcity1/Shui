@@ -22,7 +22,7 @@ been built, verified, and debugged phase by phase.
 |---|---|---|
 | 0 | Foundation: strip the dead lesson engine, English-only, Firebase SDK, clean build | **done** |
 | 1 | Firestore model, security rules, Cloud Functions, R2 upload pipeline, seed content | **done — verified end-to-end against the real deployed backend** |
-| 2 | Vertical video feed + end-of-video quiz + playback | not started |
+| 2 | Vertical video feed + end-of-video quiz + playback | **written, pushed — awaiting a real Xcode build/test pass** |
 | 3 | Categories, topic pages, auth, profile, progress, likes, comments | not started |
 | 4 | AI tutor: grounded chat + proactive retention checks | not started |
 | 5 | In-app creator console: topics, uploads, quiz builder, publish controls | not started |
@@ -31,12 +31,15 @@ been built, verified, and debugged phase by phase.
 Phases 0–3 are the shippable core. Phase 4 is the differentiator. Phases 5–6 are what
 make the app maintainable without touching code.
 
-**The consumer app UI is still a shell.** Three tabs, each a placeholder naming the phase
-that fills it in — Phase 2 is the first phase that puts real consumer-facing content on
-screen. Phase 1 stood up the real backend (Firestore schema, security rules, Cloud
-Functions, R2 upload pipeline) and the Swift repository layer that talks to it; the one
-thing in `Sources/Views/` that calls into it is a debug-only fourth tab that proves the
-upload pipeline works end to end (see below), not a consumer feature.
+**The Learn tab is real as of Phase 2** — a full-screen vertical video feed with pooled
+`AVPlayer` playback, the due-review/continue-topic/new-in-interests/everything-else
+ordering algorithm, an end-of-video quiz card (server-graded only), like/comments/AI/share
+right rail, view tracking, and an offline quiz-attempt retry queue. Explore and Profile are
+still placeholders naming the phase that fills them in (Phase 3), as is real sign-in — the
+Learn tab currently runs as a guest and gates sign-in-only actions behind a stub sheet.
+This has been written and pushed but **not yet built or run in a real Xcode** — see
+[`PROGRESS.md`](PROGRESS.md)'s Phase 2 section for how it was self-checked without a
+compiler, and what to expect the first time it actually builds.
 
 ## Architecture
 
