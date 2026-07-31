@@ -5,10 +5,9 @@ phase plan itself lives in [`prompts/README.md`](prompts/README.md); this file
 is the narrative of actually executing it — read it if you're picking the
 project back up and want context faster than re-reading every commit.
 
-Updated as each phase progresses. Current state: **Phase 2 written and
-pushed, not yet built/verified in real Xcode** (this sandbox has no Swift
-compiler — see the Phase 2 section below for how it was self-checked
-instead).
+Updated as each phase progresses. Current state: **Phase 2 complete and
+verified end-to-end on the real deployed backend** — video plays, quiz
+runs, and the swipe-to-next-video paging is confirmed working.
 
 ## Phase status
 
@@ -16,7 +15,7 @@ instead).
 |---|---|---|
 | 0 | Foundation: strip the dead lesson engine, English-only, Firebase SDK, clean build | ✅ Done |
 | 1 | Firestore model, security rules, Cloud Functions, R2 upload pipeline, seed content | ✅ Done — verified end-to-end on the real `shui-prod` project |
-| 2 | Vertical video feed + end-of-video quiz + playback | Written, pushed — awaiting Xcode build/test on the user's Mac |
+| 2 | Vertical video feed + end-of-video quiz + playback | ✅ Done — verified end-to-end on the real `shui-prod` project |
 | 3 | Categories, topic pages, auth, profile, progress, likes, comments | Not started |
 | 4 | AI tutor: grounded chat + proactive retention checks | Not started |
 | 5 | In-app creator console: topics, uploads, quiz builder, publish controls | Not started |
@@ -331,6 +330,16 @@ gotchas — things no amount of self-review in this sandbox could have caught:
 
 **Requires `firebase deploy --only firestore` before this next build will
 show real content** — this is an index-definition change, not app code.
+
+### Confirmed working end to end
+
+Verified live on **2026-07-31** against the real `shui-prod` backend, after
+the index deploy: a published video plays full-screen, the end-of-video
+quiz card appears and works, and — once a second video was published
+through the debug flow — swiping up transitions cleanly to the next video,
+confirming the pooled-player paging behavior (`FeedPlayerPool` activating
+the new slot and pausing the old one) works as designed, not just in
+isolated unit tests.
 
 ## Phases 3–6
 

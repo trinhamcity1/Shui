@@ -22,7 +22,7 @@ been built, verified, and debugged phase by phase.
 |---|---|---|
 | 0 | Foundation: strip the dead lesson engine, English-only, Firebase SDK, clean build | **done** |
 | 1 | Firestore model, security rules, Cloud Functions, R2 upload pipeline, seed content | **done — verified end-to-end against the real deployed backend** |
-| 2 | Vertical video feed + end-of-video quiz + playback | **written, pushed — awaiting a real Xcode build/test pass** |
+| 2 | Vertical video feed + end-of-video quiz + playback | **done — verified end-to-end against the real deployed backend** |
 | 3 | Categories, topic pages, auth, profile, progress, likes, comments | not started |
 | 4 | AI tutor: grounded chat + proactive retention checks | not started |
 | 5 | In-app creator console: topics, uploads, quiz builder, publish controls | not started |
@@ -37,9 +37,9 @@ ordering algorithm, an end-of-video quiz card (server-graded only), like/comment
 right rail, view tracking, and an offline quiz-attempt retry queue. Explore and Profile are
 still placeholders naming the phase that fills them in (Phase 3), as is real sign-in — the
 Learn tab currently runs as a guest and gates sign-in-only actions behind a stub sheet.
-This has been written and pushed but **not yet built or run in a real Xcode** — see
-[`PROGRESS.md`](PROGRESS.md)'s Phase 2 section for how it was self-checked without a
-compiler, and what to expect the first time it actually builds.
+Confirmed working end-to-end on the real deployed backend, including the swipe-to-next-video
+paging — see [`PROGRESS.md`](PROGRESS.md)'s Phase 2 section for the debugging history (a
+missing Firestore composite index, a stale-feed refresh bug, and how they were found).
 
 ## Architecture
 
