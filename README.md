@@ -15,12 +15,13 @@ retention conflict, knowledge wins.
 ## Status
 
 Being built in phases — see [`prompts/README.md`](prompts/README.md) for the full plan
-and one prompt per phase.
+and one prompt per phase, and [`PROGRESS.md`](PROGRESS.md) for a running log of what's
+been built, verified, and debugged phase by phase.
 
 | Phase | Scope | State |
 |---|---|---|
 | 0 | Foundation: strip the dead lesson engine, English-only, Firebase SDK, clean build | **done** |
-| 1 | Firestore model, security rules, Cloud Functions, R2 upload pipeline, seed content | **backend done, Swift build unverified** |
+| 1 | Firestore model, security rules, Cloud Functions, R2 upload pipeline, seed content | **done — verified end-to-end against the real deployed backend** |
 | 2 | Vertical video feed + end-of-video quiz + playback | not started |
 | 3 | Categories, topic pages, auth, profile, progress, likes, comments | not started |
 | 4 | AI tutor: grounded chat + proactive retention checks | not started |
