@@ -1,20 +1,30 @@
 import SwiftUI
 
-/// The three-tab shell. Each tab is a placeholder until its phase lands:
-/// Learn is the video feed (Phase 2), Explore is categories and topics
-/// (Phase 3), Profile is progress, likes, and settings (Phase 3).
+private enum RootTab: Hashable {
+    case learn, explore, profile, debug
+}
+
+/// The three-tab shell. Learn is the real video feed as of Phase 2; Explore
+/// and Profile are still placeholders until Phase 3.
 struct RootTabView: View {
+    @EnvironmentObject private var environment: AppEnvironment
+    @State private var selection: RootTab = .learn
+
     var body: some View {
-        TabView {
-            PhasePlaceholderView(title: Strings.learnTab, phase: 2, detail: "The video feed lives here.")
+        TabView(selection: $selection) {
+            FeedView(mode: .mixed, environment: environment, onExploreRequested: { selection = .explore })
                 .tabItem { Label(Strings.learnTab, systemImage: "play.rectangle.fill") }
+                .tag(RootTab.learn)
             PhasePlaceholderView(title: Strings.exploreTab, phase: 3, detail: "Categories and topics live here.")
                 .tabItem { Label(Strings.exploreTab, systemImage: "square.grid.2x2.fill") }
+                .tag(RootTab.explore)
             PhasePlaceholderView(title: Strings.profileTab, phase: 3, detail: "Progress, likes, and settings live here.")
                 .tabItem { Label(Strings.profileTab, systemImage: "person.crop.circle.fill") }
+                .tag(RootTab.profile)
             #if DEBUG
             DebugUploadPipelineView()
                 .tabItem { Label("Debug", systemImage: "ladybug.fill") }
+                .tag(RootTab.debug)
             #endif
         }
         .tint(Theme.shell.gradientStart)
