@@ -1,20 +1,29 @@
+import FirebaseAuth
 import FirebaseFirestore
 import Foundation
 
 protocol VideoRepository {
-    func feed(categoryId: String?, limit: Int, after cursor: DocumentSnapshot?) async throws -> Page<Video>
+    func feed(categoryId: String?, limit: Int, after cursor: PageCursor?) async throws -> Page<Video>
+    /// Same as `feed(categoryId:limit:after:)` but matching any of several
+    /// categories at once — the feed's "new in your interests" bucket, where
+    /// the learner has more than one chosen category.
+    func feed(categoryIds: [String], limit: Int, after cursor: PageCursor?) async throws -> Page<Video>
     func videos(inTopic topicId: String) async throws -> [Video]
+    func videos(withIds ids: [String]) async throws -> [Video]
     func video(id: String) async throws -> Video?
+    func recordView(videoId: String, watchedSeconds: Double, completed: Bool) async throws
 }
 
 struct FirestoreVideoRepository: VideoRepository {
     private let db: Firestore
+    private let auth: Auth
 
-    init(db: Firestore = FirebaseBootstrap.firestore) {
+    init(db: Firestore = FirebaseBootstrap.firestore, auth: Auth = FirebaseBootstrap.auth) {
         self.db = db
+        self.auth = auth
     }
 
-    func feed(categoryId: String?, limit: Int, after cursor: DocumentSnapshot?) async throws -> Page<Video> {
+    func feed(categoryId: String?, limit: Int, after cursor: PageCursor?) async throws -> Page<Video> {
         var query: Query = db.collection("videos")
             .whereField("topicVisibility", isEqualTo: Video.Visibility.public.rawValue)
             .whereField("status", isEqualTo: Video.Status.ready.rawValue)
@@ -24,10 +33,28 @@ struct FirestoreVideoRepository: VideoRepository {
         }
         query = query.order(by: "createdAt", descending: true).limit(to: limit)
         if let cursor {
-            query = query.start(afterDocument: cursor)
+            query = query.start(afterDocument: cursor.snapshot)
         }
         let snapshot = try await query.getDocuments()
-        return Page(items: snapshot.decoded(), cursor: snapshot.documents.last)
+        return Page(items: snapshot.decoded(), cursor: snapshot.documents.last.map(PageCursor.init))
+    }
+
+    func feed(categoryIds: [String], limit: Int, after cursor: PageCursor?) async throws -> Page<Video> {
+        guard !categoryIds.isEmpty else { return Page(items: [], cursor: nil) }
+        // Firestore's `in` accepts up to 30 values, comfortably above any
+        // realistic interests list.
+        var query: Query = db.collection("videos")
+            .whereField("topicVisibility", isEqualTo: Video.Visibility.public.rawValue)
+            .whereField("status", isEqualTo: Video.Status.ready.rawValue)
+            .whereField("isDeleted", isEqualTo: false)
+            .whereField("categoryId", in: Array(categoryIds.prefix(30)))
+            .order(by: "createdAt", descending: true)
+            .limit(to: limit)
+        if let cursor {
+            query = query.start(afterDocument: cursor.snapshot)
+        }
+        let snapshot = try await query.getDocuments()
+        return Page(items: snapshot.decoded(), cursor: snapshot.documents.last.map(PageCursor.init))
     }
 
     func videos(inTopic topicId: String) async throws -> [Video] {
@@ -40,23 +67,64 @@ struct FirestoreVideoRepository: VideoRepository {
         return snapshot.decoded()
     }
 
+    /// Small, exact-id lookups (a handful of due-for-review videos) — not a
+    /// query, so no index concerns and no 30-item `in` cap to worry about.
+    func videos(withIds ids: [String]) async throws -> [Video] {
+        guard !ids.isEmpty else { return [] }
+        return try await withThrowingTaskGroup(of: Video?.self) { group in
+            for id in ids {
+                group.addTask {
+                    try await self.video(id: id)
+                }
+            }
+            var results: [Video] = []
+            for try await video in group {
+                if let video {
+                    results.append(video)
+                }
+            }
+            return results
+        }
+    }
+
     func video(id: String) async throws -> Video? {
         try await db.collection("videos").document(id).getDocument().decodedIfExists()
+    }
+
+    /// Clients only ever write a view ping — `videos.viewCount` itself is
+    /// maintained by the hourly `flushViewCounts` Function, never bumped
+    /// directly from here.
+    func recordView(videoId: String, watchedSeconds: Double, completed: Bool) async throws {
+        guard let uid = auth.currentUser?.uid else { throw RepositoryError.notSignedIn }
+        try await db.collection("viewEvents").document().setData([
+            "videoId": videoId,
+            "uid": uid,
+            "watchedSeconds": watchedSeconds,
+            "completed": completed,
+            "createdAt": FieldValue.serverTimestamp(),
+        ])
     }
 }
 
 final class InMemoryVideoRepository: VideoRepository {
     var videos: [Video]
+    var recordedViews: [(videoId: String, watchedSeconds: Double, completed: Bool)] = []
 
     init(videos: [Video] = []) {
         self.videos = videos
     }
 
-    func feed(categoryId: String?, limit: Int, after cursor: DocumentSnapshot?) async throws -> Page<Video> {
-        let visible = videos.filter {
-            $0.status == .ready && $0.visibility == .public && $0.topicVisibility == .public && !$0.isDeleted
-                && (categoryId == nil || $0.categoryId == categoryId)
-        }
+    private func isVisible(_ video: Video) -> Bool {
+        video.status == .ready && video.visibility == .public && video.topicVisibility == .public && !video.isDeleted
+    }
+
+    func feed(categoryId: String?, limit: Int, after cursor: PageCursor?) async throws -> Page<Video> {
+        let visible = videos.filter { isVisible($0) && (categoryId == nil || $0.categoryId == categoryId) }
+        return Page(items: Array(visible.prefix(limit)), cursor: nil)
+    }
+
+    func feed(categoryIds: [String], limit: Int, after cursor: PageCursor?) async throws -> Page<Video> {
+        let visible = videos.filter { isVisible($0) && categoryIds.contains($0.categoryId) }
         return Page(items: Array(visible.prefix(limit)), cursor: nil)
     }
 
@@ -66,7 +134,15 @@ final class InMemoryVideoRepository: VideoRepository {
             .sorted { $0.order < $1.order }
     }
 
+    func videos(withIds ids: [String]) async throws -> [Video] {
+        videos.filter { video in video.id.map(ids.contains) ?? false }
+    }
+
     func video(id: String) async throws -> Video? {
         videos.first { $0.id == id }
+    }
+
+    func recordView(videoId: String, watchedSeconds: Double, completed: Bool) async throws {
+        recordedViews.append((videoId, watchedSeconds, completed))
     }
 }

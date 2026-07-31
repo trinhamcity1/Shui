@@ -6,7 +6,7 @@ import Foundation
 protocol SocialRepository {
     func toggleLike(videoId: String) async throws -> Bool
     func likedVideos() async throws -> [LikedVideo]
-    func comments(forVideo videoId: String, limit: Int, after cursor: DocumentSnapshot?) async throws -> Page<Comment>
+    func comments(forVideo videoId: String, limit: Int, after cursor: PageCursor?) async throws -> Page<Comment>
     func postComment(videoId: String, text: String, parentId: String?) async throws
     func report(targetType: String, targetPath: String, reason: String, note: String?) async throws
 }
@@ -43,16 +43,16 @@ struct FirestoreSocialRepository: SocialRepository {
         return snapshot.decoded()
     }
 
-    func comments(forVideo videoId: String, limit: Int, after cursor: DocumentSnapshot?) async throws -> Page<Comment> {
+    func comments(forVideo videoId: String, limit: Int, after cursor: PageCursor?) async throws -> Page<Comment> {
         var query: Query = db.collection("videos").document(videoId).collection("comments")
             .whereField("parentId", isEqualTo: NSNull())
             .order(by: "createdAt", descending: true)
             .limit(to: limit)
         if let cursor {
-            query = query.start(afterDocument: cursor)
+            query = query.start(afterDocument: cursor.snapshot)
         }
         let snapshot = try await query.getDocuments()
-        return Page(items: snapshot.decoded(), cursor: snapshot.documents.last)
+        return Page(items: snapshot.decoded(), cursor: snapshot.documents.last.map(PageCursor.init))
     }
 
     /// Rules require `likeCount`/`replyCount`/`reportCount` to be zero on
@@ -111,7 +111,7 @@ final class InMemorySocialRepository: SocialRepository {
         likedVideoList
     }
 
-    func comments(forVideo videoId: String, limit: Int, after cursor: DocumentSnapshot?) async throws -> Page<Comment> {
+    func comments(forVideo videoId: String, limit: Int, after cursor: PageCursor?) async throws -> Page<Comment> {
         Page(items: Array((commentsByVideo[videoId] ?? []).prefix(limit)), cursor: nil)
     }
 

@@ -19,6 +19,14 @@ extension DocumentSnapshot {
     }
 }
 
+/// An opaque pagination cursor. Wraps the real `DocumentSnapshot` so callers
+/// outside `Sources/Data/` can hold and pass one back to a repository's next
+/// page call without needing to import Firebase themselves — they never see
+/// what's inside.
+struct PageCursor {
+    let snapshot: DocumentSnapshot
+}
+
 /// A single page of a cursor-paginated query. `cursor` is the last document
 /// in the page — pass it to the next call's `after:` parameter. `nil` means
 /// start from the top (or, on a returned page, that nothing more may follow;
@@ -26,7 +34,7 @@ extension DocumentSnapshot {
 /// requested limit).
 struct Page<T> {
     var items: [T]
-    var cursor: DocumentSnapshot?
+    var cursor: PageCursor?
 }
 
 /// Firestore's `[String: Any]` write payloads need `NSNull()`, not Swift
