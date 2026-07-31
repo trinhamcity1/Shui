@@ -278,10 +278,59 @@ here was checked by hand instead:
 None of this substitutes for a real build. Real compiler errors are
 expected here, same as Phase 1 surfaced two the emulator/self-review pass
 couldn't have caught (`QuizOption` redeclaration, `HTTPSCallableResult.data`
-being non-optional). **Next step for the user:** `git pull`, run
-`xcodegen generate` (required — many new files were added under globbed
-`Shui/Sources` and `ShuiTests` paths), build in Xcode, and report back
-whatever the compiler finds.
+being non-optional).
+
+### Real-world debugging (after the first build)
+
+Phase 2 built and ran cleanly (no compiler errors this time), but the Learn
+tab showed "Nothing here yet" against the real deployed backend. Chasing
+that down surfaced several real gaps, same pattern as Phase 1's deployment
+gotchas — things no amount of self-review in this sandbox could have caught:
+
+1. **There was genuinely no path to a public video.** `seed_civics.ts`
+   creates its topic `private` (publishing is a Phase 5 feature), and
+   `createVideoUpload` always starts a video `private` regardless of its
+   topic. "Nothing here yet" was the correct response to zero public
+   content, not a bug — but there was no way to *get* a public video for
+   testing without Phase 5's creator console. Fixed by adding a
+   `VideoRepository.setVisibility` and `QuizRepository.saveQuiz`, and a
+   "4. Attach a quiz and publish" step to the debug pipeline screen
+   (`saveQuiz` → `setVideoVisibility` → `setTopicVisibility`, in that order,
+   since each precondition depends on the last).
+2. **The feed never re-fetched after its first load.** `FeedView` only
+   fetched via `.task`, which fires once per view identity — and `TabView`
+   keeps every tab's content alive across switches, so publishing a video
+   from the Debug tab and flipping back to Learn showed the same stale
+   empty result. Fixed with `FeedViewModel.refresh()` (full pagination +
+   player-pool reset) wired up as standard pull-to-refresh — this is normal
+   feed UX regardless, not just a debug workaround.
+3. **A failed fetch and a genuinely empty feed looked identical.**
+   `loadError` was already being captured but nothing displayed it, so a
+   real failure silently rendered as "Nothing here yet" — indistinguishable
+   from there just being no content. Fixed with a distinct
+   `FeedErrorStateView`. This is what finally surfaced gotcha #4 instead of
+   another round of guessing.
+4. **`videos(inTopic:)` was missing a composite index.** It filters on
+   `topicId`, `status`, and `isDeleted` and orders by `order`, but
+   `firestore.indexes.json` only had `{topicId, order}` — a leftover from
+   before the status/isDeleted filters were added. The Firestore emulator
+   doesn't enforce composite index requirements the way production does,
+   so Phase 1's emulator-based self-testing never would have caught this
+   either. Once surfaced (via gotcha #3's error screen — Firestore's own
+   error message includes a direct link to create the missing index),
+   audited every query in `Sources/Data/` and `functions/src/` against
+   `firestore.indexes.json` rather than patching just this one: fixed the
+   `videos(inTopic:)` index and proactively added one for
+   `CategoryRepository.list()` (`{isActive, sortOrder}` — not yet called by
+   any Phase 2 view, but the same missing-composite-index shape, and it
+   will be the moment Phase 3's Explore tab lists categories). Every other
+   query in both the Swift and Functions code was confirmed to either need
+   no composite index (pure equality filters with no `orderBy`, or a single
+   range/equality filter ordered by that same field) or already have a
+   matching one.
+
+**Requires `firebase deploy --only firestore` before this next build will
+show real content** — this is an index-definition change, not app code.
 
 ## Phases 3–6
 
