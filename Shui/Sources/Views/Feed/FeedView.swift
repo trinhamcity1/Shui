@@ -35,6 +35,12 @@ struct FeedView: View {
     private func content(in geo: GeometryProxy) -> some View {
         if viewModel.isInitialLoading {
             ProgressView().tint(.white)
+        } else if let loadError = viewModel.loadError, viewModel.pages.isEmpty {
+            ScrollView {
+                FeedErrorStateView(message: loadError, onRetry: { Task { await viewModel.refresh() } })
+                    .frame(width: geo.size.width, height: geo.size.height)
+            }
+            .refreshable { await viewModel.refresh() }
         } else if viewModel.pages.isEmpty {
             ScrollView {
                 FeedEmptyStateView(dueReviewCount: 0, onExplore: { onExploreRequested?() })

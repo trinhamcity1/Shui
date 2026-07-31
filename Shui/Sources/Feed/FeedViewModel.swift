@@ -56,6 +56,7 @@ final class FeedViewModel: ObservableObject {
 
     func loadInitial() async {
         isInitialLoading = true
+        loadError = nil
         defer { isInitialLoading = false }
 
         currentUser = try? await environment.users.currentUser()

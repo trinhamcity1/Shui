@@ -39,3 +39,33 @@ struct FeedEmptyStateView: View {
         return "Every video here is a short lesson that ends in a quiz. Once creators publish, they'll show up here."
     }
 }
+
+/// Distinct from `FeedEmptyStateView` on purpose: a failed fetch (network,
+/// permissions, a missing Firestore index) and a genuinely empty feed look
+/// identical to a learner unless something says otherwise — this is that
+/// something, so a real failure doesn't read as "nothing's been published."
+struct FeedErrorStateView: View {
+    let message: String
+    let onRetry: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 44))
+                .foregroundStyle(.white.opacity(0.8))
+            Text("Couldn't load the feed")
+                .font(.title3.bold())
+                .foregroundStyle(.white)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.75))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            Button("Retry", action: onRetry)
+                .buttonStyle(.shuiPill)
+                .padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black)
+    }
+}
