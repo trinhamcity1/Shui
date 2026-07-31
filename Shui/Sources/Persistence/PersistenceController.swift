@@ -18,6 +18,7 @@ final class PersistenceController {
             UserProfile.self,
             LessonComment.self,
             TutorChatMessage.self,
+            PendingQuizAttempt.self,
         ])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
         do {
@@ -81,6 +82,21 @@ final class PersistenceController {
 
     func insert(_ message: TutorChatMessage) {
         container.mainContext.insert(message)
+        try? container.mainContext.save()
+    }
+
+    // MARK: - Pending quiz attempt queue
+
+    /// Oldest first, so a resubmission flush processes them in the order
+    /// they were taken.
+    func pendingQuizAttempts() -> [PendingQuizAttempt] {
+        var descriptor = FetchDescriptor<PendingQuizAttempt>()
+        descriptor.sortBy = [SortDescriptor(\.createdAt, order: .forward)]
+        return (try? container.mainContext.fetch(descriptor)) ?? []
+    }
+
+    func insert(_ attempt: PendingQuizAttempt) {
+        container.mainContext.insert(attempt)
         try? container.mainContext.save()
     }
 
