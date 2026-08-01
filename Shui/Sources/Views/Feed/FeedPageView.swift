@@ -14,7 +14,7 @@ struct FeedPageView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showPauseGlyph = false
     @State private var showInfoSheet = false
-    @State private var showCommentsPlaceholder = false
+    @State private var showComments = false
     @State private var showAIPlaceholder = false
 
     private var playbackState: PlaybackState { viewModel.playerPool.states[index] ?? .idle }
@@ -71,8 +71,8 @@ struct FeedPageView: View {
         .sheet(isPresented: $showInfoSheet) {
             VideoInfoSheet(video: page.video)
         }
-        .sheet(isPresented: $showCommentsPlaceholder) {
-            ComingSoonSheet(title: "Comments", phase: 3, detail: "Comment threads live here.")
+        .sheet(isPresented: $showComments) {
+            CommentsSheet(videoId: page.video.id ?? "", initialCommentCount: page.commentCount, environment: environment)
         }
         .sheet(isPresented: $showAIPlaceholder) {
             ComingSoonSheet(title: "AI Tutor", phase: 4, detail: "A grounded chat about this lesson lives here.")
@@ -188,7 +188,7 @@ struct FeedPageView: View {
                 page: page,
                 isGuest: environment.isGuest,
                 onLike: { viewModel.toggleLike(for: page) },
-                onComments: { showCommentsPlaceholder = true },
+                onComments: { showComments = true },
                 onAITutor: { showAIPlaceholder = true },
                 onRequireSignIn: onRequireSignIn
             )

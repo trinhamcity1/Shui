@@ -9,6 +9,7 @@ export { saveQuiz } from "./callables/saveQuiz";
 export { submitQuizAttempt } from "./callables/submitQuizAttempt";
 export { markVideoCompleted } from "./callables/markVideoCompleted";
 export { toggleLike } from "./callables/toggleLike";
+export { toggleCommentLike } from "./callables/toggleCommentLike";
 export { setTopicVisibility, setVideoVisibility } from "./callables/setVisibility";
 export { softDeleteTopic, softDeleteVideo, softDeleteComment } from "./callables/softDelete";
 export { claimHandle } from "./callables/claimHandle";

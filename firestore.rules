@@ -244,6 +244,14 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // ---- users/{uid}/commentLikes/{commentId} -----------------------
+      // Same pattern, for comment likes — written only by
+      // toggleCommentLike.
+      match /commentLikes/{commentId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
       // ---- users/{uid}/aiUsage/{yyyy-mm-dd} ---------------------------
       // Rate-limit counters. Owner can read their own usage (to render "12 of
       // 30 today"); only aiTutorMessage increments it.

@@ -50,6 +50,12 @@ export const ToggleLikeInputSchema = z.object({
 });
 export type ToggleLikeInput = z.infer<typeof ToggleLikeInputSchema>;
 
+export const ToggleCommentLikeInputSchema = z.object({
+  videoId: z.string().min(1),
+  commentId: z.string().min(1),
+});
+export type ToggleCommentLikeInput = z.infer<typeof ToggleCommentLikeInputSchema>;
+
 export const SetTopicVisibilityInputSchema = z.object({
   topicId: z.string().min(1),
   visibility: z.enum(["public", "private"]),
