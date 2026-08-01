@@ -88,8 +88,8 @@ struct CommentsSheet: View {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(viewModel.visibleComments) { comment in
                         CommentThread(
-                            comment: comment,
                             viewModel: viewModel,
+                            comment: comment,
                             onReply: {
                                 viewModel.replyTarget = comment
                                 composerFocused = true
