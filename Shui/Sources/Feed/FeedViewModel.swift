@@ -8,6 +8,12 @@ final class FeedViewModel: ObservableObject {
     enum Mode {
         case mixed
         case topic(topicId: String, startingAtVideoId: String?)
+        /// An explicit, already-known list of videos, in order — the
+        /// Profile tab's liked-videos grid and "due for review" activity
+        /// stat both open a feed this way, bypassing pagination/composition
+        /// entirely since the caller already knows exactly which videos and
+        /// in what order.
+        case videoList(videos: [Video], startingAtVideoId: String? = nil)
     }
 
     @Published private(set) var pages: [FeedPageViewModel] = []
@@ -23,11 +29,16 @@ final class FeedViewModel: ObservableObject {
     private let persistence: PersistenceController
     private let pageBatchSize = 10
 
-    /// `(position, total)`, 1-indexed, only in topic mode — drives the "3 of
-    /// 12" pill; `nil` in the mixed feed, where there's no fixed total.
+    /// `(position, total)`, 1-indexed, for any fixed-list mode (topic or an
+    /// explicit video list) — drives the "3 of 12" pill; `nil` in the mixed
+    /// feed, where there's no fixed total.
     var topicModeInfo: (index: Int, total: Int)? {
-        guard case .topic = mode else { return nil }
-        return (currentIndex + 1, pages.count)
+        switch mode {
+        case .topic, .videoList:
+            return (currentIndex + 1, pages.count)
+        case .mixed:
+            return nil
+        }
     }
 
     // Mixed-mode pagination state.
@@ -61,6 +72,11 @@ final class FeedViewModel: ObservableObject {
             await loadTopic(topicId: topicId, startingAtVideoId: startingAtVideoId)
         case .mixed:
             await loadMoreMixed()
+        case let .videoList(videos, startingAtVideoId):
+            pages = videos.map { FeedPageViewModel(video: $0, source: .everythingElse) }
+            if let startingAtVideoId, let idx = videos.firstIndex(where: { $0.id == startingAtVideoId }) {
+                currentIndex = idx
+            }
         }
 
         if !pages.isEmpty {
