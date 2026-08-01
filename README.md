@@ -23,7 +23,7 @@ been built, verified, and debugged phase by phase.
 | 0 | Foundation: strip the dead lesson engine, English-only, Firebase SDK, clean build | **done** |
 | 1 | Firestore model, security rules, Cloud Functions, R2 upload pipeline, seed content | **done — verified end-to-end against the real deployed backend** |
 | 2 | Vertical video feed + end-of-video quiz + playback | **done — verified end-to-end against the real deployed backend** |
-| 3 | Categories, topic pages, auth, profile, progress, likes, comments | not started |
+| 3 | Categories, topic pages, auth, profile, progress, likes, comments | **written, pushed — backend verified against the emulator; awaiting a real Xcode build** |
 | 4 | AI tutor: grounded chat + proactive retention checks | not started |
 | 5 | In-app creator console: topics, uploads, quiz builder, publish controls | not started |
 | 6 | Browser dashboard for bulk authoring | not started |
@@ -31,15 +31,22 @@ been built, verified, and debugged phase by phase.
 Phases 0–3 are the shippable core. Phase 4 is the differentiator. Phases 5–6 are what
 make the app maintainable without touching code.
 
-**The Learn tab is real as of Phase 2** — a full-screen vertical video feed with pooled
-`AVPlayer` playback, the due-review/continue-topic/new-in-interests/everything-else
-ordering algorithm, an end-of-video quiz card (server-graded only), like/comments/AI/share
-right rail, view tracking, and an offline quiz-attempt retry queue. Explore and Profile are
-still placeholders naming the phase that fills them in (Phase 3), as is real sign-in — the
-Learn tab currently runs as a guest and gates sign-in-only actions behind a stub sheet.
-Confirmed working end-to-end on the real deployed backend, including the swipe-to-next-video
-paging — see [`PROGRESS.md`](PROGRESS.md)'s Phase 2 section for the debugging history (a
-missing Firestore composite index, a stale-feed refresh bug, and how they were found).
+**The Learn tab is real as of Phase 2**, confirmed working end-to-end on the real deployed
+backend — a full-screen vertical video feed with pooled `AVPlayer` playback, the
+due-review/continue-topic/new-in-interests/everything-else ordering algorithm, an
+end-of-video quiz card (server-graded only), view tracking, and an offline quiz-attempt
+retry queue. See [`PROGRESS.md`](PROGRESS.md)'s Phase 2 section for the debugging history
+(a missing Firestore composite index, a stale-feed refresh bug, and how they were found).
+
+**Explore, Profile, real auth, and Comments are real as of Phase 3** — guest-first
+anonymous sign-in, Sign in with Apple and email, the 3-level Explore tab (categories →
+category page → topic page) with topic search, a Profile tab with progress-by-subject and
+liked videos, account deletion, one-level-threaded comments with likes/edit/delete/report,
+and `shui://` deep links. Also new this phase: a semantic, WCAG AA-verified color system
+(`ThemePalette`/`AppTheme`) replacing the old ad-hoc theme constants — see
+[`PROGRESS.md`](PROGRESS.md)'s Phase 3 section for what that caught (two real,
+already-shipped contrast bugs) and the rest of the phase's verification, including a real
+`tsc` build and a 69-test Firestore emulator run against every backend change.
 
 ## Architecture
 
@@ -74,8 +81,10 @@ Rules that later phases depend on:
   a repository protocol with a live implementation and an in-memory fake for tests and
   previews — see `Sources/Data/` (`CategoryRepository`, `TopicRepository`,
   `VideoRepository`, `QuizRepository`, `ProgressRepository`, `SocialRepository`,
-  `UserRepository`, `UploadRepository`; `AITutorRepository` is a protocol only until
-  Phase 4). `AppEnvironment` holds one instance of each, injected once at the root.
+  `UserRepository`, `UploadRepository`, `AuthRepository`; `AITutorRepository` is a
+  protocol only until Phase 4). `AppEnvironment` holds one instance of each, injected
+  once at the root, plus a reactive `currentUser` the whole app reads instead of each
+  screen fetching its own snapshot.
 - **Firebase imports are confined** to `Sources/Data/` and `Support/FirebaseBootstrap.swift`.
   `git grep "import Firebase"` outside those must return nothing.
 - Async/await throughout. No completion handlers; no Combine except where SwiftUI
@@ -240,15 +249,19 @@ compiled. A green build is the minimum bar, not a formality.
 
 ## Honest notes
 
-- **The backend exists now, but nothing in the app UI calls it yet.** Phase 1 built the
-  real Firestore schema, security rules, Cloud Functions, R2 upload pipeline, and the
-  Swift repository layer — but `Sources/Views/` is still three placeholder tabs. Phase 3
-  wires up real sign-in against this backend; Phase 2 is the first phase that reads from
-  it.
-- **The Swift side of Phase 1 hasn't been built on a real Mac yet** — there's no Xcode in
-  the sandbox this was authored in. The backend (Cloud Functions, security rules) is
-  self-verified by `npm test` against real emulators; the `Sources/Data/` repository
-  layer is written against APIs verified individually but has not been compiled.
+- **Phase 3's Swift side hasn't been built on a real Mac yet** — there's no Xcode in the
+  sandbox this was authored in. Its backend half (new Cloud Functions, security rules,
+  indexes) is verified for real: `tsc` across the whole `functions` package, and the
+  69-case rules suite against a real Firestore emulator (both passing). The Swift side is
+  written against APIs verified individually and cross-referenced by hand against every
+  real repository/model declaration, but has not been compiled — Phase 1 and Phase 2 both
+  surfaced real compiler errors this sandbox couldn't have caught (a duplicate type
+  declaration, a Firebase SDK optionality quirk); expect the same the first time Phase 3
+  actually builds.
+- **Universal Links aren't functional yet** — the Associated Domains entitlement points at
+  a placeholder domain (`example.com`) since no real domain exists. `shui://video/{id}` and
+  `shui://topic/{id}` (custom URL scheme) work; the web-fallback half doesn't until a real
+  domain is registered and serves an `apple-app-site-association` file.
 - **The AI tutor does not exist yet.** The previous keyword-matching "AI" was deleted.
   Phase 4 builds the real one, with all model calls behind a Cloud Function so no API key
   ships in the binary. `AITutorRepository` is a protocol only until then.

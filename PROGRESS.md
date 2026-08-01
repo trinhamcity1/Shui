@@ -5,9 +5,12 @@ phase plan itself lives in [`prompts/README.md`](prompts/README.md); this file
 is the narrative of actually executing it — read it if you're picking the
 project back up and want context faster than re-reading every commit.
 
-Updated as each phase progresses. Current state: **Phase 2 complete and
-verified end-to-end on the real deployed backend** — video plays, quiz
-runs, and the swipe-to-next-video paging is confirmed working.
+Updated as each phase progresses. Current state: **Phase 3 written and
+pushed** — a full semantic, WCAG AA-verified theme system plus real auth,
+onboarding, Explore, Profile, and Comments. The backend half (rules,
+callables, indexes) is verified against the real Firestore emulator and a
+real `tsc` build; the Swift half awaits its first real Xcode build, same
+caveat as every phase before it in this sandbox.
 
 ## Phase status
 
@@ -16,7 +19,7 @@ runs, and the swipe-to-next-video paging is confirmed working.
 | 0 | Foundation: strip the dead lesson engine, English-only, Firebase SDK, clean build | ✅ Done |
 | 1 | Firestore model, security rules, Cloud Functions, R2 upload pipeline, seed content | ✅ Done — verified end-to-end on the real `shui-prod` project |
 | 2 | Vertical video feed + end-of-video quiz + playback | ✅ Done — verified end-to-end on the real `shui-prod` project |
-| 3 | Categories, topic pages, auth, profile, progress, likes, comments | Not started |
+| 3 | Categories, topic pages, auth, profile, progress, likes, comments | Written, pushed — backend verified against the emulator; awaiting Xcode build |
 | 4 | AI tutor: grounded chat + proactive retention checks | Not started |
 | 5 | In-app creator console: topics, uploads, quiz builder, publish controls | Not started |
 | 6 | Browser dashboard for bulk authoring | Not started |
@@ -341,6 +344,153 @@ confirming the pooled-player paging behavior (`FeedPlayerPool` activating
 the new slot and pausing the old one) works as designed, not just in
 isolated unit tests.
 
-## Phases 3–6
+## Phase 3 — Discovery, identity, and the social layer
+
+### A design-system rewrite first, deliberately out of the phase's own scope
+
+Before touching any Phase 3 screen, rebuilt the color system from scratch —
+the user explicitly asked for semantic naming, verified WCAG AA contrast in
+both light and dark, and a structure that could take on more themes later
+without a refactor. Given Phase 3 was about to add a large amount of new
+UI (auth, onboarding, Explore, Profile, Comments), doing this first and
+building every new screen on top of it was the only way to avoid doing
+that UI twice.
+
+- **`ThemePalette`** (`Sources/Theme/ThemePalette.swift`) — a protocol of
+  semantic roles (`canvas`, `surface`, `textPrimary`, `textOnAccent`,
+  `accent`, `border`, `success`/`warning`/`error`/`info`, `scrim`, …), never
+  a raw hex value at a call site.
+- **`LightPalette`/`DarkPalette`** — the two concrete themes, resolved from
+  the system color scheme via `.shuiTheme()` at the app root and read
+  anywhere via `@Environment(\.theme)`. Every literal color in both was
+  computed with the actual WCAG relative-luminance formula (not eyeballed)
+  before being written down — see `ShuiTests/ThemeContrastTests.swift`,
+  which re-derives the same math in Swift and checks every real
+  foreground/background pairing the app draws, including every point along
+  the 3-stop accent gradient, not just its stops. That verification caught
+  two real, already-shipped accessibility bugs in the old Phase 0/1
+  palette: metadata text at 4.35:1 on the canvas background (needs 4.5:1),
+  and white button labels on the gradient's lighter stops as low as 1.5:1.
+  Both fixed in the new palette; a theme added later is checked by the
+  same test suite automatically, since it iterates `AppTheme.allCases`.
+- Migrated every existing `Theme.shell.*` call site to the new tokens,
+  including `QuizCardView`'s correct/incorrect feedback, which had been
+  using unverified system `.green`/`.red` directly.
+
+### What got built
+
+- **Real authentication** (`AuthRepository`, `AppleNonce`,
+  `SignInSheet.swift`) — guest-first: anonymous sign-in at launch,
+  browsing/watching/quizzing all work with no account. Sign in with Apple
+  via SwiftUI's native `SignInWithAppleButton` (draws the actual required
+  HIG button); email sign-up/sign-in unified into one
+  `continueWithEmail()` call that links first and falls back to a plain
+  sign-in on `emailAlreadyInUse`, matching the spec's "sign-up / sign-in
+  detection" from a single form. Upgrading a guest links the new
+  credential to the existing anonymous uid in place, so progress/likes/
+  quiz history carry over with no migration step; landing on a
+  pre-existing account instead (`credentialAlreadyInUse` /
+  `emailAlreadyInUse`) shows an explicit "your guest progress didn't
+  transfer" notice rather than staying silent about it. A first real
+  sign-in (empty handle, the reliable "never claimed one" signal) prompts
+  for a display name and handle via `claimHandle`.
+- **`deleteAccount`** (new Cloud Function, task the phase needed that
+  Phase 1's callable list didn't include) — anonymizes comments
+  (`authorName` → "Deleted user", thread kept intact for replies), removes
+  progress/likes subcollections, releases the claimed handle, soft-deletes
+  the user doc (new `isDeleted` field, Function-only like `role`/`handle`),
+  deletes the Auth user last so a failure partway through never orphans an
+  Auth account with no Firestore trace.
+- **Onboarding** (3 skippable screens) — what Shui is / pick interests
+  (writes `users/{uid}.interests`) / how the quiz works, gating
+  `RootTabView` until `hasCompletedOnboarding` (local pref from Phase 0).
+- **Explore tab**, 3 levels — categories grid + "Continue learning" row +
+  `.searchable` topic search (Level 1); paginated topic list with a
+  Newest/Most-learners sort (Level 2); cover/progress/markdown
+  description/ordered video list with a per-video state glyph
+  (unwatched/watched/quiz passed/needs review), pushing Phase 2's feed at
+  the exact tapped video (Level 3).
+- **Profile tab** — header, progress-by-subject (category rows aggregating
+  `topicProgress`, expandable to per-topic mastery bars), a liked-videos
+  grid opening a feed of exactly the liked videos starting at the tapped
+  one, activity stats including a due-for-review count that opens a
+  review-only feed, and Settings (Account, honestly-labeled "coming soon"
+  for Notifications/Privacy/Terms rather than dead toggles or fabricated
+  legal-page links, and a role-gated Creator mode entry point).
+- **Account screen** — sign out, delete account, linked sign-in providers.
+- **Comments** — one level of threading, up to 3 visible replies per
+  top-level comment with a "View N more replies" expander, a composer
+  replaced by a sign-in prompt for guests (viewing stays open to
+  everyone), edit within 15 minutes / soft delete any time, report, and a
+  local-only block list (`UserDefaults`-backed — real server-side blocking
+  is explicitly a later decision). Posting is genuinely optimistic: a
+  locally-built placeholder comment appears immediately, then is either
+  replaced with the server-reconciled list on success or removed with the
+  draft restored on failure. New backend piece: `toggleCommentLike`
+  (mirrors `toggleLike`'s video pattern), gated `requireNotGuest` per the
+  spec's explicit "requires a real account, enforced by rules."
+- **Deep links** — `shui://video/{id}` and `shui://topic/{id}`, the two
+  shapes Phase 2's `ShareLink` already produces, presented as a full-screen
+  cover from the app root rather than threaded through whichever tab
+  happens to be active. `shui://` registered in `Info.plist`; an
+  Associated Domains entitlement was added for Universal Links but is
+  explicitly a placeholder (`example.com`) since no real domain exists yet
+  — same gap already noted for the share link's missing web fallback.
+- **Analytics** — the phase's full event list wired at the point each
+  action actually happens (`video_started`/`video_completed` from the
+  feed's own appear/completion hooks, `quiz_submitted`/`quiz_skipped`,
+  `topic_started`, `interest_selected`, `sign_in_completed`,
+  `comment_posted`). `ai_opened` deliberately left unwired — there's no
+  real AI tutor to open yet (Phase 4), and logging it on a "coming soon"
+  tap would misrepresent the metric before the feature exists.
+
+### Real bugs caught along the way (self-review, no Xcode in this sandbox)
+
+- `FeedViewModel` kept its own `currentUser`/`isGuest` snapshot, fetched
+  once at load — signing in from inside the feed wouldn't update the right
+  rail's guest-gating until the tab was revisited. Fixed by reading
+  `AppEnvironment.isGuest` directly (reactive, published) instead of a
+  per-screen copy — the same staleness lesson Phase 2's pull-to-refresh
+  fix already taught, recurring in a new spot.
+  `.navigationDestination(item:)` requires `Identifiable`, which `[Video]`
+  isn't — caught before it shipped, wrapped in a small `VideoListDestination`.
+- A case-sensitive-only topic-title search (the phase spec's literal
+  wording) would fail almost every real typed query — added a
+  denormalized `titleLowercase` field instead, kept in sync by
+  `create`/`update` and backfilled in `seed_civics.ts`.
+- Two new collection-group/composite index requirements this phase's
+  queries actually need (`topics` sorted by `learnerCount`, `comments`
+  filtered by `parentId` ordered ascending for replies) — added
+  proactively based on the exact query shapes written, rather than
+  waiting to hit the same "missing index" wall Phase 2 hit live.
+
+### Verification
+
+Unlike Phase 1/2, this phase's backend changes were verified for real in
+this sandbox, not just self-reviewed: `tsc` across the whole `functions`
+package (zero errors — covers `deleteAccount`, `toggleCommentLike`, and
+every schema/rules change), then the real rules suite against the
+Firestore emulator. That run caught one genuine regression on the first
+try: the existing "owner can create their own doc" test predated the new
+`isDeleted` field this phase added as a required create-time condition, so
+it started failing exactly as it should have — fixed the test payload, and
+added targeted coverage for both rules changes that had none yet
+(`commentLikes`, `isDeleted` protection). **69/69 rules tests, 25/25 unit
+tests passing.**
+
+The Swift half has no compiler in this sandbox, same as every prior
+phase — checked by hand: brace/paren balance and duplicate-top-level-type
+grep across every file touched this phase, `import Firebase` confinement
+re-verified, no stray `DocumentSnapshot` outside `Sources/Data/`, and every
+new repository/model call site cross-referenced against its real
+declaration. **Next step for the user:** `git pull`, `xcodegen generate`
+(large batch of new files across `Sources/Theme`, `Sources/Views/Auth`,
+`Sources/Views/Explore`, `Sources/Views/Profile`, `Sources/Views/Comments`,
+`Sources/Views/Onboarding`), build in Xcode, and report back whatever the
+compiler finds — plus `firebase deploy --only firestore,functions` before
+any of the new backend pieces (delete account, comment likes, search) will
+work against the real project.
+
+## Phases 4–6
 
 Not started.
