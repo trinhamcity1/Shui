@@ -251,6 +251,7 @@ async function seedCivicsTopic(): Promise<void> {
   await db.collection("topics").doc(CIVICS_TOPIC_ID).set(
     {
       title: "U.S. Citizenship Civics Test (2025)",
+      titleLowercase: "u.s. citizenship civics test (2025)",
       subtitle: "All 128 official questions, USCIS form M-1778 (09/25)",
       description:
         "Every question from the official 2025 U.S. Citizenship civics test, grouped by " +

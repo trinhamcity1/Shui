@@ -20,6 +20,11 @@ struct FeedView: View {
         }
         .background(Color.black)
         .ignoresSafeArea()
+        // Harmless when this is a tab root (no nav bar there to begin
+        // with); when pushed from a topic page in topic mode, this is what
+        // stops the system back button from doubling up with
+        // FeedPageView's own immersive one.
+        .toolbar(.hidden, for: .navigationBar)
         .task { await viewModel.loadInitial() }
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected {

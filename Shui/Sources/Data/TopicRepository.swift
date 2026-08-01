@@ -3,8 +3,24 @@ import FirebaseFirestore
 import FirebaseFunctions
 import Foundation
 
+enum TopicSort {
+    case newest
+    case mostLearners
+}
+
 protocol TopicRepository {
+    /// Small, unpaginated fetch — the Explore "Continue learning" row and
+    /// anywhere else that just needs "the public topics in this category,"
+    /// no sort/paging control. `topics(inCategory:sortedBy:limit:after:)` is
+    /// the paginated form the category page actually uses.
     func topics(inCategory categoryId: String) async throws -> [Topic]
+    func topics(inCategory categoryId: String, sortedBy: TopicSort, limit: Int, after cursor: PageCursor?) async throws -> Page<Topic>
+    /// Firestore has no full-text search — a `title`-prefix range query
+    /// (`title >= q`, `title < q + high-codepoint`), scoped to public,
+    /// non-deleted topics. Finds topics, not videos or tags; the caller is
+    /// responsible for also matching cached topics against `tags`
+    /// client-side, per the phase spec.
+    func searchByTitlePrefix(_ prefix: String, limit: Int) async throws -> [Topic]
     func topic(id: String) async throws -> Topic?
     func myTopics() async throws -> [Topic]
     func create(_ topic: Topic) async throws -> Topic
@@ -37,6 +53,45 @@ struct FirestoreTopicRepository: TopicRepository {
         return snapshot.decoded()
     }
 
+    func topics(inCategory categoryId: String, sortedBy: TopicSort, limit: Int, after cursor: PageCursor?) async throws -> Page<Topic> {
+        var query: Query = db.collection("topics")
+            .whereField("categoryId", isEqualTo: categoryId)
+            .whereField("visibility", isEqualTo: Topic.Visibility.public.rawValue)
+            .whereField("isDeleted", isEqualTo: false)
+        switch sortedBy {
+        case .newest:
+            query = query.order(by: "publishedAt", descending: true)
+        case .mostLearners:
+            query = query.order(by: "learnerCount", descending: true)
+        }
+        query = query.limit(to: limit)
+        if let cursor {
+            query = query.start(afterDocument: cursor.snapshot)
+        }
+        let snapshot = try await query.getDocuments()
+        return Page(items: snapshot.decoded(), cursor: snapshot.documents.last.map(PageCursor.init))
+    }
+
+    /// Queries the denormalized `titleLowercase` field, not `title` — a
+    /// case-sensitive-only prefix match would fail almost every real typed
+    /// query, which isn't "small and honest" so much as broken. `title`
+    /// itself stays proper-cased for display; `create`/`update` keep
+    /// `titleLowercase` in sync.
+    func searchByTitlePrefix(_ prefix: String, limit: Int) async throws -> [Topic] {
+        let normalized = prefix.lowercased()
+        guard !normalized.isEmpty else { return [] }
+        let upperBound = normalized + "\u{f8ff}"
+        let snapshot = try await db.collection("topics")
+            .whereField("visibility", isEqualTo: Topic.Visibility.public.rawValue)
+            .whereField("isDeleted", isEqualTo: false)
+            .whereField("titleLowercase", isGreaterThanOrEqualTo: normalized)
+            .whereField("titleLowercase", isLessThan: upperBound)
+            .order(by: "titleLowercase")
+            .limit(to: limit)
+            .getDocuments()
+        return snapshot.decoded()
+    }
+
     func topic(id: String) async throws -> Topic? {
         try await db.collection("topics").document(id).getDocument().decodedIfExists()
     }
@@ -59,6 +114,7 @@ struct FirestoreTopicRepository: TopicRepository {
         let ref = db.collection("topics").document()
         try await ref.setData([
             "title": topic.title,
+            "titleLowercase": topic.title.lowercased(),
             "subtitle": topic.subtitle,
             "description": topic.description,
             "categoryId": topic.categoryId,
@@ -93,6 +149,7 @@ struct FirestoreTopicRepository: TopicRepository {
         guard let id = topic.id else { return }
         try await db.collection("topics").document(id).updateData([
             "title": topic.title,
+            "titleLowercase": topic.title.lowercased(),
             "subtitle": topic.subtitle,
             "description": topic.description,
             "categoryId": topic.categoryId,
@@ -121,6 +178,27 @@ final class InMemoryTopicRepository: TopicRepository {
 
     func topics(inCategory categoryId: String) async throws -> [Topic] {
         topics.filter { $0.categoryId == categoryId && $0.visibility == .public && !$0.isDeleted }
+    }
+
+    func topics(inCategory categoryId: String, sortedBy: TopicSort, limit: Int, after cursor: PageCursor?) async throws -> Page<Topic> {
+        var matching = topics.filter { $0.categoryId == categoryId && $0.visibility == .public && !$0.isDeleted }
+        switch sortedBy {
+        case .newest:
+            matching.sort { ($0.publishedAt ?? .distantPast) > ($1.publishedAt ?? .distantPast) }
+        case .mostLearners:
+            matching.sort { $0.learnerCount > $1.learnerCount }
+        }
+        return Page(items: Array(matching.prefix(limit)), cursor: nil)
+    }
+
+    func searchByTitlePrefix(_ prefix: String, limit: Int) async throws -> [Topic] {
+        let normalized = prefix.lowercased()
+        guard !normalized.isEmpty else { return [] }
+        return Array(
+            topics
+                .filter { $0.visibility == .public && !$0.isDeleted && $0.title.lowercased().hasPrefix(normalized) }
+                .prefix(limit)
+        )
     }
 
     func topic(id: String) async throws -> Topic? {
