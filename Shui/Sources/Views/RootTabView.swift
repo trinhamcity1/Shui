@@ -8,6 +8,7 @@ private enum RootTab: Hashable {
 /// and Profile are still placeholders until Phase 3.
 struct RootTabView: View {
     @EnvironmentObject private var environment: AppEnvironment
+    @Environment(\.theme) private var theme
     @State private var selection: RootTab = .learn
 
     var body: some View {
@@ -15,10 +16,10 @@ struct RootTabView: View {
             FeedView(mode: .mixed, environment: environment, onExploreRequested: { selection = .explore })
                 .tabItem { Label(Strings.learnTab, systemImage: "play.rectangle.fill") }
                 .tag(RootTab.learn)
-            PhasePlaceholderView(title: Strings.exploreTab, phase: 3, detail: "Categories and topics live here.")
+            ExploreView(environment: environment)
                 .tabItem { Label(Strings.exploreTab, systemImage: "square.grid.2x2.fill") }
                 .tag(RootTab.explore)
-            PhasePlaceholderView(title: Strings.profileTab, phase: 3, detail: "Progress, likes, and settings live here.")
+            ProfileView(environment: environment)
                 .tabItem { Label(Strings.profileTab, systemImage: "person.crop.circle.fill") }
                 .tag(RootTab.profile)
             #if DEBUG
@@ -27,13 +28,15 @@ struct RootTabView: View {
                 .tag(RootTab.debug)
             #endif
         }
-        .tint(Theme.shell.gradientStart)
+        .tint(theme.accent)
     }
 }
 
 /// A launchable stub, not a mockup. Says which phase fills the tab in so an
-/// empty screen never reads as a bug.
+/// empty screen never reads as a bug. Still used by pieces of Phase 3 and
+/// later that haven't landed yet (e.g. Settings sub-screens).
 struct PhasePlaceholderView: View {
+    @Environment(\.theme) private var theme
     let title: String
     let phase: Int
     let detail: String
@@ -42,10 +45,10 @@ struct PhasePlaceholderView: View {
         VStack(spacing: 8) {
             Text("Coming in phase \(phase)")
                 .font(.headline)
-                .foregroundStyle(Theme.shell.ink)
+                .foregroundStyle(theme.textPrimary)
             Text(detail)
                 .font(.subheadline)
-                .foregroundStyle(Theme.shell.metadata)
+                .foregroundStyle(theme.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .padding()
@@ -55,7 +58,21 @@ struct PhasePlaceholderView: View {
 }
 
 struct RootView: View {
+    @EnvironmentObject private var appState: AppState
+    @EnvironmentObject private var environment: AppEnvironment
+
     var body: some View {
-        RootTabView()
+        Group {
+            if appState.profile.hasCompletedOnboarding {
+                RootTabView()
+            } else {
+                OnboardingFlowView()
+            }
+        }
+        // Runs in the background regardless of which branch above is
+        // showing — onboarding's interests step needs a signed-in uid to
+        // write to, and awaits this itself (idempotent) before saving, so
+        // this doesn't need to block first paint.
+        .task { await environment.bootstrapSession() }
     }
 }

@@ -1,24 +1,11 @@
 import SwiftUI
 
-/// Central design tokens for the app shell — a warm, soft, highly-rounded
-/// look. The web dashboard mirrors these values; keep them in sync.
+/// Non-color layout tokens shared across the app shell. Color tokens live in
+/// `ThemePalette`/`AppTheme` instead — reached via `@Environment(\.theme)`,
+/// never through a global like this, so they can vary per appearance.
 enum Theme {
-    enum shell {
-        /// Warm off-white — soft and domestic rather than cold tech-white.
-        static let canvas = Color(hex: 0xF4F3EF)
-        static let ink = Color(hex: 0x1A1A1A)
-        static let metadata = Color(hex: 0x6B7280)
-        static let gradientStart = Color(hex: 0xF59E0B)
-        static let gradientMid = Color(hex: 0xFBCB8B)
-        static let gradientEnd = Color(hex: 0x818CF8)
-        static let accentGradient = LinearGradient(
-            colors: [gradientStart, gradientMid, gradientEnd],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        static let cornerRadiusLarge: CGFloat = 32
-        static let cornerRadiusCard: CGFloat = 20
-    }
+    static let cornerRadiusLarge: CGFloat = 32
+    static let cornerRadiusCard: CGFloat = 20
 }
 
 extension Color {
@@ -35,18 +22,21 @@ extension Color {
 
 /// A soft, rounded card matching the shell aesthetic.
 struct ShuiCardStyle: ViewModifier {
+    @Environment(\.theme) private var theme
+
     func body(content: Content) -> some View {
         content
             .padding()
             .background(
-                RoundedRectangle(cornerRadius: Theme.shell.cornerRadiusCard, style: .continuous)
-                    .fill(Color.white)
+                RoundedRectangle(cornerRadius: Theme.cornerRadiusCard, style: .continuous)
+                    .fill(theme.surface)
             )
     }
 }
 
 /// A pill-shaped button, filled with the gradient accent or outlined.
 struct ShuiPillButtonStyle: ButtonStyle {
+    @Environment(\.theme) private var theme
     var filled: Bool = true
 
     func makeBody(configuration: Configuration) -> some View {
@@ -55,11 +45,11 @@ struct ShuiPillButtonStyle: ButtonStyle {
             .padding(.horizontal, 24)
             .padding(.vertical, 14)
             .frame(maxWidth: .infinity)
-            .foregroundStyle(filled ? Color.white : Theme.shell.ink)
+            .foregroundStyle(filled ? theme.textOnAccent : theme.textPrimary)
             .background(background)
             .clipShape(Capsule())
             .overlay(
-                Capsule().stroke(filled ? Color.clear : Theme.shell.ink.opacity(0.2), lineWidth: 1)
+                Capsule().stroke(filled ? Color.clear : theme.border, lineWidth: 1)
             )
             .opacity(configuration.isPressed ? 0.85 : 1)
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
@@ -68,7 +58,7 @@ struct ShuiPillButtonStyle: ButtonStyle {
     @ViewBuilder
     private var background: some View {
         if filled {
-            Theme.shell.accentGradient
+            theme.accentGradient
         } else {
             Color.clear
         }
@@ -82,5 +72,13 @@ extension ButtonStyle where Self == ShuiPillButtonStyle {
 
 extension View {
     func shuiCard() -> some View { modifier(ShuiCardStyle()) }
-    func shuiShellBackground() -> some View { background(Theme.shell.canvas.ignoresSafeArea()) }
+    func shuiShellBackground() -> some View { modifier(ShuiShellBackgroundModifier()) }
+}
+
+private struct ShuiShellBackgroundModifier: ViewModifier {
+    @Environment(\.theme) private var theme
+
+    func body(content: Content) -> some View {
+        content.background(theme.canvas.ignoresSafeArea())
+    }
 }

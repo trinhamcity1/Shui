@@ -142,6 +142,7 @@ private struct QuizAnsweringCard: View {
 }
 
 private struct OptionRow: View {
+    @Environment(\.theme) private var theme
     let text: String
     let isSelected: Bool
     let action: () -> Void
@@ -156,18 +157,18 @@ private struct OptionRow: View {
                 Spacer(minLength: 8)
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Theme.shell.gradientStart)
+                        .foregroundStyle(theme.accent)
                 }
             }
             .padding(16)
             .frame(minHeight: 44)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isSelected ? Theme.shell.gradientStart.opacity(0.15) : Color.primary.opacity(0.06))
+                    .fill(isSelected ? theme.accent.opacity(0.15) : Color.primary.opacity(0.06))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(isSelected ? Theme.shell.gradientStart : .clear, lineWidth: 2)
+                    .stroke(isSelected ? theme.accent : .clear, lineWidth: 2)
             )
         }
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
@@ -201,6 +202,7 @@ private struct QuizSubmissionFailedCard: View {
 // MARK: - Reveal
 
 private struct QuizRevealCard: View {
+    @Environment(\.theme) private var theme
     let question: QuizQuestion
     let result: QuizQuestionResult
     let selectedOptionIds: Set<String>
@@ -211,7 +213,7 @@ private struct QuizRevealCard: View {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(spacing: 8) {
                     Image(systemName: result.wasCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundStyle(result.wasCorrect ? .green : .red)
+                        .foregroundStyle(result.wasCorrect ? theme.success : theme.error)
                     Text(result.wasCorrect ? "Correct" : "Not quite")
                         .font(.headline)
                 }
@@ -251,13 +253,14 @@ private struct QuizRevealCard: View {
 }
 
 private struct RevealOptionRow: View {
+    @Environment(\.theme) private var theme
     let text: String
     let isSelected: Bool
     let isCorrect: Bool
 
     private var tint: Color {
-        if isCorrect { return .green }
-        if isSelected { return .red }
+        if isCorrect { return theme.success }
+        if isSelected { return theme.error }
         return .primary.opacity(0.06)
     }
 
@@ -269,9 +272,9 @@ private struct RevealOptionRow: View {
                 .foregroundStyle(.primary)
             Spacer(minLength: 8)
             if isCorrect {
-                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(theme.success)
             } else if isSelected {
-                Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
+                Image(systemName: "xmark.circle.fill").foregroundStyle(theme.error)
             }
         }
         .padding(16)
@@ -297,6 +300,7 @@ private struct RevealOptionRow: View {
 // MARK: - Result
 
 private struct QuizResultCard: View {
+    @Environment(\.theme) private var theme
     @ObservedObject var page: FeedPageViewModel
     let onNext: () -> Void
     let onReplay: () -> Void
@@ -310,7 +314,7 @@ private struct QuizResultCard: View {
         VStack(spacing: 16) {
             Image(systemName: (page.quizResult?.passed ?? false) ? "checkmark.seal.fill" : "arrow.counterclockwise.circle.fill")
                 .font(.system(size: 40))
-                .foregroundStyle((page.quizResult?.passed ?? false) ? .green : .orange)
+                .foregroundStyle((page.quizResult?.passed ?? false) ? theme.success : theme.warning)
 
             Text((page.quizResult?.passed ?? false) ? "Passed" : "Keep practicing")
                 .font(.title3.weight(.bold))
@@ -322,7 +326,7 @@ private struct QuizResultCard: View {
             if let delta = page.masteryDelta, delta != 0 {
                 Text("Topic mastery \(delta > 0 ? "+" : "")\(delta)%")
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(delta > 0 ? .green : .secondary)
+                    .foregroundStyle(delta > 0 ? theme.success : .secondary)
             }
 
             VStack(spacing: 10) {
@@ -341,6 +345,7 @@ private struct QuizResultCard: View {
 // MARK: - No quiz
 
 private struct LessonCompleteStrip: View {
+    @Environment(\.theme) private var theme
     let onNext: () -> Void
     let onReplay: () -> Void
 
@@ -348,7 +353,7 @@ private struct LessonCompleteStrip: View {
         HStack(spacing: 16) {
             Label("Lesson complete", systemImage: "checkmark.circle.fill")
                 .font(.headline)
-                .foregroundStyle(.green)
+                .foregroundStyle(theme.success)
             Spacer()
             Button("Replay", action: onReplay)
                 .buttonStyle(.shuiPillOutline)

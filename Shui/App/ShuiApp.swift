@@ -31,6 +31,7 @@ struct ShuiApp: App {
             RootView()
                 .environmentObject(appState)
                 .environmentObject(appEnvironment)
+                .shuiTheme()
         }
         .modelContainer(PersistenceController.shared.container)
     }
