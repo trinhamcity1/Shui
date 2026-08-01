@@ -13,6 +13,7 @@ export { setTopicVisibility, setVideoVisibility } from "./callables/setVisibilit
 export { softDeleteTopic, softDeleteVideo, softDeleteComment } from "./callables/softDelete";
 export { claimHandle } from "./callables/claimHandle";
 export { assignRole } from "./callables/assignRole";
+export { deleteAccount } from "./callables/deleteAccount";
 
 export { onCommentWritten } from "./triggers/onCommentWritten";
 export { onUserCreated } from "./triggers/onUserCreated";

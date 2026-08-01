@@ -206,15 +206,22 @@ service cloud.firestore {
         && request.resource.data.currentStreak == 0
         && request.resource.data.longestStreak == 0
         && request.resource.data.totalVideosCompleted == 0
-        && request.resource.data.totalQuizzesPassed == 0;
+        && request.resource.data.totalQuizzesPassed == 0
+        && request.resource.data.isDeleted == false;
 
+      // isDeleted is Function-only (deleteAccount) — a signed-in client can
+      // update their own plain profile fields right up until the moment
+      // their account is deleted, never the deletion flag itself.
       allow update: if isOwner(uid)
         && unchangedOrAbsent([
           'role', 'currentStreak', 'longestStreak',
-          'totalVideosCompleted', 'totalQuizzesPassed', 'handle',
+          'totalVideosCompleted', 'totalQuizzesPassed', 'handle', 'isDeleted',
         ]);
 
-      allow delete: if false; // deleteAccount callable, phase 3
+      // deleteAccount (Admin SDK) soft-deletes by updating isDeleted, it
+      // never performs a real Firestore delete — keeps the doc resolvable
+      // for anything still referencing this uid (e.g. a topic's createdBy).
+      allow delete: if false;
 
       // ---- users/{uid}/topicProgress/{topicId} ------------------------
       // ---- users/{uid}/videoProgress/{videoId} ------------------------
