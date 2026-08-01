@@ -11,6 +11,10 @@ import SwiftUI
 final class AppState: ObservableObject {
     /// Device-local preferences (onboarding state, chosen interests).
     @Published var profile: UserProfile
+    /// Set from `.onOpenURL`; drives a full-screen cover at the root so a
+    /// deep link lands on the right screen regardless of which tab or
+    /// navigation state the app happened to be in.
+    @Published var pendingDeepLink: DeepLink?
 
     init() {
         profile = PersistenceController.shared.fetchOrCreateProfile()

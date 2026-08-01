@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	Placeholder only — no real domain exists yet (same gap noted in
+	FeedRightRail's ShareLink, which only produces a shui:// link, no web
+	fallback). Universal Links need a real, owned domain serving
+	apple-app-site-association at its root before this becomes functional;
+	replace "example.com" and verify the AASA file once one exists. Until
+	then, shui:// custom-scheme links (registered in Info.plist) are the
+	only working deep link path.
+	-->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:example.com</string>
+	</array>
+</dict>
+</plist>

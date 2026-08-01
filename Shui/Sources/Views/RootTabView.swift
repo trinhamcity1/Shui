@@ -74,5 +74,18 @@ struct RootView: View {
         // write to, and awaits this itself (idempotent) before saving, so
         // this doesn't need to block first paint.
         .task { await environment.bootstrapSession() }
+        .onOpenURL { url in
+            guard let link = DeepLink.parse(url) else { return }
+            Task {
+                // Guest-first still applies to a cold start from a link —
+                // ensure a session exists before the destination screen
+                // tries to read/write anything that needs one.
+                await environment.bootstrapSession()
+                appState.pendingDeepLink = link
+            }
+        }
+        .fullScreenCover(item: $appState.pendingDeepLink) { link in
+            DeepLinkContainer(link: link, environment: environment)
+        }
     }
 }
