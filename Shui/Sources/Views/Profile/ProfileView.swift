@@ -1,8 +1,11 @@
 import SwiftUI
 
-/// `.navigationDestination(item:)` requires `Identifiable`, which `[Video]`
-/// isn't — this is just that wrapper, not a meaningful type on its own.
-private struct VideoListDestination: Identifiable {
+/// `.navigationDestination(item:)` requires `Hashable` (not `Identifiable` —
+/// that's `.sheet(item:)`'s requirement, easy to mix up), which `[Video]`
+/// isn't on its own — this is just that wrapper. Every stored property here
+/// is already `Hashable` (`Video` itself conforms), so the compiler
+/// synthesizes `==`/`hash(into:)` for free.
+private struct VideoListDestination: Identifiable, Hashable {
     let id = UUID()
     let videos: [Video]
     var startingAtVideoId: String?
