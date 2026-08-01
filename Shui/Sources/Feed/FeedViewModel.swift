@@ -15,7 +15,6 @@ final class FeedViewModel: ObservableObject {
     @Published private(set) var isInitialLoading = true
     @Published private(set) var isLoadingMore = false
     @Published var loadError: String?
-    @Published private(set) var currentUser: UserAccount?
 
     let playerPool = FeedPlayerPool()
 
@@ -23,8 +22,6 @@ final class FeedViewModel: ObservableObject {
     private let environment: AppEnvironment
     private let persistence: PersistenceController
     private let pageBatchSize = 10
-
-    var isGuest: Bool { currentUser?.isGuest ?? true }
 
     /// `(position, total)`, 1-indexed, only in topic mode — drives the "3 of
     /// 12" pill; `nil` in the mixed feed, where there's no fixed total.
@@ -58,8 +55,6 @@ final class FeedViewModel: ObservableObject {
         isInitialLoading = true
         loadError = nil
         defer { isInitialLoading = false }
-
-        currentUser = try? await environment.users.currentUser()
 
         switch mode {
         case let .topic(topicId, startingAtVideoId):
@@ -173,7 +168,7 @@ final class FeedViewModel: ObservableObject {
         async let topicProgressTask = environment.progress.topicProgress()
 
         let (dueList, topicProgressList) = try await (dueTask, topicProgressTask)
-        interests = currentUser?.interests ?? []
+        interests = environment.currentUser?.interests ?? []
 
         let dueVideoIds = dueList.map(\.videoId)
         var dueVideos = try await environment.videos.videos(withIds: dueVideoIds)

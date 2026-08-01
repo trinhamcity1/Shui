@@ -32,7 +32,11 @@ protocol AuthRepository {
     /// Starts (or resumes) a session. A no-op if already signed in, guest or
     /// otherwise — safe to call on every launch.
     func signInAnonymouslyIfNeeded() async throws
-    func signInWithApple() async throws -> AuthUpgradeResult
+    /// Takes the raw pieces `SignInWithAppleButton`'s completion handler
+    /// produces — the view owns the actual Apple authorization request
+    /// (that's what draws the real HIG button and prompts Face ID) and this
+    /// only ever turns a successful result into a Firebase credential.
+    func signInWithApple(idToken: String, rawNonce: String, fullName: PersonNameComponents?) async throws -> AuthUpgradeResult
     /// Handles both sign-up and sign-in with one call, per the phase spec's
     /// "sign-up / sign-in detection": links the credential to the current
     /// guest session first (a genuinely new account), and falls back to a
@@ -69,14 +73,9 @@ final class FirebaseAuthRepository: AuthRepository {
         _ = try await auth.signInAnonymously()
     }
 
-    func signInWithApple() async throws -> AuthUpgradeResult {
-        let result = try await AppleSignInCoordinator().signIn()
-        let credential = OAuthProvider.credential(
-            withProviderID: "apple.com",
-            idToken: result.identityToken,
-            rawNonce: result.rawNonce
-        )
-        let suggestedName = [result.fullName?.givenName, result.fullName?.familyName]
+    func signInWithApple(idToken: String, rawNonce: String, fullName: PersonNameComponents?) async throws -> AuthUpgradeResult {
+        let credential = OAuthProvider.credential(withProviderID: "apple.com", idToken: idToken, rawNonce: rawNonce)
+        let suggestedName = [fullName?.givenName, fullName?.familyName]
             .compactMap { $0 }
             .joined(separator: " ")
         return try await link(credential: credential, suggestedDisplayName: suggestedName.isEmpty ? nil : suggestedName)
@@ -150,7 +149,7 @@ final class InMemoryAuthRepository: AuthRepository {
         }
     }
 
-    func signInWithApple() async throws -> AuthUpgradeResult {
+    func signInWithApple(idToken: String, rawNonce: String, fullName: PersonNameComponents?) async throws -> AuthUpgradeResult {
         isGuest = false
         linkedProviderIDs = ["apple.com"]
         return AuthUpgradeResult(outcome: .linked(isNewUser: true), suggestedDisplayName: "Preview Learner")

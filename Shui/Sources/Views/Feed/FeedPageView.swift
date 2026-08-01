@@ -9,6 +9,7 @@ struct FeedPageView: View {
     let onNextLesson: () -> Void
     let onRequireSignIn: () -> Void
 
+    @EnvironmentObject private var environment: AppEnvironment
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dismiss) private var dismiss
     @State private var showPauseGlyph = false
@@ -185,7 +186,7 @@ struct FeedPageView: View {
 
             FeedRightRail(
                 page: page,
-                isGuest: viewModel.isGuest,
+                isGuest: environment.isGuest,
                 onLike: { viewModel.toggleLike(for: page) },
                 onComments: { showCommentsPlaceholder = true },
                 onAITutor: { showAIPlaceholder = true },

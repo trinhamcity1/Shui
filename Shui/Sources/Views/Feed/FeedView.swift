@@ -27,7 +27,7 @@ struct FeedView: View {
             }
         }
         .sheet(isPresented: $showSignInSheet) {
-            SignInStubSheet()
+            SignInSheet()
         }
     }
 

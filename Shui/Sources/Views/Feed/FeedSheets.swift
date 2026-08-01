@@ -65,31 +65,3 @@ struct ComingSoonSheet: View {
         .presentationDetents([.medium])
     }
 }
-
-/// Stands in for real sign-in (Phase 3) wherever a guest hits a
-/// signed-in-only action — liking, commenting, the AI tutor.
-struct SignInStubSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 16) {
-                Image(systemName: "person.crop.circle.badge.checkmark")
-                    .font(.system(size: 44))
-                    .foregroundStyle(Theme.shell.gradientStart)
-                Text("Sign in to continue")
-                    .font(.title3.bold())
-                Text("Liking, commenting, and the AI tutor need a real account. Sign-in lands in Phase 3.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                Button(Strings.done) { dismiss() }
-                    .buttonStyle(.shuiPill)
-                    .padding(.top, 8)
-            }
-            .padding(28)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .presentationDetents([.medium])
-    }
-}
