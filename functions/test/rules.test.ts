@@ -282,6 +282,7 @@ describe("users", () => {
     totalVideosCompleted: 0,
     totalQuizzesPassed: 0,
     isGuest: false,
+    isDeleted: false,
   };
 
   test("anyone can read any profile (documented public-subset judgment call)", async () => {
@@ -313,12 +314,17 @@ describe("users", () => {
     await assertFails(updateDoc(doc(learner("alice").firestore(), "users/alice"), { role: "admin" }));
   });
 
+  test("owner cannot un-delete or delete themselves via a direct write (negative)", async () => {
+    await seedDoc("users/alice", newUserDoc);
+    await assertFails(updateDoc(doc(learner("alice").firestore(), "users/alice"), { isDeleted: true }));
+  });
+
   test("delete is always denied (negative)", async () => {
     await seedDoc("users/alice", newUserDoc);
     await assertFails(deleteDoc(doc(learner("alice").firestore(), "users/alice")));
   });
 
-  for (const sub of ["topicProgress/t1", "videoProgress/v1", "likes/v1", "aiUsage/2026-07-30"]) {
+  for (const sub of ["topicProgress/t1", "videoProgress/v1", "likes/v1", "aiUsage/2026-07-30", "commentLikes/c1"]) {
     describe(`users/{uid}/${sub.split("/")[0]}`, () => {
       test("owner can read", async () => {
         await seedDoc(`users/alice/${sub}`, { value: 1 });

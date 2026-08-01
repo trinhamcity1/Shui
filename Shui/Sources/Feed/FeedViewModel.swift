@@ -217,11 +217,24 @@ final class FeedViewModel: ObservableObject {
         playerPool.activate(index: index)
         Task { await prefetchAround(index: index) }
         loadMoreIfNeeded(currentlyShowing: index)
+        if pages.indices.contains(index) {
+            let video = pages[index].video
+            AppAnalytics.logVideoStarted(videoId: video.id ?? "unknown", topicId: video.topicId, categoryId: video.categoryId)
+        }
     }
 
     func onPageDisappear(index: Int) {
         guard pages.indices.contains(index) else { return }
-        recordViewIfNeeded(for: pages[index], at: index)
+        let page = pages[index]
+        recordViewIfNeeded(for: page, at: index)
+        // Scrolled away with the quiz still unanswered -- a real skip, not
+        // just "hasn't gotten there yet" (.notEnded) or already resolved.
+        switch page.endState {
+        case .answering, .loadingQuiz:
+            AppAnalytics.logQuizSkipped(videoId: page.video.id ?? "unknown")
+        default:
+            break
+        }
     }
 
     private func prefetchAround(index: Int) async {
@@ -285,6 +298,7 @@ final class FeedViewModel: ObservableObject {
         guard !page.hasMarkedCompleted else { return }
         page.hasMarkedCompleted = true
         try? await environment.progress.markCompleted(videoId: videoId, watchedSeconds: watchedSeconds)
+        AppAnalytics.logVideoCompleted(videoId: videoId, topicId: page.video.topicId, categoryId: page.video.categoryId)
     }
 
     // MARK: - Like
@@ -333,6 +347,7 @@ final class FeedViewModel: ObservableObject {
                 return after - before
             }()
             page.receiveResult(result, masteryDelta: delta)
+            AppAnalytics.logQuizSubmitted(videoId: videoId, score: result.score, passed: result.passed)
             for pending in persistence.pendingQuizAttempts() where pending.videoID == videoId {
                 persistence.delete(pending)
             }
