@@ -28,4 +28,5 @@ struct UserAccount: Codable, Identifiable, Hashable {
     var totalVideosCompleted: Int
     var totalQuizzesPassed: Int
     var isGuest: Bool
+    var isDeleted: Bool
 }
