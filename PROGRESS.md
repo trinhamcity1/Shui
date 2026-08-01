@@ -458,11 +458,15 @@ that UI twice.
   wording) would fail almost every real typed query — added a
   denormalized `titleLowercase` field instead, kept in sync by
   `create`/`update` and backfilled in `seed_civics.ts`.
-- Two new collection-group/composite index requirements this phase's
-  queries actually need (`topics` sorted by `learnerCount`, `comments`
-  filtered by `parentId` ordered ascending for replies) — added
-  proactively based on the exact query shapes written, rather than
-  waiting to hit the same "missing index" wall Phase 2 hit live.
+- Two new composite index requirements this phase's queries actually need
+  (`topics` sorted by `learnerCount`, `comments` filtered by `parentId`
+  ordered ascending for replies) — added proactively based on the exact
+  query shapes written, rather than waiting to hit the same "missing
+  index" wall Phase 2 hit live. One more index mistake did reach a real
+  deploy though (below) — self-review and the emulator run couldn't have
+  caught it, since only the real deploy validates index *definitions*
+  against Firestore's actual rules for what belongs in `indexes` versus
+  `fieldOverrides`.
 
 ### Verification
 
@@ -490,6 +494,48 @@ declaration. **Next step for the user:** `git pull`, `xcodegen generate`
 compiler finds — plus `firebase deploy --only firestore,functions` before
 any of the new backend pieces (delete account, comment likes, search) will
 work against the real project.
+
+### Deployment gotcha: a real one the emulator run couldn't have caught
+
+The first live `firebase deploy --only firestore,functions` against
+`shui-prod` failed on `firestore.indexes.json`:
+
+```
+Error: Request to .../databases/(default)/collectionGroups/comments/indexes
+had HTTP Error: 400, this index is not necessary, configure using single
+field index controls
+```
+
+Same underlying rule as Phase 1's gotcha #5 (a composite index that's
+really just one field gets rejected as redundant), but a variant that
+gotcha's fix didn't cover: it applies at `COLLECTION_GROUP` scope too, not
+only `COLLECTION` scope. `deleteAccount`'s
+`db.collectionGroup("comments").where("uid", "==", uid)` query needs
+collection-group indexing explicitly enabled for `uid` (collection-group
+queries don't get Firestore's automatic per-field indexing the way
+collection-scoped queries do) — but a *single-field* enablement, even at
+collection-group scope, belongs in `firestore.indexes.json`'s
+`fieldOverrides` array, not the `indexes` (composite) array. The original
+entry:
+
+```json
+{ "collectionGroup": "comments", "queryScope": "COLLECTION_GROUP", "fields": [{ "fieldPath": "uid", "order": "ASCENDING" }] }
+```
+
+moved to:
+
+```json
+"fieldOverrides": [
+  { "collectionGroup": "comments", "fieldPath": "uid", "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }] }
+]
+```
+
+Nothing short of a real deploy against real Firestore surfaces this —
+`tsc` and the rules emulator (which doesn't enforce index requirements at
+all) both have no way to validate an index *definition's* shape against
+Firestore's actual acceptance rules. Worth remembering for any future
+collection-group query that only ever filters on one field: it goes in
+`fieldOverrides`, composite indexes are for genuinely multi-field queries.
 
 ## Phases 4–6
 
