@@ -648,6 +648,37 @@ repo — described here instead):
 open, none blocked on anything further at this point (all reachable with
 the app and data as they stand now).
 
+### Live verification round 3: Apple sign-in entitlement, and a Profile guest CTA
+
+- **Apple sign-in failed with `ASAuthorizationError` on every attempt.**
+  Root cause: `Shui.entitlements` only ever had the Associated Domains
+  placeholder — the actual `com.apple.developer.applesignin` entitlement
+  was never added, so `ASAuthorizationAppleIDProvider` requests fail
+  regardless of device/simulator. Added the missing entitlement key. Still
+  needs the "Sign In with Apple" capability enabled for the App ID in the
+  Apple Developer portal (automatic if using Xcode's automatic signing —
+  add the capability in Signing & Capabilities and it registers the
+  portal-side change itself) before a rebuild will actually clear the
+  error; Simulator can also be independently flaky for this even once
+  correctly configured, so a real device is the reliable way to confirm.
+- **No visible "sign up" path — confirmed by design, not a gap.** The
+  email form's single "Continue" button already handles both cases via
+  `continueWithEmail()` (link-first, falls back to sign-in on
+  `emailAlreadyInUse`), per the phase spec's "sign-up / sign-in
+  detection" — there's deliberately no separate button because there's
+  only one flow.
+- **Guest Profile just showed a generic "Learner" shell with nothing
+  else — no invitation to sign in anywhere on the tab itself,** only
+  buried in Settings → Account. Landing on your own Profile while a guest
+  is exactly the "moment of need" the spec describes (not a launch nag),
+  so treated as in-scope for this phase rather than deferred: added a
+  `guestBanner` section to `ProfileView` — "You're browsing as a guest /
+  Sign in to save your progress" with a Sign in button — shown right
+  under the header whenever `environment.isGuest`.
+- **`Category.topicCount` still reads 0 even with real published
+  topics** — same known gap already logged above (no maintenance
+  trigger exists yet), re-confirmed live, still correctly Phase 5's job.
+
 ## Phases 4–6
 
 Not started.

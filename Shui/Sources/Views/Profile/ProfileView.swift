@@ -24,6 +24,7 @@ struct ProfileView: View {
     @State private var expandedCategoryIDs: Set<String> = []
     @State private var likedVideosFeed: VideoListDestination?
     @State private var reviewFeed: VideoListDestination?
+    @State private var showSignInSheet = false
 
     init(environment: AppEnvironment) {
         self.environment = environment
@@ -39,6 +40,7 @@ struct ProfileView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 28) {
                             header
+                            guestBanner
                             progressSection
                             likedSection
                             activitySection
@@ -73,6 +75,35 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showEditProfile, onDismiss: { Task { await viewModel.load() } }) {
             EditProfileSheet(environment: environment, account: viewModel.account)
+        }
+        .sheet(isPresented: $showSignInSheet, onDismiss: { Task { await viewModel.load() } }) {
+            SignInSheet()
+        }
+    }
+
+    /// A guest landing on their own (necessarily sparse) Profile is exactly
+    /// the kind of "moment of need" the phase spec wants prompts reserved
+    /// for — showing up here rather than nagging on launch — so this isn't
+    /// deferred to a later phase the way a real "who am I" identity system
+    /// would be.
+    @ViewBuilder
+    private var guestBanner: some View {
+        if environment.isGuest {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("You're browsing as a guest")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(theme.textPrimary)
+                Text("Sign in to save your progress and see it across devices.")
+                    .font(.caption)
+                    .foregroundStyle(theme.textSecondary)
+                Button("Sign in") { showSignInSheet = true }
+                    .buttonStyle(.shuiPill)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: Theme.cornerRadiusCard, style: .continuous).fill(theme.surface))
+            .overlay(RoundedRectangle(cornerRadius: Theme.cornerRadiusCard, style: .continuous).stroke(theme.borderSubtle, lineWidth: 1))
+            .padding(.horizontal, 20)
         }
     }
 
