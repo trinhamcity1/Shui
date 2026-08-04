@@ -634,7 +634,7 @@ repo — described here instead):
 | # | Item | Status |
 |---|---|---|
 | 1 | Fresh guest → watch → quiz, no account | ✅ confirmed live |
-| 2 | Guest Like → sign-in sheet → Apple links account, progress carries over | Partial — email sign-in path confirmed; Apple sign-in specifically still untested |
+| 2 | Guest Like → sign-in sheet → Apple links account, progress carries over | Partial — email and Apple sign-in both now confirmed working; the specific "guest progress still present after linking" check not separately re-verified |
 | 3 | Email sign-up / sign-out / sign-in / password reset | Partial — sign-in, sign-out, and password reset (email sent) confirmed; a genuinely new-account sign-up specifically untested (same unified `continueWithEmail()` flow as sign-in, so low-risk, but not yet exercised end-to-end) |
 | 4 | Guest denied comment creation by rules | ✅ confirmed (emulator, `rules.test.ts:396`) |
 | 5 | Interests at onboarding change feed ordering | Open — now testable since categories are seeded, not yet run |
@@ -678,6 +678,47 @@ the app and data as they stand now).
 - **`Category.topicCount` still reads 0 even with real published
   topics** — same known gap already logged above (no maintenance
   trigger exists yet), re-confirmed live, still correctly Phase 5's job.
+
+### Live verification round 4: Apple sign-in confirmed, a real back-button question, and quiz-failure messaging
+
+- **Apple sign-in now works** after the entitlement fix and enabling the
+  capability in Xcode's Signing & Capabilities. Item #2 from the Verify
+  checklist is now fully unblocked.
+- **Guest quiz submission does *not* require sign-in — confirmed by
+  reading `submitQuizAttempt`'s `requireAuth()` (checks only that
+  `request.auth` exists; anonymous sessions have a valid `request.auth`
+  too) and `QuizRepository.submit()` client-side (calls the callable
+  directly, no guest gate).** This matters because the user's live
+  testing produced the "Couldn't submit your answers" failure screen
+  specifically as a guest and asked whether quiz submission should
+  require sign-in with clearer messaging to that effect. It doesn't, and
+  saying so would be wrong — verify item #1 (fresh guest → watch → quiz)
+  was already independently confirmed working earlier this phase, so
+  guest quiz submission is proven to succeed under normal conditions.
+  The actual cause of this specific failure is still unconfirmed (most
+  likely Simulator network flakiness, but not proven).
+  What *is* a real, shippable improvement regardless of that unknown
+  cause: the failure card previously showed a canned "we'll retry
+  automatically" message for *any* failure reason, which lies whenever
+  the real cause isn't actually a connectivity problem. Fixed:
+  `LessonEndState.submissionFailed` now carries the real error message;
+  `FeedPageViewModel.failSubmission(_:)` classifies it (`NSURLErrorDomain`
+  → nil → keeps the honest "retry automatically" copy; anything else,
+  including a real `HttpsError` reason, → shows that actual message
+  instead). Next time this reproduces, the on-screen text itself should
+  say why, instead of guessing being the only option.
+- **"Start learning works but back button did not work"** — reported
+  live, not yet root-caused. `TopicPageView`'s "Start learning" is a
+  genuine `NavigationLink` push to `FeedView(mode: .topic(...))`, and
+  `FeedPageView`'s custom back chevron (shown whenever `topicModeInfo`
+  is non-nil) calls the standard `@Environment(\.dismiss)` — this is
+  exactly the supported pattern and reads correctly on inspection, no
+  bug found by static review. Two real possibilities: the small chevron
+  button itself is broken in a way review didn't catch, or the learner
+  tried an edge-swipe-back gesture instead, which the feed's own paging
+  scroll/tap gestures plausibly eat before it reaches the system's
+  interactive-pop recognizer. Needs a repro specifically confirming
+  which gesture was used before this can be fixed with confidence.
 
 ## Phases 4–6
 

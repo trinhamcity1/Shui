@@ -31,8 +31,8 @@ struct QuizOverlayContainer: View {
                         if let question = page.currentQuestion() {
                             QuizAnsweringCard(page: page, viewModel: viewModel, question: question)
                         }
-                    case .submissionFailed:
-                        QuizSubmissionFailedCard(onRetry: { viewModel.retrySubmission(for: page) })
+                    case .submissionFailed(let message):
+                        QuizSubmissionFailedCard(message: message, onRetry: { viewModel.retrySubmission(for: page) })
                     case .revealing:
                         if let reveal = page.revealForCurrentQuestion() {
                             QuizRevealCard(
@@ -178,16 +178,17 @@ private struct OptionRow: View {
 // MARK: - Submission failure
 
 private struct QuizSubmissionFailedCard: View {
+    let message: String?
     let onRetry: () -> Void
 
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "wifi.slash")
+            Image(systemName: message == nil ? "wifi.slash" : "exclamationmark.triangle")
                 .font(.system(size: 32))
                 .foregroundStyle(.secondary)
             Text("Couldn't submit your answers")
                 .font(.headline)
-            Text("Your answers are saved. We'll try again automatically, or you can retry now.")
+            Text(message ?? "Your answers are saved. We'll try again automatically, or you can retry now.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

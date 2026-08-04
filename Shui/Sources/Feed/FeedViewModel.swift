@@ -353,7 +353,7 @@ final class FeedViewModel: ObservableObject {
             }
         } catch {
             persistence.insert(PendingQuizAttempt(videoID: videoId, answers: answers))
-            page.failSubmission()
+            page.failSubmission(error)
         }
     }
 

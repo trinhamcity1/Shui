@@ -12,7 +12,13 @@ enum LessonEndState: Equatable {
     case noQuiz
     case answering(questionIndex: Int)
     case submitting
-    case submissionFailed
+    /// `message` is the server's actual reason when there is one (a real
+    /// `HttpsError` message, e.g. "Sign in required.") — nil only for
+    /// genuine connectivity failures, where "we'll retry automatically" is
+    /// actually true. Distinguishing the two matters: a non-network failure
+    /// won't just clear up on its own, and telling the learner so beats a
+    /// canned offline message that's misleading for anything else.
+    case submissionFailed(message: String?)
     case revealing(questionIndex: Int)
     case result
 }
@@ -166,8 +172,18 @@ final class FeedPageViewModel: ObservableObject, Identifiable {
         endState = sortedQuestions.isEmpty ? .result : .revealing(questionIndex: 0)
     }
 
-    func failSubmission() {
-        endState = .submissionFailed
+    func failSubmission(_ error: Error? = nil) {
+        endState = .submissionFailed(message: Self.describeFailure(error))
+    }
+
+    /// `nil` (→ the generic offline copy) only for what's actually a
+    /// connectivity problem (`NSURLErrorDomain`); anything else — including
+    /// a real `HttpsError` like "Sign in required." — surfaces its own
+    /// message instead of the misleading "we'll retry automatically" line.
+    private static func describeFailure(_ error: Error?) -> String? {
+        guard let error else { return nil }
+        let nsError = error as NSError
+        return nsError.domain == NSURLErrorDomain ? nil : nsError.localizedDescription
     }
 
     // MARK: - Revealing
