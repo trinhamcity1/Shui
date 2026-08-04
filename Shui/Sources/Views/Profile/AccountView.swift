@@ -9,6 +9,7 @@ struct AccountView: View {
 
     @State private var showSignOutConfirm = false
     @State private var showDeleteConfirm = false
+    @State private var showSignInSheet = false
     @State private var isBusy = false
     @State private var errorMessage: String?
 
@@ -18,6 +19,8 @@ struct AccountView: View {
                 if environment.isGuest {
                     Text("Signed in as guest — sign in to keep your progress if you switch devices.")
                         .foregroundStyle(theme.textSecondary)
+                    Button("Sign in") { showSignInSheet = true }
+                        .foregroundStyle(theme.accent)
                 } else if environment.auth.linkedProviderIDs.isEmpty {
                     Text("No linked providers.")
                         .foregroundStyle(theme.textSecondary)
@@ -63,6 +66,7 @@ struct AccountView: View {
         } message: {
             Text("This can't be undone.")
         }
+        .sheet(isPresented: $showSignInSheet) { SignInSheet() }
     }
 
     private func providerLabel(_ providerID: String) -> String {

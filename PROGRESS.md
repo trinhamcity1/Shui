@@ -596,6 +596,34 @@ confirmed. Needs a repro with the exact Xcode console error text, ideally
 without a sign-out immediately beforehand, to rule in/out an auth-token
 race versus something else.
 
+### Live verification round 2: sign-in dead end from Account, and clearing up "why doesn't my topic show"
+
+Retest after round 1's fixes confirmed guest feed load, comment edit/delete,
+and deleted-comment anonymization all work correctly. Two more things came
+up:
+
+- **No way to sign in from a guest session except the Debug tab.** The
+  Account screen told a guest "sign in to keep your progress" but had no
+  button to act on it — `SignInSheet` was only ever wired to the three
+  contextual triggers the spec calls out (Like, Comment composer, third
+  video), never a deliberate self-service entry point. Those two aren't in
+  conflict — the spec's "never a modal on launch" is about not *nagging*,
+  not about removing the option — so this was a real gap, not a deliberate
+  restriction. Fixed: `AccountView` now shows a "Sign in" button under that
+  guest text, opening the same `SignInSheet`.
+- **Debug-created topics not appearing under their category.** Two
+  independent, both expected: (1) `TopicRepository.create()` always starts
+  a topic `visibility: .private` by design — it only becomes visible once
+  the Debug screen's "Attach test quiz + publish" step runs (`setVisibility`
+  calls for both the video and the topic). (2) Separately, `Category.topicCount`
+  is set once at seed time (`FieldValue.increment(0)`, i.e. always 0) and
+  nothing increments it — there's no trigger anywhere in `functions/src`
+  watching topic creation/publish to maintain it. That's genuinely Phase 5
+  territory (creator-tooling triggers), not an oversight to fix now — the
+  category tile's "N topics" label will read stale/zero regardless of how
+  many real topics exist until that phase adds the maintenance trigger.
+  Worth a note-to-self for Phase 5's spec review, not a Phase 3 bug.
+
 ## Phases 4–6
 
 Not started.
