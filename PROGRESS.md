@@ -624,6 +624,30 @@ up:
   many real topics exist until that phase adds the maintenance trigger.
   Worth a note-to-self for Phase 5's spec review, not a Phase 3 bug.
 
+### Definition of done: live status against the spec's §9 Verify checklist
+
+`prompts/phase-03-discovery-social.md` §9 is the actual bar, not "it
+builds." Status as of the seeded-categories retest, screenshot evidence
+noted where it exists (images themselves live in chat history, not this
+repo — described here instead):
+
+| # | Item | Status |
+|---|---|---|
+| 1 | Fresh guest → watch → quiz, no account | ✅ confirmed live |
+| 2 | Guest Like → sign-in sheet → Apple links account, progress carries over | Partial — email sign-in path confirmed; Apple sign-in specifically still untested |
+| 3 | Email sign-up / sign-out / sign-in / password reset | Partial — sign-in and sign-out confirmed; new-account sign-up and password reset untested |
+| 4 | Guest denied comment creation by rules | ✅ confirmed (emulator, `rules.test.ts:396`) |
+| 5 | Interests at onboarding change feed ordering | Open — now testable since categories are seeded, not yet run |
+| 6 | Topic page → Start learning → right video → Back updates progress | Open — same, now reachable, not yet run |
+| 7 | Profile mastery bars match `topicProgress`, category aggregate = mean of topics | ✅ confirmed live with exact numbers: Exam Prep category showed 64% aggregate against two topics at 88% and 40% — (88+40)/2 = 64, exact match to the spec's formula |
+| 8 | Comment post/reply/edit/delete/report | ✅ confirmed live (edit, delete, report, block all exercised; a deleted comment correctly renders "Deleted user" while keeping its replies) |
+| 9 | `shui://video/{id}` cold start | Untested |
+| 10 | Account deletion removes user, anonymizes comments | ✅ confirmed live, twice (including a full delete → recreate cycle) |
+
+**5 of 10 confirmed** (1, 4, 7, 8, 10). Not done yet — 2, 3, 5, 6, 9 remain
+open, none blocked on anything further at this point (all reachable with
+the app and data as they stand now).
+
 ## Phases 4–6
 
 Not started.
