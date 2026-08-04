@@ -760,6 +760,134 @@ the app and data as they stand now).
   a bug from an auth error without checking whether it's actually a
   rate limit first.
 
-## Phases 4–6
+## Phase 4 — The AI tutor
+
+### Goal
+
+`prompts/phase-04-ai-tutor.md`: a grounded chat behind the feed's `sparkles` button, two
+modes (Discuss, Quiz me) on one persistent thread per video, server-side context assembly
+(never client-side), streamed responses, rate limiting, and a conversational miss pulling
+that video's review date forward through the same SM-2 scheduler quiz answers use.
+
+### What got built
+
+**Backend** (`functions/src/ai/`):
+- `grounding.ts` — assembles video/topic/quiz/learner-record/recent-thread context
+  straight from Firestore server-side. Topic neighbors (previous/next video title) come
+  from a live query over the topic's own video list, not a denormalized field. Transcript
+  truncates at a flat ~12k-character budget rather than the spec's ideal
+  relevance-ranked excerpt — nothing in this app has a real transcript yet to rank
+  against, so a flat truncation is the honest, testable version of that requirement
+  today, not a shortcut taken silently.
+- `prompts.ts` — versioned (`PROMPT_VERSION`) Discuss/QuizMe templates sharing one
+  grounding preamble. Solves a real design problem: streamed free text can't also carry
+  structured hints (suggested-reply chips, a retention verdict) without a second model
+  call, so the model is instructed to append a delimited `<<<META>>>...<<<END_META>>>`
+  JSON block after its reply, which the callable strips from what's shown/persisted and
+  parses separately (`parseModelOutput`/`extractVisibleText`, covered by
+  `prompts.test.ts`). Malformed or missing meta degrades to no chips / no retention
+  update rather than failing the turn — the prose is still good even if the trailing
+  block isn't.
+- `modelClient.ts` — `ModelClient` protocol with `AnthropicModelClient` (real, streaming
+  via the async-iterator form so batched Firestore writes stay ordered) and
+  `FakeModelClient` (scripted, chunked delivery for evals/tests). Model and API key are
+  Function config/secrets (`AI_MODEL`/`AI_API_KEY`), never in code, per the spec.
+- `rateLimit.ts` — 30/hour + 300/day, one `users/{uid}/aiUsage/{yyyy-mm-dd}` doc with a
+  24-slot hour-count array covering both caps in a single transactional write.
+- `aiTutorMessage` callable — auth via `requireNotGuest`; verifies the caller can
+  actually read the video (mirrors `videoIsPublic || owner/admin` since Admin SDK
+  bypasses rules and this check has to happen in code); rate-limits; assembles
+  grounding; streams the model response, throttling Firestore writes to the assistant
+  message doc every 200ms rather than on every token; applies
+  `retentionAssessment.verdict` (`missed`→`again`, `shaky`→`hard`) through the exact
+  same `schedule()`/`ReviewState` SM-2 code path `submitQuizAttempt` already uses, not a
+  second scheduler; finalizes the message and returns.
+- **Streaming architecture — a real, documented call, not an accident.** The spec
+  explicitly allows either "an HTTPS Function with SSE (or Firestore-document streaming
+  if that proves simpler on iOS)". Went with Firestore-document streaming:
+  `aiTutorMessage` writes an assistant message doc immediately (`status: "streaming"`),
+  updates its `text` field as tokens arrive, and finalizes it
+  (`status: "complete"`) when done — the client just listens to the message doc like any
+  other Firestore read. Chosen because (a) it was never confirmed the Firebase
+  Functions **iOS** SDK actually supports the newer streaming-callable protocol — that
+  feature is documented primarily for the Web SDK — and guessing wrong would mean
+  building the whole feature against an API that doesn't work on the platform that
+  matters, and (b) every other repository in this app already reads Firestore directly;
+  a listener is the one new pattern, not two.
+- **`submitQuizAttempt` gained `lastMissedQuestionIds`** on `videoProgress` — grounding
+  requirement #4 ("probing exactly what they missed") needs to know *which* questions
+  were wrong, and nothing previously stored that, only the aggregate score. Small,
+  backward-compatible addition to an existing transaction, from the last attempt only
+  (not accumulated across attempts).
+- **Evals** (`functions/src/ai/evals/`): 5 hand-written `GroundingContext` fixtures (two
+  mirroring the real seeded civics topic — one clean pass, one with a specific missed
+  question; a no-transcript video for the degradation path; a no-quiz video with
+  existing thread history; a transcript well over the truncation budget) and 22 cases
+  across the spec's six categories (in-scope, out-of-scope, partial-credit,
+  confidently-wrong, "I don't know", hostile). `npm run eval` checks deterministically:
+  word-count limits (80 discuss / 60 quizMe), the meta block parses, one `?` per
+  `quizMe` turn, retention set when expected. The spec's model-graded rubric checks
+  (stays in scope, acknowledges the correct part first, never contradicts the
+  transcript) are explicitly **not** implemented — that needs real judgment, either a
+  second model call or human review, and is scoped-out real work, not an oversight.
+  **Nothing in this sandbox has model API credentials**, so this has only been smoke-
+  tested (`npm run eval` with no key runs the full harness end-to-end and reports every
+  case `SKIPPED` — proves the harness works, proves nothing about the prompts). Real
+  scores need `AI_API_KEY` set and a real run.
+
+**iOS** (`Shui/Sources/`):
+- `AIMessage.swift`, expanded `AITutorRepository` — `FirestoreAITutorRepository`
+  (`observeThread` bridges a Firestore snapshot listener into
+  `AsyncThrowingStream<[AIMessage], Error>` — the first live-listener usage anywhere in
+  this codebase, everything before this read Firestore one-shot) and
+  `InMemoryAITutorRepository` (scripted fake for previews, matching the spec's ask).
+  `AITutorError` maps `FunctionsErrorCode` cases to specific inline messages
+  (rate-limited, not-signed-in, network) rather than a generic failure string.
+- `AITutorViewModel` — owns the listener `Task` and mode switching. Switching to a mode
+  with no messages yet in the thread auto-triggers that mode's own session-start turn
+  (`@Published var mode { didSet { ... } }`), matching "switching mid-thread inserts a
+  divider rather than clearing history." The very first session-start is gated on the
+  listener's *first real snapshot*, not a fixed delay, to avoid racing a redundant
+  opener against a thread that's still loading.
+- `AITutorSheet` — Discuss/Quiz me segmented control, chat bubbles (assistant left/
+  learner right, reusing theme tokens the same way Comments does), a three-dot indicator
+  before the first token and a blinking cursor during streaming, suggested-reply chips,
+  mode-change dividers in the transcript, and specific inline states for rate-limit/
+  network errors (the "empty transcript" state needs no special UI — it's just the
+  tutor's own honest opening message, per the prompt).
+- **Guest gating moved to the rail button itself**, not inside the sheet — Comments
+  intentionally stays open to guests (only its composer is gated, a Phase 3 decision);
+  AI Tutor is different because the spec wants guests routed to sign-in *before* the
+  tutor ever opens, so `FeedRightRail`'s AI button now checks `isGuest` the same way its
+  Like button already did, unlike its Comments button.
+- **Video pauses behind the sheet and resumes exactly where it was** — tracked via a
+  local `wasPlayingBeforeAITutor` flag in `FeedPageView`, so a video that was already
+  paused before opening AI doesn't get force-resumed on dismiss.
+- Removed `ComingSoonSheet` — its only two call sites (Comments, AI) are both real
+  screens now, so it was fully dead code, not kept "just in case."
+
+### Verification
+
+Real this time, not just self-review: `tsc` across the whole `functions` package (zero
+errors), `npm run test:functions` (33/33 — five new `prompts.test.ts` cases for the
+meta-block parser, the trickiest pure logic in the phase), the existing 69-case rules
+suite against a real Firestore emulator (no rules changes needed — Phase 3 already
+scoped `aiThreads`/`aiUsage` correctly), and the eval harness smoke-tested end-to-end
+(no live model, so every case reports `SKIPPED` rather than a real score).
+
+The Swift side has no compiler in this sandbox, same as every prior phase — checked by
+hand: brace/paren balance across every new/changed file, cross-referenced every
+`FunctionsErrorCode`/`FunctionsErrorDomain`/`FunctionsErrorDetailsKey` usage against
+documented Firebase iOS SDK symbols (not verified by an actual compile — flagged
+explicitly since this is a newer, less-traveled corner of the SDK than anything prior
+phases touched), and confirmed `AIMessage`'s optional properties all have explicit `= nil`
+defaults so the memberwise-init call sites in `InMemoryAITutorRepository` actually
+compile. **Next step for the user:** `git pull`, `xcodegen generate` (new
+`Sources/Views/AITutor/` folder), build in Xcode and report whatever the compiler finds —
+plus set `AI_API_KEY` via `npm run secrets:push` (renamed from `set-r2-secrets.sh` to
+`set-secrets.sh` this phase, now that it pushes more than R2 credentials) and
+`firebase deploy --only functions` before any of this works against the real project.
+
+## Phases 5–6
 
 Not started.

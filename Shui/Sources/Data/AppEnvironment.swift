@@ -59,7 +59,7 @@ final class AppEnvironment: ObservableObject {
             social: FirestoreSocialRepository(),
             users: FirestoreUserRepository(),
             uploads: FirebaseUploadRepository(),
-            aiTutor: UnimplementedAITutorRepository(),
+            aiTutor: FirestoreAITutorRepository(),
             auth: FirebaseAuthRepository()
         )
     }
@@ -74,7 +74,7 @@ final class AppEnvironment: ObservableObject {
             social: InMemorySocialRepository(),
             users: InMemoryUserRepository(),
             uploads: InMemoryUploadRepository(),
-            aiTutor: UnimplementedAITutorRepository(),
+            aiTutor: InMemoryAITutorRepository(),
             auth: InMemoryAuthRepository()
         )
     }

@@ -94,3 +94,22 @@ export const AssignRoleInputSchema = z.object({
   role: z.enum(["learner", "creator", "admin"]),
 });
 export type AssignRoleInput = z.infer<typeof AssignRoleInputSchema>;
+
+export const AiTutorMessageInputSchema = z
+  .object({
+    videoId: z.string().min(1),
+    mode: z.enum(["discuss", "quizMe"]),
+    // 2000-char abuse guardrail from prompts/phase-04-ai-tutor.md §3.
+    text: z.string().max(2000).optional(),
+    isSessionStart: z.boolean(),
+  })
+  .superRefine((input, ctx) => {
+    if (!input.isSessionStart && (!input.text || input.text.trim().length === 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "text is required unless isSessionStart is true",
+        path: ["text"],
+      });
+    }
+  });
+export type AiTutorMessageInput = z.infer<typeof AiTutorMessageInputSchema>;

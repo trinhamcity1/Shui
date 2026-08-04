@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Pushes R2 credentials to Firebase Functions secrets (Google Secret Manager)
-# from a local, gitignored env file — so you don't copy-paste five values by
-# hand every time they rotate. See ../.secrets.local.env.example.
+# Pushes app secrets (R2 credentials, the AI tutor's model API key) to
+# Firebase Functions secrets (Google Secret Manager) from a local, gitignored
+# env file — so you don't copy-paste values into the CLI by hand every time
+# they rotate. See ../.secrets.local.env.example.
 #
 # Usage:
 #   cp functions/.secrets.local.env.example functions/.secrets.local.env
@@ -24,7 +25,7 @@ if [ ! -f "$ENV_FILE" ]; then
   exit 1
 fi
 
-SECRET_NAMES=(R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET R2_PUBLIC_BASE_URL)
+SECRET_NAMES=(R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET R2_PUBLIC_BASE_URL AI_API_KEY)
 
 for name in "${SECRET_NAMES[@]}"; do
   value="$(grep -E "^${name}=" "$ENV_FILE" | head -n1 | cut -d '=' -f2- | tr -d '\r')"

@@ -33,35 +33,3 @@ struct VideoInfoSheet: View {
         }
     }
 }
-
-/// A launchable stub, not a mockup — reused for the rail's Comments and AI
-/// sheets, which are real screens in Phase 3 and Phase 4 respectively.
-struct ComingSoonSheet: View {
-    let title: String
-    let phase: Int
-    let detail: String
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 8) {
-                Text("Coming in phase \(phase)")
-                    .font(.headline)
-                Text(detail)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(Strings.done) { dismiss() }
-                }
-            }
-        }
-        .presentationDetents([.medium])
-    }
-}

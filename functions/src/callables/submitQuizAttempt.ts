@@ -102,6 +102,11 @@ export const submitQuizAttempt = onCall(async (request) => {
         quizAttempts: priorAttempts + 1,
         quizBestScore: Math.max(priorBestScore, score),
         quizPassed: priorPassed || passed,
+        // From the *last* attempt only, not accumulated across attempts —
+        // the AI tutor (Phase 4) grounds a "Quiz me" opener in what the
+        // learner most recently got wrong, not a growing history of every
+        // miss they've ever had on this video.
+        lastMissedQuestionIds: results.filter((r) => !r.wasCorrect).map((r) => r.questionId),
         lastAnsweredAt: FieldValue.serverTimestamp(),
         easeFactor: nextState.easeFactor,
         intervalDays: nextState.intervalDays,

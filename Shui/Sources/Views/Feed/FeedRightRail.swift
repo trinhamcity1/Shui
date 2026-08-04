@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// The feed's vertically-stacked action rail. Comments and AI open
-/// placeholder sheets in this phase — their real content lands in Phase 3
-/// and Phase 4 respectively; the rail's layout, hit targets, and animation
-/// are final now.
+/// The feed's vertically-stacked action rail. Comments stays open to guests
+/// (only its composer is gated, per Phase 3) — the AI tutor is gated here,
+/// at the button itself, since a guest should never see it open at all
+/// (Phase 4: "Guest tapping AI gets the sign-in sheet").
 struct FeedRightRail: View {
     @ObservedObject var page: FeedPageViewModel
     let isGuest: Bool
@@ -44,9 +44,14 @@ struct FeedRightRail: View {
                 tint: .white,
                 label: "AI",
                 accessibilityLabel: "Ask the AI tutor",
-                accessibilityValue: nil,
-                action: onAITutor
-            )
+                accessibilityValue: nil
+            ) {
+                if isGuest {
+                    onRequireSignIn()
+                } else {
+                    onAITutor()
+                }
+            }
 
             ShareLink(item: deepLink(for: page.video)) {
                 railButtonLabel(

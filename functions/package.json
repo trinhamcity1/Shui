@@ -14,10 +14,12 @@
     "test:functions": "jest --testPathPattern='src/.*\\.test\\.ts'",
     "test:rules": "firebase emulators:exec --only firestore \"jest --testPathPattern='test/.*\\.test\\.ts'\"",
     "seed:local": "firebase emulators:exec --only firestore,auth \"npm --prefix ../scripts run seed:civics\"",
-    "secrets:push": "bash scripts/set-r2-secrets.sh",
-    "test": "npm run test:functions && npm run test:rules"
+    "secrets:push": "bash scripts/set-secrets.sh",
+    "test": "npm run test:functions && npm run test:rules",
+    "eval": "npm run build && node lib/ai/evals/run.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "@aws-sdk/client-s3": "^3.658.0",
     "@aws-sdk/s3-request-presigner": "^3.658.0",
     "firebase-admin": "^12.6.0",

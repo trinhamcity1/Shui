@@ -23,8 +23,8 @@ been built, verified, and debugged phase by phase.
 | 0 | Foundation: strip the dead lesson engine, English-only, Firebase SDK, clean build | **done** |
 | 1 | Firestore model, security rules, Cloud Functions, R2 upload pipeline, seed content | **done — verified end-to-end against the real deployed backend** |
 | 2 | Vertical video feed + end-of-video quiz + playback | **done — verified end-to-end against the real deployed backend** |
-| 3 | Categories, topic pages, auth, profile, progress, likes, comments | **written, pushed — backend verified against the emulator; awaiting a real Xcode build** |
-| 4 | AI tutor: grounded chat + proactive retention checks | not started |
+| 3 | Categories, topic pages, auth, profile, progress, likes, comments | **done — verified end-to-end against the real deployed backend, including several real live-testing bug fixes** |
+| 4 | AI tutor: grounded chat + proactive retention checks | **written, pushed — backend verified (`tsc`, unit tests, rules suite); Swift side unverified by a real Xcode build; eval harness built but not yet run against a real model** |
 | 5 | In-app creator console: topics, uploads, quiz builder, publish controls | not started |
 | 6 | Browser dashboard for bulk authoring | not started |
 
@@ -46,7 +46,25 @@ and `shui://` deep links. Also new this phase: a semantic, WCAG AA-verified colo
 (`ThemePalette`/`AppTheme`) replacing the old ad-hoc theme constants — see
 [`PROGRESS.md`](PROGRESS.md)'s Phase 3 section for what that caught (two real,
 already-shipped contrast bugs) and the rest of the phase's verification, including a real
-`tsc` build and a 69-test Firestore emulator run against every backend change.
+`tsc` build and a 69-test Firestore emulator run against every backend change. Phase 3 was
+then live-tested end to end on a real device across several rounds — see PROGRESS.md for
+the real bugs that surfaced only under live testing (a guest feed permission denial from a
+security-rule/query mismatch, a stale-environment SwiftUI bug that broke the feed's back
+button, a missing Sign In with Apple entitlement) and how each was root-caused and fixed.
+
+**The AI tutor is real as of Phase 4** — a `Discuss` / `Quiz me` mode toggle over one
+grounded chat thread per video (title, description, transcript when one exists, quiz,
+this learner's own attempt history, and recent thread history assembled server-side,
+never client-side), streamed token by token via a Firestore-document listener rather than
+raw SSE (simpler and more reliable on iOS, an explicit call the phase spec leaves open),
+rate-limited per user, and a conversational "missed" verdict pulls that video's review
+date forward through the same SM-2 scheduler quiz answers already use. See
+[`PROGRESS.md`](PROGRESS.md)'s Phase 4 section for the real scope calls made along the
+way — most notably, real speech-to-text transcript auto-generation was deliberately not
+built (it needs its own provider decision and API key, and the spec's honest-degradation
+path — the tutor opens by saying so and falls back to the multiple-choice quiz — is fully
+built and is what every video in this app actually exercises today, since nothing has a
+transcript yet).
 
 ## Architecture
 
@@ -81,8 +99,8 @@ Rules that later phases depend on:
   a repository protocol with a live implementation and an in-memory fake for tests and
   previews — see `Sources/Data/` (`CategoryRepository`, `TopicRepository`,
   `VideoRepository`, `QuizRepository`, `ProgressRepository`, `SocialRepository`,
-  `UserRepository`, `UploadRepository`, `AuthRepository`; `AITutorRepository` is a
-  protocol only until Phase 4). `AppEnvironment` holds one instance of each, injected
+  `UserRepository`, `UploadRepository`, `AuthRepository`, `AITutorRepository`).
+  `AppEnvironment` holds one instance of each, injected
   once at the root, plus a reactive `currentUser` the whole app reads instead of each
   screen fetching its own snapshot.
 - **Firebase imports are confined** to `Sources/Data/` and `Support/FirebaseBootstrap.swift`.
@@ -177,11 +195,12 @@ the Cloudflare dashboard (R2 → Manage API tokens → Create API token, scoped 
 ```sh
 cd functions
 cp .secrets.local.env.example .secrets.local.env   # gitignored — fill in real values
-npm run secrets:push                                # pushes all five in one go
+npm run secrets:push                                # pushes all six in one go
 ```
 
-`secrets:push` runs `scripts/set-r2-secrets.sh`, which reads `.secrets.local.env` and
-calls `firebase functions:secrets:set` for each of the five names — no manual
+`secrets:push` runs `scripts/set-secrets.sh`, which reads `.secrets.local.env` and
+calls `firebase functions:secrets:set` for each of the six names (five R2 credentials
+plus `AI_API_KEY`, the Phase 4 AI tutor's model provider key) — no manual
 copy-pasting into interactive prompts, and no real values ever touch git. Re-run it
 whenever a credential rotates; a function already deployed needs a fresh
 `firebase deploy --only functions` afterward to pick up the new value. Secrets are
@@ -249,22 +268,27 @@ compiled. A green build is the minimum bar, not a formality.
 
 ## Honest notes
 
-- **Phase 3's Swift side hasn't been built on a real Mac yet** — there's no Xcode in the
-  sandbox this was authored in. Its backend half (new Cloud Functions, security rules,
-  indexes) is verified for real: `tsc` across the whole `functions` package, and the
-  69-case rules suite against a real Firestore emulator (both passing). The Swift side is
-  written against APIs verified individually and cross-referenced by hand against every
-  real repository/model declaration, but has not been compiled — Phase 1 and Phase 2 both
-  surfaced real compiler errors this sandbox couldn't have caught (a duplicate type
-  declaration, a Firebase SDK optionality quirk); expect the same the first time Phase 3
-  actually builds.
+- **Phase 4's Swift side hasn't been built on a real Mac yet** — there's no Xcode in the
+  sandbox this was authored in (same caveat every phase has had; Phases 1–3 each surfaced
+  real compiler errors this sandbox couldn't catch, and there's no reason to expect Phase 4
+  is different). Its backend half is verified for real: `tsc` across the whole `functions`
+  package, unit tests including the streaming meta-block parser, and the existing 69-case
+  rules suite (no rules changes were needed — `aiThreads`/`aiUsage` were already scoped
+  correctly back in Phase 3). The AI tutor's own eval harness
+  (`functions/src/ai/evals/`) is built and runs end-to-end, but has never been run against
+  a real model — nothing in this sandbox has model API credentials. Run
+  `AI_API_KEY=<key> npm run eval` from `functions/` for real scores before trusting the
+  prompts in production.
+- **Real speech-to-text transcript generation was deliberately not built.** The phase spec
+  allows this — "if neither exists, ... degrade honestly" — and every video in this app
+  today has no transcript anyway, so the degraded path (the tutor says so, and "Quiz me"
+  falls back to the multiple-choice questions) is what actually gets exercised. Auto-
+  transcription is real, separate follow-up work needing its own speech-to-text provider
+  decision and API key, not an oversight.
 - **Universal Links aren't functional yet** — the Associated Domains entitlement points at
   a placeholder domain (`example.com`) since no real domain exists. `shui://video/{id}` and
   `shui://topic/{id}` (custom URL scheme) work; the web-fallback half doesn't until a real
   domain is registered and serves an `apple-app-site-association` file.
-- **The AI tutor does not exist yet.** The previous keyword-matching "AI" was deleted.
-  Phase 4 builds the real one, with all model calls behind a Cloud Function so no API key
-  ships in the binary. `AITutorRepository` is a protocol only until then.
 - **Time-sensitive civics questions are deliberately excluded** from the seeded content —
   the sitting President, Vice President, Speaker, Chief Justice, governing party, and the
   learner's own Senators, Representative, Governor, and state capital. The older version

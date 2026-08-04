@@ -15,6 +15,7 @@ export { softDeleteTopic, softDeleteVideo, softDeleteComment } from "./callables
 export { claimHandle } from "./callables/claimHandle";
 export { assignRole } from "./callables/assignRole";
 export { deleteAccount } from "./callables/deleteAccount";
+export { aiTutorMessage } from "./callables/aiTutorMessage";
 
 export { onCommentWritten } from "./triggers/onCommentWritten";
 export { onUserCreated } from "./triggers/onUserCreated";
