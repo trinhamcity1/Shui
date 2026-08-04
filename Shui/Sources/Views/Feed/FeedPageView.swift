@@ -8,10 +8,16 @@ struct FeedPageView: View {
     let index: Int
     let onNextLesson: () -> Void
     let onRequireSignIn: () -> Void
+    /// Captured once at `FeedView`'s top level and threaded down explicitly,
+    /// rather than each page reading `@Environment(\.dismiss)` itself —
+    /// environment values are not always reliably re-resolved for views
+    /// lazily instantiated inside `LazyVStack`/`ForEach` (this page's actual
+    /// container), a known SwiftUI rough edge. A plain closure captured
+    /// above that container doesn't depend on it working correctly.
+    let onBack: () -> Void
 
     @EnvironmentObject private var environment: AppEnvironment
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.dismiss) private var dismiss
     @State private var showPauseGlyph = false
     @State private var showInfoSheet = false
     @State private var showComments = false
@@ -129,7 +135,7 @@ struct FeedPageView: View {
 
             if let topicInfo = viewModel.topicModeInfo {
                 HStack {
-                    Button { dismiss() } label: {
+                    Button { onBack() } label: {
                         Image(systemName: "chevron.left")
                             .font(.headline)
                             .foregroundStyle(.white)

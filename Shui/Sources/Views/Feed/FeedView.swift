@@ -5,6 +5,7 @@ import SwiftUI
 struct FeedView: View {
     @StateObject private var viewModel: FeedViewModel
     @StateObject private var networkMonitor = NetworkMonitor()
+    @Environment(\.dismiss) private var dismiss
     @State private var scrollPositionID: String?
     @State private var showSignInSheet = false
     var onExploreRequested: (() -> Void)?
@@ -66,7 +67,8 @@ struct FeedView: View {
                             page: page,
                             index: index,
                             onNextLesson: { scrollToNext(after: index) },
-                            onRequireSignIn: { showSignInSheet = true }
+                            onRequireSignIn: { showSignInSheet = true },
+                            onBack: dismiss.callAsFunction
                         )
                         .frame(width: geo.size.width, height: geo.size.height)
                         .id(page.id)

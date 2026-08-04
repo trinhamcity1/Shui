@@ -635,7 +635,7 @@ repo — described here instead):
 |---|---|---|
 | 1 | Fresh guest → watch → quiz, no account | ✅ confirmed live |
 | 2 | Guest Like → sign-in sheet → Apple links account, progress carries over | Partial — email and Apple sign-in both now confirmed working; the specific "guest progress still present after linking" check not separately re-verified |
-| 3 | Email sign-up / sign-out / sign-in / password reset | Partial — sign-in, sign-out, and password reset (email sent) confirmed; a genuinely new-account sign-up specifically untested (same unified `continueWithEmail()` flow as sign-in, so low-risk, but not yet exercised end-to-end) |
+| 3 | Email sign-up / sign-out / sign-in / password reset | Partial — sign-in, sign-out, and password reset confirmed; **new-account sign-up is a confirmed real bug** (`invalidCredential`, uncaught by `continueWithEmail()`'s existing error handling) — see round 5 below |
 | 4 | Guest denied comment creation by rules | ✅ confirmed (emulator, `rules.test.ts:396`) |
 | 5 | Interests at onboarding change feed ordering | Open — now testable since categories are seeded, not yet run |
 | 6 | Topic page → Start learning → right video → Back updates progress | Open — same, now reachable, not yet run |
@@ -719,6 +719,38 @@ the app and data as they stand now).
   scroll/tap gestures plausibly eat before it reaches the system's
   interactive-pop recognizer. Needs a repro specifically confirming
   which gesture was used before this can be fixed with confidence.
+
+### Live verification round 5: the back button *was* a real bug, plus one still-open
+
+- **Back button confirmed broken via both interaction paths** — tap on
+  the chevron and an edge swipe both failed, which rules out "wrong
+  gesture" as the explanation and points at something more fundamental.
+  Root cause: `FeedPageView` read `@Environment(\.dismiss)` itself, but
+  it's instantiated inside `FeedView`'s `LazyVStack { ForEach { ... } }`
+  — environment values are not always reliably re-resolved for views
+  lazily created inside `LazyVStack`, a known SwiftUI rough edge, and
+  this looks like exactly that: the button's `dismiss()` call was
+  reading a stale/inert action. Fixed by capturing `@Environment(\.dismiss)`
+  once at `FeedView`'s own top level — *outside* the `ScrollView`/
+  `LazyVStack` — and threading it down as a plain `onBack: () -> Void`
+  closure instead of letting each lazily-created page re-resolve the
+  environment itself. (The edge-swipe failure may have a second, separate
+  cause — `.toolbar(.hidden, for: .navigationBar)` is separately known to
+  sometimes disable the system's interactive-pop gesture on some iOS
+  versions — not touched here since the deliberate on-screen button is
+  the primary affordance and is now fixed; worth another look only if
+  swipe-to-go-back specifically still doesn't work after this.)
+- **Email sign-up for a genuinely new address fails**: "The supplied
+  auth credential is malformed or has expired" — `AuthErrorCode
+  .invalidCredential`, not one of the two cases `continueWithEmail()`/
+  `link()` already special-case (`emailAlreadyInUse` for an existing
+  account, `credentialAlreadyInUse` for an OAuth conflict). It's an
+  unexpected error bubbling straight through uncaught. Not yet fixed —
+  the on-screen text is truncated, so the next step is the full,
+  untruncated error from Xcode's console (or a print of `error.code`) to
+  confirm which exact case this is before writing a fix; guessing at the
+  Firebase-side cause without that would be exactly the kind of blind
+  fix this project has been trying to avoid.
 
 ## Phases 4–6
 
