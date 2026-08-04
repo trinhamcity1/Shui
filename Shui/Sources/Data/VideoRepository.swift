@@ -35,6 +35,7 @@ struct FirestoreVideoRepository: VideoRepository {
 
     func feed(categoryId: String?, limit: Int, after cursor: PageCursor?) async throws -> Page<Video> {
         var query: Query = db.collection("videos")
+            .whereField("visibility", isEqualTo: Video.Visibility.public.rawValue)
             .whereField("topicVisibility", isEqualTo: Video.Visibility.public.rawValue)
             .whereField("status", isEqualTo: Video.Status.ready.rawValue)
             .whereField("isDeleted", isEqualTo: false)
@@ -54,6 +55,7 @@ struct FirestoreVideoRepository: VideoRepository {
         // Firestore's `in` accepts up to 30 values, comfortably above any
         // realistic interests list.
         var query: Query = db.collection("videos")
+            .whereField("visibility", isEqualTo: Video.Visibility.public.rawValue)
             .whereField("topicVisibility", isEqualTo: Video.Visibility.public.rawValue)
             .whereField("status", isEqualTo: Video.Status.ready.rawValue)
             .whereField("isDeleted", isEqualTo: false)
@@ -67,9 +69,15 @@ struct FirestoreVideoRepository: VideoRepository {
         return Page(items: snapshot.decoded(), cursor: snapshot.documents.last.map(PageCursor.init))
     }
 
+    /// Public topic browsing only, per current (Phase 3) call sites — a
+    /// creator/admin previewing their own unpublished videos within a topic
+    /// is Phase 5's job and isn't wired up yet, so this mirrors
+    /// `videoIsPublic` exactly rather than the fuller owner/admin rule.
     func videos(inTopic topicId: String) async throws -> [Video] {
         let snapshot = try await db.collection("videos")
             .whereField("topicId", isEqualTo: topicId)
+            .whereField("visibility", isEqualTo: Video.Visibility.public.rawValue)
+            .whereField("topicVisibility", isEqualTo: Video.Visibility.public.rawValue)
             .whereField("status", isEqualTo: Video.Status.ready.rawValue)
             .whereField("isDeleted", isEqualTo: false)
             .order(by: "order")

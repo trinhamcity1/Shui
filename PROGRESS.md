@@ -537,6 +537,65 @@ Firestore's actual acceptance rules. Worth remembering for any future
 collection-group query that only ever filters on one field: it goes in
 `fieldOverrides`, composite indexes are for genuinely multi-field queries.
 
+### Live verification round (real device, post-build): three real bugs found and fixed
+
+Once Phase 3 actually built and ran, the user walked through the real
+"Verify" checklist by hand on-device (signed in, signed out, watched
+video, submitted a quiz, browsed Explore, opened comments). That surfaced
+three real bugs static review couldn't have caught:
+
+1. **Guest feed load failed with "Missing or insufficient permissions" —
+   worked signed in as admin, broke for a plain guest.** Root cause:
+   `FirestoreVideoRepository.feed(categoryId:)`, `feed(categoryIds:)`, and
+   `videos(inTopic:)` filtered on `topicVisibility`, `status`, and
+   `isDeleted`, but never on `visibility` — even though
+   `firestore.rules`' `videoIsPublic()` checks all four. Firestore denies
+   an entire list query if *any* document in the matched set fails the
+   rule, not just that document — so any test video with
+   `topicVisibility: 'public'` (inherited from a public topic) but its own
+   `visibility` field still `'private'` (never explicitly published)
+   silently killed the whole feed for anyone who wasn't that video's
+   owner/admin. Signed in as the admin/creator account, `isVideoOwnerOrAdmin`
+   masked it; a real guest had no such escape hatch. Fixed by adding the
+   missing `visibility` filter to all three queries (`VideoRepository.swift`)
+   and updating the three affected composite indexes in
+   `firestore.indexes.json` to match. This also blocked "Interests picked
+   at onboarding change feed ordering" and topic-page browsing from ever
+   being testable as a guest, since the underlying query was broken
+   regardless of who called it.
+2. **Quiz result screen's "Replay" button was unreachable, covered by the
+   floating tab bar.** `FeedView` applied `.ignoresSafeArea()` (all edges)
+   for full-bleed video, but the tab bar still docks at the bottom
+   regardless — so bottom-anchored content (the quiz result card's Replay
+   button, `QuizResultCard` in `QuizCardView.swift`) rendered underneath
+   the tab bar's hit-testing region instead of above it. Fixed by scoping
+   the ignore to `.ignoresSafeArea(edges: .top)` — the only edge actually
+   worth bleeding into, since the tab bar chrome was always going to cover
+   the bottom either way.
+3. **`categories` (and the one seeded topic) were never populated on the
+   real `shui-prod` project** — `scripts/seed_civics.ts` seeds them but is
+   a manual one-time script, not something deploy runs automatically. Not
+   a code bug; explained to the user and left as a manual step
+   (`SEED_ADMIN_UID=<uid> npm run seed:civics`, uid from
+   `bootstrap-admin.ts`). This is also why onboarding's interests step had
+   nothing to pick from, forcing "Skip."
+
+Two items from live testing turned out not to be bugs on inspection:
+comment edit/delete *is* wired (`CommentsViewModel.canEdit`/`canDelete`,
+surfaced via the row's "•••" menu, not inline buttons — gated to the
+comment's own author within 15 minutes) — the user likely just didn't open
+the menu, or was testing a comment posted under a different account after
+signing out/in. Account deletion was confirmed working live.
+
+Still open: quiz submission occasionally failed with the generic "Couldn't
+submit your answers" offline-style message after a sign-out. The
+`submitQuizAttempt` callable uses `requireAuth` (any signed-in user,
+guests included, matching the guest-first spec — not over-restrictive),
+so this isn't the same class of bug as #1 above; root cause not yet
+confirmed. Needs a repro with the exact Xcode console error text, ideally
+without a sign-out immediately beforehand, to rule in/out an auth-token
+race versus something else.
+
 ## Phases 4–6
 
 Not started.

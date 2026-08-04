@@ -19,7 +19,12 @@ struct FeedView: View {
             content(in: geo)
         }
         .background(Color.black)
-        .ignoresSafeArea()
+        // Only the top (notch/status bar) is worth bleeding into — the tab
+        // bar always occupies the bottom regardless, so ignoring that edge
+        // too just let bottom-anchored controls (the quiz card's Replay
+        // button, previously) render underneath its hit-testing region
+        // instead of above it.
+        .ignoresSafeArea(edges: .top)
         // Harmless when this is a tab root (no nav bar there to begin
         // with); when pushed from a topic page in topic mode, this is what
         // stops the system back button from doubling up with
