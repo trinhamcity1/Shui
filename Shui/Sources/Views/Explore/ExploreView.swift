@@ -36,12 +36,11 @@ struct ExploreView: View {
             .navigationTitle(Strings.exploreTab)
             .shuiShellBackground()
             .task { await load() }
-            // This is Explore's own root — one of the three tabs
-            // `RootTabView`'s pager lays out side by side, so it gets the
-            // live ring-peek swipe. Anything pushed from here (a category,
-            // a topic, a video) gets `ringSwipeNavigation` instead, which
-            // pops rather than moving the ring.
-            .rootRingPeekSwipe()
+            // This is Explore's own root — nothing to pop, so a backward
+            // swipe here always retreats to Learn instead. Anything pushed
+            // from here (a category, a topic, a video) gets its own
+            // `isRoot: false` attachment that pops first.
+            .ringSwipeNavigation(isRoot: true)
         }
         .searchable(text: $searchText, prompt: "Search topics")
         .onChange(of: searchText) { _, newValue in

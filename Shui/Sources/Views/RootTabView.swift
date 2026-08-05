@@ -2,112 +2,50 @@ import SwiftUI
 
 /// The three-tab shell. Learn is the real video feed as of Phase 2; Explore
 /// and Profile are still placeholders until Phase 3.
-///
-/// Not a `TabView` — a custom pager. `TabView` can't show two tabs' content
-/// at once, which is exactly what a real Instagram-style peek during a
-/// ring swipe needs (the destination tab visible at the edge, sliding in
-/// with the finger, not just decided and jumped to on release). All three
-/// ring tabs stay instantiated simultaneously as siblings in one `HStack`
-/// — the same "every tab keeps its own live state" behavior `TabView`
-/// already gave for free — offset by `-index * width`, plus
-/// `appState.rootDragOffset` while `RootRingPeekSwipe` (attached to each
-/// tab's own root content) is tracking an active drag.
 struct RootTabView: View {
     @EnvironmentObject private var environment: AppEnvironment
     @EnvironmentObject private var appState: AppState
     @Environment(\.theme) private var theme
-    /// Debug isn't part of the ring — it replaces the whole screen rather
-    /// than taking a slot next to Learn/Explore/Profile, so it's tracked
-    /// separately from `appState.rootTab` entirely.
-    @State private var isShowingDebug = false
+    /// `TabView`'s own selection binding deliberately stays local `@State`
+    /// — the same way it worked before swipe navigation existed — rather
+    /// than binding directly to `appState.rootTab`. Routing `TabView`
+    /// straight through an `@EnvironmentObject`-sourced `@Published`
+    /// property is the leading suspect for a real regression: the tab bar
+    /// stopped reliably hiding during the very first autoplay after a
+    /// genuine cold launch (backgrounding/foregrounding was unaffected,
+    /// and this is the only thing that changed in this area since it last
+    /// worked). `appState.rootTab` stays the single source of truth swipe
+    /// gestures read and write — reachable from screens pushed deep inside
+    /// Explore/Profile, which local `@State` here never could be — synced
+    /// both directions below so tapping a tab icon and swiping can never
+    /// drift out of step with each other.
+    @State private var selection: RootTab = .learn
 
     var body: some View {
-        Group {
+        TabView(selection: $selection) {
+            FeedView(mode: .mixed, environment: environment, onExploreRequested: { selection = .explore })
+                .tabItem { Label(Strings.learnTab, systemImage: "play.rectangle.fill") }
+                .tag(RootTab.learn)
+            ExploreView(environment: environment)
+                .tabItem { Label(Strings.exploreTab, systemImage: "square.grid.2x2.fill") }
+                .tag(RootTab.explore)
+            ProfileView(environment: environment)
+                .tabItem { Label(Strings.profileTab, systemImage: "person.crop.circle.fill") }
+                .tag(RootTab.profile)
             #if DEBUG
-            if isShowingDebug {
-                DebugUploadPipelineView()
-            } else {
-                pager
-            }
-            #else
-            pager
+            DebugUploadPipelineView()
+                .tabItem { Label("Debug", systemImage: "ladybug.fill") }
+                .tag(RootTab.debug)
             #endif
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !appState.isTabBarHidden {
-                tabBar
-            }
+        .tint(theme.accent)
+        .onChange(of: appState.rootTab) { _, newValue in
+            if selection != newValue { selection = newValue }
+        }
+        .onChange(of: selection) { _, newValue in
+            if appState.rootTab != newValue { appState.rootTab = newValue }
         }
     }
-
-    private var pager: some View {
-        GeometryReader { geo in
-            let width = max(geo.size.width, 1)
-            let index = RootTab.ring.firstIndex(of: appState.rootTab) ?? 0
-            HStack(spacing: 0) {
-                FeedView(mode: .mixed, environment: environment, onExploreRequested: { appState.rootTab = .explore })
-                    .frame(width: width, height: geo.size.height)
-                ExploreView(environment: environment)
-                    .frame(width: width, height: geo.size.height)
-                ProfileView(environment: environment)
-                    .frame(width: width, height: geo.size.height)
-            }
-            .offset(x: -CGFloat(index) * width + appState.rootDragOffset)
-        }
-        .clipped()
-    }
-
-    private var tabBar: some View {
-        HStack(spacing: 0) {
-            tabBarButton(tab: .learn, label: Strings.learnTab, systemImage: "play.rectangle.fill")
-            tabBarButton(tab: .explore, label: Strings.exploreTab, systemImage: "square.grid.2x2.fill")
-            tabBarButton(tab: .profile, label: Strings.profileTab, systemImage: "person.crop.circle.fill")
-            #if DEBUG
-            debugTabBarButton
-            #endif
-        }
-        .padding(.top, 8)
-        .padding(.bottom, 4)
-        .background(.ultraThinMaterial)
-        .overlay(alignment: .top) { Divider() }
-    }
-
-    private func tabBarButton(tab: RootTab, label: String, systemImage: String) -> some View {
-        let isSelected = !isShowingDebug && appState.rootTab == tab
-        return Button {
-            isShowingDebug = false
-            withAnimation(.easeOut(duration: 0.28)) {
-                appState.rootTab = tab
-                appState.rootDragOffset = 0
-            }
-        } label: {
-            VStack(spacing: 2) {
-                Image(systemName: systemImage).font(.system(size: 22))
-                Text(label).font(.caption2)
-            }
-            .foregroundStyle(isSelected ? theme.accent : theme.textTertiary)
-            .frame(maxWidth: .infinity)
-        }
-        .accessibilityLabel(label)
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-    }
-
-    #if DEBUG
-    private var debugTabBarButton: some View {
-        Button {
-            isShowingDebug = true
-        } label: {
-            VStack(spacing: 2) {
-                Image(systemName: "ladybug.fill").font(.system(size: 22))
-                Text("Debug").font(.caption2)
-            }
-            .foregroundStyle(isShowingDebug ? theme.accent : theme.textTertiary)
-            .frame(maxWidth: .infinity)
-        }
-        .accessibilityLabel("Debug")
-        .accessibilityAddTraits(isShowingDebug ? [.isSelected] : [])
-    }
-    #endif
 }
 
 /// A launchable stub, not a mockup. Says which phase fills the tab in so an
