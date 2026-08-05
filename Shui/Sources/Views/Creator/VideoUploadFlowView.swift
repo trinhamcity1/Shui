@@ -1,5 +1,6 @@
 import PhotosUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// The flow that has to feel effortless, because it's the one you'll run
 /// hundreds of times (prompts/phase-05-creator-mode.md §4). One screen that
@@ -12,6 +13,7 @@ struct VideoUploadFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: VideoUploadViewModel
     @State private var pickerItem: PhotosPickerItem?
+    @State private var showFileImporter = false
 
     init(topic: Topic, environment: AppEnvironment) {
         self.environment = environment
@@ -61,6 +63,13 @@ struct VideoUploadFlowView: View {
             .onChange(of: viewModel.thumbnailSeconds) { _, _ in
                 Task { await viewModel.refreshThumbnail() }
             }
+            .fileImporter(
+                isPresented: $showFileImporter,
+                allowedContentTypes: [.movie, .video, .quickTimeMovie, .mpeg4Movie],
+                allowsMultipleSelection: false
+            ) { result in
+                Task { await load(fileImportResult: result) }
+            }
         }
     }
 
@@ -69,7 +78,12 @@ struct VideoUploadFlowView: View {
     private var pickSection: some View {
         Section {
             PhotosPicker(selection: $pickerItem, matching: .videos) {
-                Label("Choose a video", systemImage: "photo.on.rectangle")
+                Label("Choose from Photos", systemImage: "photo.on.rectangle")
+            }
+            Button {
+                showFileImporter = true
+            } label: {
+                Label("Choose from Files", systemImage: "folder")
             }
         } footer: {
             Text("Vertical videos under 10 minutes work best — the feed is built for portrait. Longer or landscape videos still upload, with a warning.")
@@ -245,6 +259,29 @@ struct VideoUploadFlowView: View {
         } catch {
             // Falls through to the picker still being shown, which is the
             // honest state — nothing was loaded.
+        }
+    }
+
+    /// Files/iCloud Drive hands back a security-scoped URL that's only
+    /// guaranteed valid for the duration of this access — `AVURLAsset` and
+    /// the later export/upload steps run well past that, so the file is
+    /// copied into our own temp directory immediately, same as the Photos
+    /// path already does for its own reason (a stable, owned URL).
+    private func load(fileImportResult: Result<[URL], Error>) async {
+        guard case .success(let urls) = fileImportResult, let sourceURL = urls.first else { return }
+        guard sourceURL.startAccessingSecurityScopedResource() else { return }
+        defer { sourceURL.stopAccessingSecurityScopedResource() }
+
+        let ext = sourceURL.pathExtension.isEmpty ? "mov" : sourceURL.pathExtension
+        let localURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension(ext)
+        do {
+            try FileManager.default.copyItem(at: sourceURL, to: localURL)
+            await viewModel.accept(pickedURL: localURL)
+        } catch {
+            // Falls through to the picker still being shown — nothing was
+            // loaded, which is the honest state.
         }
     }
 

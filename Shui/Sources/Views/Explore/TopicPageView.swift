@@ -29,6 +29,7 @@ struct TopicPageView: View {
     let topicId: String
     let environment: AppEnvironment
     @Environment(\.theme) private var theme
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: TopicPageViewModel
 
     init(topicId: String, environment: AppEnvironment) {
@@ -75,10 +76,8 @@ struct TopicPageView: View {
     }
 
     private func cover(topic: Topic) -> some View {
-        RoundedRectangle(cornerRadius: 0, style: .continuous)
-            .fill(theme.surfaceSubtle)
+        TopicCoverThumbnail(urlString: topic.coverImageURL, placeholderFont: .largeTitle)
             .frame(height: 180)
-            .overlay(Image(systemName: "play.rectangle.fill").font(.largeTitle).foregroundStyle(theme.textTertiary))
     }
 
     private func header(topic: Topic) -> some View {
@@ -113,7 +112,7 @@ struct TopicPageView: View {
     @ViewBuilder
     private func startButton(topic: Topic) -> some View {
         NavigationLink {
-            FeedView(mode: .topic(topicId: topicId, startingAtVideoId: viewModel.resumeVideoID), environment: environment)
+            FeedView(mode: .topic(topicId: topicId, startingAtVideoId: viewModel.resumeVideoID), environment: environment, onExploreRequested: { dismiss() })
         } label: {
             Text(viewModel.hasStarted ? "Continue at video \(viewModel.resumeIndex + 1)" : "Start learning")
         }
@@ -164,7 +163,7 @@ struct TopicPageView: View {
 
             ForEach(Array(viewModel.videos.enumerated()), id: \.element.id) { index, video in
                 NavigationLink {
-                    FeedView(mode: .topic(topicId: topicId, startingAtVideoId: video.id), environment: environment)
+                    FeedView(mode: .topic(topicId: topicId, startingAtVideoId: video.id), environment: environment, onExploreRequested: { dismiss() })
                 } label: {
                     VideoRow(index: index + 1, video: video, state: viewModel.state(for: video))
                 }

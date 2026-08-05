@@ -34,7 +34,13 @@ export const createTopicCoverUpload = onCall({ secrets: R2_SECRETS }, async (req
 
   const r2Key = `covers/${input.topicId}.jpg`;
   const uploadURL = await presignPutUrl(r2Key, input.contentType, COVER_UPLOAD_TTL_SECONDS);
-  const coverImageURL = publicUrlFor(r2Key);
+  // A cache-busting query param, not a versioned key — the R2 object path
+  // stays deterministic (nothing orphaned to clean up), but the *returned*
+  // URL string changes on every replace. Without this, "Replace cover
+  // image" writes new bytes to the same URL, and both SwiftUI's AsyncImage
+  // (which caches by URL string) and any CDN/browser cache in front of R2
+  // keep serving the old image forever.
+  const coverImageURL = `${publicUrlFor(r2Key)}?v=${Date.now()}`;
   const expiresAt = Date.now() + COVER_UPLOAD_TTL_SECONDS * 1000;
 
   return { uploadURL, r2Key, coverImageURL, expiresAt };

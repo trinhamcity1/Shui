@@ -88,6 +88,15 @@ struct TopicEditorView: View {
         .onChange(of: viewModel.subtitle) { _, _ in viewModel.persistDraftLocally() }
         .onChange(of: viewModel.description) { _, _ in viewModel.persistDraftLocally() }
         .onChange(of: viewModel.tags) { _, _ in viewModel.persistDraftLocally() }
+        // A success haptic on the moment a topic actually goes live —
+        // matching the exact feedback pattern the quiz-reveal card already
+        // uses for "you got it right", rather than a new visual language
+        // (confetti, a shake) nothing else in the app does.
+        .onChange(of: viewModel.visibility) { old, new in
+            if old == .private, new == .public {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+        }
         .onChange(of: coverItem) { _, item in
             guard let item else { return }
             Task {
@@ -306,7 +315,27 @@ struct TopicEditorView: View {
         }
     }
 
+    @ViewBuilder
     private var publishSection: some View {
+        // Visibility is two levels — a published topic is only
+        // *discoverable*; each video inside still needs its own visibility
+        // flipped. This is the single most common point of confusion in the
+        // whole flow (a learner opening a "published" topic and finding
+        // nothing), so it gets its own section rather than a footnote.
+        if viewModel.isPublishedWithNothingVisible {
+            Section {
+                Label("This topic is published, but no video in it is public yet — learners will see an empty topic.",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(theme.warning)
+                if !viewModel.publishableVideos.isEmpty {
+                    Button("Make \(viewModel.publishableVideos.count == 1 ? "that video" : "\(viewModel.publishableVideos.count) videos") public") {
+                        Task { await viewModel.publishAllEligibleVideos() }
+                    }
+                }
+            }
+        }
+
         Section {
             ForEach(viewModel.publishChecklist, id: \.text) { item in
                 Label(item.text, systemImage: item.satisfied ? "checkmark.circle.fill" : "circle")
@@ -327,7 +356,7 @@ struct TopicEditorView: View {
             Text(viewModel.visibility == .public ? "Published" : "Publishing")
         } footer: {
             Text(viewModel.visibility == .public
-                 ? "Learners can find this topic in Explore and its videos in the feed."
+                 ? "Learners can find this topic in Explore. Each video also needs its own visibility set to public before it shows up in the feed."
                  : "Only the first item is required to publish. The rest make the topic better.")
         }
     }

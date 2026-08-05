@@ -54,6 +54,21 @@ final class TopicEditorViewModel: ObservableObject {
     var readyVideos: [Video] { videos.filter { $0.status == .ready && !$0.isDeleted } }
     var canPublish: Bool { !readyVideos.isEmpty }
 
+    /// Videos eligible to go public in one tap — ready and quizzed, just not
+    /// individually public yet.
+    var publishableVideos: [Video] { readyVideos.filter { $0.hasQuiz && $0.visibility != .public } }
+
+    /// True exactly in the state that confuses a first-time creator: the
+    /// topic itself is discoverable, but a learner who opens it sees nothing
+    /// because visibility is two-level — a topic being public only makes it
+    /// *findable*, each video inside still needs its own visibility flipped.
+    /// `setTopicVisibility`'s publish gate only checks that a ready video
+    /// exists, not that one is actually public, so this state is reachable
+    /// through the normal flow, not a misuse.
+    var isPublishedWithNothingVisible: Bool {
+        visibility == .public && !videos.contains { $0.visibility == .public }
+    }
+
     /// Shown inline in the editor, before Publish is tapped. The Function
     /// enforces the same rule and its message is surfaced verbatim on
     /// failure — this exists so that failure is never the first time the
@@ -255,6 +270,23 @@ final class TopicEditorViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// The one-tap fix for `isPublishedWithNothingVisible` — makes every
+    /// eligible video public. Runs sequentially rather than concurrently:
+    /// this is a handful of videos at most, and a clear error on which one
+    /// failed matters more here than shaving off a second.
+    func publishAllEligibleVideos() async {
+        for video in publishableVideos {
+            guard let videoId = video.id else { continue }
+            do {
+                try await environment.videos.setVisibility(videoId: videoId, visibility: .public)
+            } catch {
+                errorMessage = error.localizedDescription
+                break
+            }
+        }
+        await reloadVideos()
     }
 
     func softDeleteTopic() async -> Bool {

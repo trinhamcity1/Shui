@@ -131,10 +131,9 @@ private struct TopicRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(theme.surfaceSubtle)
+            TopicCoverThumbnail(urlString: topic.coverImageURL)
                 .frame(width: 84, height: 56)
-                .overlay(Image(systemName: "play.rectangle.fill").foregroundStyle(theme.textTertiary))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(topic.title)

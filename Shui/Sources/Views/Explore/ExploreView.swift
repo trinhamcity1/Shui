@@ -213,10 +213,9 @@ private struct ContinueLearningCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(theme.surfaceSubtle)
+            TopicCoverThumbnail(urlString: topic.coverImageURL)
                 .frame(width: 160, height: 90)
-                .overlay(Image(systemName: "play.rectangle.fill").foregroundStyle(theme.textTertiary))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
             Text(topic.title)
                 .font(.subheadline.weight(.semibold))

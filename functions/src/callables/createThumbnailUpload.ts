@@ -24,7 +24,10 @@ export const createThumbnailUpload = onCall({ secrets: R2_SECRETS }, async (requ
 
   const r2Key = `thumbs/${input.videoId}.jpg`;
   const uploadURL = await presignPutUrl(r2Key, input.contentType, THUMBNAIL_UPLOAD_TTL_SECONDS);
-  const thumbnailURL = publicUrlFor(r2Key);
+  // Cache-busting query param — see createTopicCoverUpload.ts for why. Same
+  // deterministic key, same latent staleness bug once a thumbnail is ever
+  // re-uploaded against an existing video.
+  const thumbnailURL = `${publicUrlFor(r2Key)}?v=${Date.now()}`;
   const expiresAt = Date.now() + THUMBNAIL_UPLOAD_TTL_SECONDS * 1000;
 
   return { uploadURL, r2Key, thumbnailURL, expiresAt };

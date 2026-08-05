@@ -22,6 +22,7 @@ export { actionReport, saveCategory } from "./callables/adminModeration";
 export { suggestQuizQuestions } from "./callables/suggestQuizQuestions";
 
 export { onCommentWritten } from "./triggers/onCommentWritten";
+export { onTopicWritten } from "./triggers/onTopicWritten";
 export { onUserCreated } from "./triggers/onUserCreated";
 export { cleanupOrphanedUploads } from "./triggers/cleanupOrphanedUploads";
 export { flushViewCounts } from "./triggers/flushViewCounts";
