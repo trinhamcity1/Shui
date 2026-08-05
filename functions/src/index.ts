@@ -16,6 +16,10 @@ export { claimHandle } from "./callables/claimHandle";
 export { assignRole } from "./callables/assignRole";
 export { deleteAccount } from "./callables/deleteAccount";
 export { aiTutorMessage } from "./callables/aiTutorMessage";
+export { reorderTopicVideos, updateVideoMetadata } from "./callables/creatorVideo";
+export { createTopicCoverUpload } from "./callables/createTopicCoverUpload";
+export { actionReport, saveCategory } from "./callables/adminModeration";
+export { suggestQuizQuestions } from "./callables/suggestQuizQuestions";
 
 export { onCommentWritten } from "./triggers/onCommentWritten";
 export { onUserCreated } from "./triggers/onUserCreated";

@@ -95,6 +95,66 @@ export const AssignRoleInputSchema = z.object({
 });
 export type AssignRoleInput = z.infer<typeof AssignRoleInputSchema>;
 
+/**
+ * Videos are the strictest collection in the schema — every client write is
+ * denied by rules, so even a plain reorder or a title edit has to come
+ * through a Function. These two cover the topic editor's needs.
+ */
+export const ReorderTopicVideosInputSchema = z.object({
+  topicId: z.string().min(1),
+  // The full ordered list, not a (from, to) pair — a drag reorder rewrites
+  // every affected row's `order` anyway, and sending the whole intended
+  // result makes the write idempotent and immune to the client and server
+  // disagreeing about the starting order.
+  videoIds: z.array(z.string().min(1)).min(1).max(200),
+});
+export type ReorderTopicVideosInput = z.infer<typeof ReorderTopicVideosInputSchema>;
+
+export const UpdateVideoMetadataInputSchema = z.object({
+  videoId: z.string().min(1),
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(2000).optional(),
+  transcript: z.string().max(20000).optional(),
+});
+export type UpdateVideoMetadataInput = z.infer<typeof UpdateVideoMetadataInputSchema>;
+
+export const CreateTopicCoverUploadInputSchema = z.object({
+  topicId: z.string().min(1),
+  contentType: z.literal("image/jpeg"),
+  sizeBytes: z.number().int().positive().max(MAX_THUMBNAIL_BYTES, "cover image exceeds the 5 MB upload limit"),
+});
+export type CreateTopicCoverUploadInput = z.infer<typeof CreateTopicCoverUploadInputSchema>;
+
+export const ActionReportInputSchema = z.object({
+  reportId: z.string().min(1),
+  action: z.enum(["dismiss", "deleteContent"]),
+  note: z.string().max(1000).optional(),
+});
+export type ActionReportInput = z.infer<typeof ActionReportInputSchema>;
+
+/**
+ * Categories are seeded, and creators only ever *select* them — creating one
+ * is an admin action available in exactly one place (phase-05 §6), which is
+ * why this is a callable rather than a client write despite rules already
+ * allowing admin writes to `categories`: the slug/sortOrder bookkeeping
+ * below shouldn't be re-implemented per client.
+ */
+export const SaveCategoryInputSchema = z.object({
+  categoryId: z.string().min(1).optional(),
+  title: z.string().min(2).max(60),
+  description: z.string().max(500),
+  symbolName: z.string().min(1).max(60),
+  sortOrder: z.number().int().min(0).max(999),
+  isActive: z.boolean(),
+});
+export type SaveCategoryInput = z.infer<typeof SaveCategoryInputSchema>;
+
+export const SuggestQuizQuestionsInputSchema = z.object({
+  videoId: z.string().min(1),
+  count: z.number().int().min(1).max(5).default(3),
+});
+export type SuggestQuizQuestionsInput = z.infer<typeof SuggestQuizQuestionsInputSchema>;
+
 export const AiTutorMessageInputSchema = z
   .object({
     videoId: z.string().min(1),

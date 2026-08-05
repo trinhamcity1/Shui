@@ -165,6 +165,64 @@ describe("topics", () => {
     await seedDoc("topics/t1", baseTopic);
     await assertFails(deleteDoc(doc(creator("owner1").firestore(), "topics/t1")));
   });
+
+  // ---- Phase 5 creator mode -------------------------------------------
+  // The topic editor writes plain fields straight to Firestore (no
+  // callable), so these are the rules that actually stand between a
+  // creator and the fields only a Function may set.
+
+  test("creator cannot create a topic already public — the publish gate must run (negative)", async () => {
+    await assertFails(
+      setDoc(doc(creator("owner1").firestore(), "topics/t2"), {
+        ...baseTopic,
+        createdBy: "owner1",
+        visibility: "public",
+      })
+    );
+  });
+
+  test("creator cannot create a topic owned by someone else (negative)", async () => {
+    await assertFails(
+      setDoc(doc(creator("owner1").firestore(), "topics/t2"), { ...baseTopic, createdBy: "someone-else" })
+    );
+  });
+
+  test("admin can read another creator's private topic — the all-topics admin view", async () => {
+    await seedDoc("topics/t1", baseTopic);
+    await assertSucceeds(getDoc(doc(admin("a1").firestore(), "topics/t1")));
+  });
+
+  test("admin can edit another creator's topic", async () => {
+    await seedDoc("topics/t1", baseTopic);
+    await assertSucceeds(updateDoc(doc(admin("a1").firestore(), "topics/t1"), { title: "Retitled by admin" }));
+  });
+
+  test("a different creator cannot edit someone else's topic (negative)", async () => {
+    await seedDoc("topics/t1", baseTopic);
+    await assertFails(updateDoc(doc(creator("other").firestore(), "topics/t1"), { title: "Hijacked" }));
+  });
+
+  test("owner cannot inflate learnerCount or videoCount by hand (negative)", async () => {
+    await seedDoc("topics/t1", baseTopic);
+    await assertFails(updateDoc(doc(creator("owner1").firestore(), "topics/t1"), { learnerCount: 9999 }));
+    await assertFails(updateDoc(doc(creator("owner1").firestore(), "topics/t1"), { videoCount: 42 }));
+  });
+
+  test("owner cannot reassign a topic to another creator (negative)", async () => {
+    await seedDoc("topics/t1", baseTopic);
+    await assertFails(updateDoc(doc(creator("owner1").firestore(), "topics/t1"), { createdBy: "someone-else" }));
+  });
+
+  test("owner can edit the cover image and tags the editor actually writes", async () => {
+    await seedDoc("topics/t1", baseTopic);
+    await assertSucceeds(
+      updateDoc(doc(creator("owner1").firestore(), "topics/t1"), {
+        coverImageURL: "https://cdn.example.com/covers/t1.jpg",
+        tags: ["civics", "government"],
+        subtitle: "Updated subtitle",
+      })
+    );
+  });
 });
 
 // ---- videos/{videoId} + quiz subdocs -------------------------------------
