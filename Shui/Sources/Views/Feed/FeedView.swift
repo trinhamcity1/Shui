@@ -48,8 +48,7 @@ struct FeedView: View {
         // Binding hide/reveal to a state transition that already exists
         // (rather than a new gesture competing with those two) is what
         // avoids a real conflict, not just a smaller one.
-        .toolbar(isCurrentVideoPlaying ? .hidden : .automatic, for: .tabBar)
-        .animation(.easeInOut(duration: 0.25), value: isCurrentVideoPlaying)
+        .toolbar(isImmersed ? .hidden : .automatic, for: .tabBar)
         .task { await viewModel.loadInitial() }
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected {
@@ -61,9 +60,21 @@ struct FeedView: View {
         }
     }
 
-    private var isCurrentVideoPlaying: Bool {
-        if case .playing = viewModel.playerPool.states[viewModel.currentIndex] { return true }
-        return false
+    /// Hidden once a video is loading or playing, not only once it's
+    /// confirmed `.playing` — `.loading` is set synchronously the instant
+    /// `prepare()` runs, before any async player-readiness callback, so
+    /// gating on it too means the very first autoplay on landing in the
+    /// feed hides the bar immediately rather than only on some later,
+    /// unrelated state change. (An explicit `.animation()` here was
+    /// removed for the same reason: wrapping a value that changes
+    /// concurrently with the enclosing NavigationLink's own push transition
+    /// tends to get its first transition swallowed — `.toolbar`'s own
+    /// built-in transition handles this correctly without it.)
+    private var isImmersed: Bool {
+        switch viewModel.playerPool.states[viewModel.currentIndex] {
+        case .playing, .loading: return true
+        default: return false
+        }
     }
 
     @ViewBuilder

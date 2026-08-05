@@ -153,7 +153,17 @@ struct FeedPageView: View {
                             .font(.headline)
                             .foregroundStyle(.white)
                             .frame(width: 44, height: 44)
+                            // Without an explicit shape, a Button's hit area
+                            // is derived from its label's own drawn bounds —
+                            // for a single small SF Symbol inside a bare
+                            // `.frame()`, that can end up narrower than (and
+                            // offset from) the visible 44×44 box, especially
+                            // competing with the whole-page tap-to-play/pause
+                            // gesture underneath. This pins the tappable area
+                            // to exactly the visible square.
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
                     .accessibilityLabel("Back")
 
                     Spacer()
