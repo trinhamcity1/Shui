@@ -115,13 +115,27 @@ struct FirestoreAITutorRepository: AITutorRepository {
         case .resourceExhausted:
             let details = error.userInfo[FunctionsErrorDetailsKey] as? [String: Any]
             let resetAtString = details?["resetAt"] as? String
-            let resetAt = resetAtString.flatMap { ISO8601DateFormatter().date(from: $0) }
-            return .rateLimited(resetAt: resetAt)
+            return .rateLimited(resetAt: resetAtString.flatMap(Self.parseISO8601))
         case .unavailable, .deadlineExceeded:
             return .network
         default:
             return .unknown(error.localizedDescription)
         }
+    }
+
+    /// `usage.resetAt.toISOString()` server-side (JS) always includes
+    /// milliseconds (`.SSS`) — `ISO8601DateFormatter()`'s *default*
+    /// configuration doesn't parse that and silently returns nil, which is
+    /// why the rate-limit message was falling back to "try again later"
+    /// with no actual time. Try with fractional seconds first, then
+    /// without, rather than assuming the server's exact format forever.
+    private static func parseISO8601(_ string: String) -> Date? {
+        let withFractional = ISO8601DateFormatter()
+        withFractional.formatOptions.insert(.withFractionalSeconds)
+        if let date = withFractional.date(from: string) {
+            return date
+        }
+        return ISO8601DateFormatter().date(from: string)
     }
 }
 

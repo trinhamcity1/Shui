@@ -952,6 +952,28 @@ concrete next step is checking that video's `quiz/current`/`quiz/answers` docs d
 the Firestore console, and re-running "Attach test quiz + publish" for it if they're out
 of sync.
 
+### Live verification: rate-limit reset time silently failing to parse
+
+Confirmed live: hitting the rate limit correctly showed the cap message, but always as
+the generic "try again later" — never the specific reset time, even though the server
+sends one (`resetAt` in the `HttpsError`'s `details`). Root cause: `usage.resetAt
+.toISOString()` server-side (JavaScript) always includes milliseconds
+(`"2026-08-05T01:00:00.000Z"`), but `ISO8601DateFormatter()`'s *default* configuration
+doesn't parse the fractional-seconds component and silently returns `nil` — a real,
+easy-to-miss cross-language date-format mismatch, not something `tsc`, unit tests, or the
+rules emulator could ever have caught (nothing in this sandbox parses a real ISO date
+string against a real Swift date formatter). Fixed by trying
+`.withFractionalSeconds` first, falling back to the plain format.
+
+While fixing it, also turned this into a real live countdown rather than a static
+timestamp — the user asked directly for "a timer... so they could know when it would get
+reset." `AITutorViewModel` now exposes the raw `rateLimitResetAt: Date?` separately from
+the generic `errorMessage`, and `AITutorSheet` renders it via SwiftUI's built-in
+`Text(_:style: .timer)`, which re-renders on its own as time passes — no manual `Timer`
+or polling needed. The composer and suggested-reply chips also disable themselves while
+rate-limited, rather than letting a tap round-trip to the server just to fail the same
+way again.
+
 ## Phases 5–6
 
 Not started.

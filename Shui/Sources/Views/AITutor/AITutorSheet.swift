@@ -30,7 +30,9 @@ struct AITutorSheet: View {
                 if !viewModel.suggestedReplies.isEmpty {
                     suggestedReplyRow
                 }
-                if let errorMessage = viewModel.errorMessage {
+                if let resetAt = viewModel.rateLimitResetAt {
+                    rateLimitBanner(resetAt: resetAt)
+                } else if let errorMessage = viewModel.errorMessage {
                     Text(errorMessage)
                         .font(.caption)
                         .foregroundStyle(theme.error)
@@ -113,12 +115,30 @@ struct AITutorSheet: View {
                     }
                     .buttonStyle(.shuiPillOutline)
                     .font(.caption)
-                    .disabled(viewModel.isSending)
+                    .disabled(viewModel.isSending || viewModel.rateLimitResetAt != nil)
                 }
             }
             .padding(.horizontal, 16)
         }
         .padding(.vertical, 8)
+    }
+
+    /// A live countdown, not a static "try again at 8:45 PM" — SwiftUI's
+    /// `.timer` text style re-renders on its own as time passes, so this
+    /// needs no manual `Timer`/polling to stay accurate.
+    private func rateLimitBanner(resetAt: Date) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "hourglass")
+                .foregroundStyle(theme.warning)
+            Text("You've reached the AI tutor's limit for now. Resets in")
+                .font(.caption)
+                .foregroundStyle(theme.textSecondary)
+            Text(resetAt, style: .timer)
+                .font(.caption.monospacedDigit().weight(.semibold))
+                .foregroundStyle(theme.warning)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
     }
 
     private var composer: some View {
@@ -142,7 +162,7 @@ struct AITutorSheet: View {
                     .font(.title)
                     .foregroundStyle(isComposerEmpty ? theme.textTertiary : theme.accent)
             }
-            .disabled(isComposerEmpty || viewModel.isSending || viewModel.isSendingSessionStart)
+            .disabled(isComposerEmpty || viewModel.isSending || viewModel.isSendingSessionStart || viewModel.rateLimitResetAt != nil)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

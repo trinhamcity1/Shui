@@ -8,6 +8,12 @@ final class AITutorViewModel: ObservableObject {
     @Published private(set) var isSendingSessionStart = false
     @Published private(set) var isSending = false
     @Published var errorMessage: String?
+    /// Set only for `.rateLimited` failures, alongside `errorMessage` — kept
+    /// as a raw `Date` (not baked into the message string) so the view can
+    /// render a live countdown via SwiftUI's `Text(_:style: .timer)`
+    /// instead of a static "try again at 8:45 PM" that goes stale the
+    /// moment it's drawn.
+    @Published private(set) var rateLimitResetAt: Date?
 
     /// A plain `didSet`, not a computed binding with a separate "switch"
     /// method — the segmented control in `AITutorSheet` binds directly to
@@ -55,7 +61,7 @@ final class AITutorViewModel: ObservableObject {
                     }
                 }
             } catch {
-                self.errorMessage = (error as? AITutorError)?.errorDescription ?? "Couldn't load this conversation."
+                self.apply(error, fallback: "Couldn't load this conversation.")
             }
         }
     }
@@ -71,12 +77,12 @@ final class AITutorViewModel: ObservableObject {
 
     func sendSessionStart(mode: AIThreadMode) async {
         isSendingSessionStart = true
-        errorMessage = nil
+        clearError()
         defer { isSendingSessionStart = false }
         do {
             _ = try await environment.aiTutor.sendMessage(videoId: videoId, mode: mode, text: nil, isSessionStart: true)
         } catch {
-            errorMessage = (error as? AITutorError)?.errorDescription ?? "Couldn't reach the AI tutor."
+            apply(error, fallback: "Couldn't reach the AI tutor.")
         }
     }
 
@@ -84,12 +90,32 @@ final class AITutorViewModel: ObservableObject {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !isSending else { return }
         isSending = true
-        errorMessage = nil
+        clearError()
         defer { isSending = false }
         do {
             _ = try await environment.aiTutor.sendMessage(videoId: videoId, mode: mode, text: trimmed, isSessionStart: false)
         } catch {
-            errorMessage = (error as? AITutorError)?.errorDescription ?? "Couldn't reach the AI tutor."
+            apply(error, fallback: "Couldn't reach the AI tutor.")
+        }
+    }
+
+    private func clearError() {
+        errorMessage = nil
+        rateLimitResetAt = nil
+    }
+
+    private func apply(_ error: Error, fallback: String) {
+        guard let tutorError = error as? AITutorError else {
+            errorMessage = fallback
+            rateLimitResetAt = nil
+            return
+        }
+        if case .rateLimited(let resetAt) = tutorError {
+            rateLimitResetAt = resetAt
+            errorMessage = resetAt == nil ? tutorError.errorDescription : nil
+        } else {
+            errorMessage = tutorError.errorDescription
+            rateLimitResetAt = nil
         }
     }
 }
