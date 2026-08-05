@@ -43,6 +43,7 @@ final class FeedPageViewModel: ObservableObject, Identifiable {
     @Published private(set) var quizResult: QuizResult?
     @Published private(set) var masteryDelta: Int?
     @Published var isLiked = false
+    @Published var isSaved = false
     @Published var likeCount: Int
     @Published var commentCount: Int
     var hasRecordedView = false

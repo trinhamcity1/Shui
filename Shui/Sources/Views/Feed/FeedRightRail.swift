@@ -10,6 +10,7 @@ struct FeedRightRail: View {
     let onLike: () -> Void
     let onComments: () -> Void
     let onAITutor: () -> Void
+    let onSave: () -> Void
     let onRequireSignIn: () -> Void
 
     var body: some View {
@@ -50,6 +51,22 @@ struct FeedRightRail: View {
                     onRequireSignIn()
                 } else {
                     onAITutor()
+                }
+            }
+
+            railButton(
+                systemImage: page.isSaved ? "bookmark.fill" : "bookmark",
+                tint: page.isSaved ? .yellow : .white,
+                label: "Save",
+                accessibilityLabel: "Save",
+                accessibilityValue: page.isSaved ? "Saved" : nil
+            ) {
+                if isGuest {
+                    onRequireSignIn()
+                } else {
+                    let generator = UIImpactFeedbackGenerator(style: .light)
+                    generator.impactOccurred()
+                    onSave()
                 }
             }
 

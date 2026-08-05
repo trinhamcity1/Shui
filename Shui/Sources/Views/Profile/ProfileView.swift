@@ -23,8 +23,16 @@ struct ProfileView: View {
     @State private var showEditProfile = false
     @State private var expandedCategoryIDs: Set<String> = []
     @State private var likedVideosFeed: VideoListDestination?
+    @State private var savedVideosFeed: VideoListDestination?
     @State private var reviewFeed: VideoListDestination?
     @State private var showSignInSheet = false
+    @State private var collectionsTab: CollectionsTab = .saved
+
+    private enum CollectionsTab: String, CaseIterable, Identifiable {
+        case saved = "Saved"
+        case liked = "Liked"
+        var id: String { rawValue }
+    }
 
     init(environment: AppEnvironment) {
         self.environment = environment
@@ -42,7 +50,7 @@ struct ProfileView: View {
                             header
                             guestBanner
                             progressSection
-                            likedSection
+                            collectionsSection
                             activitySection
                         }
                         .padding(.vertical, 16)
@@ -59,8 +67,19 @@ struct ProfileView: View {
                 }
             }
             .shuiShellBackground()
-            .task { await viewModel.load() }
+            .task {
+                await viewModel.load()
+                if viewModel.savedVideos.isEmpty && !viewModel.likedVideos.isEmpty {
+                    collectionsTab = .liked
+                }
+            }
             .navigationDestination(item: $likedVideosFeed) { destination in
+                FeedView(
+                    mode: .videoList(videos: destination.videos, startingAtVideoId: destination.startingAtVideoId),
+                    environment: environment
+                )
+            }
+            .navigationDestination(item: $savedVideosFeed) { destination in
                 FeedView(
                     mode: .videoList(videos: destination.videos, startingAtVideoId: destination.startingAtVideoId),
                     environment: environment
@@ -165,37 +184,96 @@ struct ProfileView: View {
         }
     }
 
+    /// A single segmented "Your videos" section rather than two grids
+    /// stacked one after another — mirrors the shelf pattern short-video
+    /// apps use for exactly this (a creator's own posts, likes, and saves
+    /// as tabs of one shelf, not three growing lists competing for scroll
+    /// space). Both grids share `TopicCoverThumbnail` for a real frame from
+    /// the video instead of a generic placeholder rectangle.
     @ViewBuilder
-    private var likedSection: some View {
-        if !viewModel.likedVideos.isEmpty {
+    private var collectionsSection: some View {
+        if !viewModel.savedVideos.isEmpty || !viewModel.likedVideos.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Liked videos")
+                Text("Your videos")
                     .font(.title3.bold())
                     .foregroundStyle(theme.textPrimary)
                     .padding(.horizontal, 20)
 
-                let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
-                LazyVGrid(columns: columns, spacing: 4) {
-                    ForEach(viewModel.likedVideos) { liked in
-                        Button {
-                            Task { await openLikedFeed(startingAt: liked) }
-                        } label: {
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(theme.surfaceSubtle)
-                                .aspectRatio(9.0 / 16.0, contentMode: .fill)
-                                .overlay(Image(systemName: "play.fill").foregroundStyle(theme.textTertiary))
-                        }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            Button("Unlike", role: .destructive) {
-                                Task { await viewModel.unlike(liked) }
-                            }
-                        }
+                Picker("Collection", selection: $collectionsTab) {
+                    Text("Saved (\(viewModel.savedVideos.count))").tag(CollectionsTab.saved)
+                    Text("Liked (\(viewModel.likedVideos.count))").tag(CollectionsTab.liked)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 20)
+
+                switch collectionsTab {
+                case .saved:
+                    if viewModel.savedVideos.isEmpty {
+                        collectionEmptyHint("Tap the bookmark on a video to save it here.")
+                    } else {
+                        savedGrid
+                    }
+                case .liked:
+                    if viewModel.likedVideos.isEmpty {
+                        collectionEmptyHint("Tap the heart on a video to like it.")
+                    } else {
+                        likedGrid
                     }
                 }
-                .padding(.horizontal, 20)
             }
         }
+    }
+
+    private func collectionEmptyHint(_ text: String) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(theme.textTertiary)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 8)
+    }
+
+    private var savedGrid: some View {
+        let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
+        return LazyVGrid(columns: columns, spacing: 4) {
+            ForEach(viewModel.savedVideos) { saved in
+                Button {
+                    Task { await openSavedFeed(startingAt: saved) }
+                } label: {
+                    TopicCoverThumbnail(urlString: saved.thumbnailURL)
+                        .aspectRatio(9.0 / 16.0, contentMode: .fill)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    Button("Remove from Saved", role: .destructive) {
+                        Task { await viewModel.unsave(saved) }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private var likedGrid: some View {
+        let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
+        return LazyVGrid(columns: columns, spacing: 4) {
+            ForEach(viewModel.likedVideos) { liked in
+                Button {
+                    Task { await openLikedFeed(startingAt: liked) }
+                } label: {
+                    TopicCoverThumbnail(urlString: liked.thumbnailURL)
+                        .aspectRatio(9.0 / 16.0, contentMode: .fill)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    Button("Unlike", role: .destructive) {
+                        Task { await viewModel.unlike(liked) }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 20)
     }
 
     @ViewBuilder
@@ -247,6 +325,13 @@ struct ProfileView: View {
         guard let videos = try? await environment.videos.videos(withIds: ids) else { return }
         let ordered = ids.compactMap { id in videos.first { $0.id == id } }
         likedVideosFeed = VideoListDestination(videos: ordered, startingAtVideoId: liked.videoId)
+    }
+
+    private func openSavedFeed(startingAt saved: SavedVideo) async {
+        let ids = viewModel.savedVideos.map(\.videoId)
+        guard let videos = try? await environment.videos.videos(withIds: ids) else { return }
+        let ordered = ids.compactMap { id in videos.first { $0.id == id } }
+        savedVideosFeed = VideoListDestination(videos: ordered, startingAtVideoId: saved.videoId)
     }
 
     private func openReviewFeed() async {
@@ -322,6 +407,7 @@ final class ProfileViewModel: ObservableObject {
     @Published private(set) var account: UserAccount?
     @Published private(set) var categoryProgress: [CategoryProgressEntry] = []
     @Published private(set) var likedVideos: [LikedVideo] = []
+    @Published private(set) var savedVideos: [SavedVideo] = []
     @Published private(set) var dueForReviewCount = 0
     @Published private(set) var isLoading = true
 
@@ -347,11 +433,13 @@ final class ProfileViewModel: ObservableObject {
         async let categoriesTask = environment.categories.list()
         async let topicProgressTask = environment.progress.topicProgress()
         async let likedTask = environment.social.likedVideos()
+        async let savedTask = environment.social.savedVideos()
         async let dueTask = environment.progress.dueForReview(limit: 200)
 
         let categories = (try? await categoriesTask) ?? []
         let topicProgressList = (try? await topicProgressTask) ?? []
         likedVideos = (try? await likedTask) ?? []
+        savedVideos = (try? await savedTask) ?? []
         dueForReviewCount = (try? await dueTask)?.count ?? 0
 
         let grouped = Dictionary(grouping: topicProgressList, by: \.categoryId)
@@ -366,6 +454,11 @@ final class ProfileViewModel: ObservableObject {
     func unlike(_ liked: LikedVideo) async {
         likedVideos.removeAll { $0.id == liked.id }
         _ = try? await environment.social.toggleLike(videoId: liked.videoId)
+    }
+
+    func unsave(_ saved: SavedVideo) async {
+        savedVideos.removeAll { $0.id == saved.id }
+        _ = try? await environment.social.toggleSave(videoId: saved.videoId)
     }
 
     func dueForReviewVideos() async throws -> [Video] {

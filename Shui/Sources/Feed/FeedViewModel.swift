@@ -333,6 +333,22 @@ final class FeedViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Save
+
+    func toggleSave(for page: FeedPageViewModel) {
+        guard let videoId = page.video.id else { return }
+        let wasSaved = page.isSaved
+        page.isSaved.toggle()
+        Task {
+            do {
+                let saved = try await environment.social.toggleSave(videoId: videoId)
+                page.isSaved = saved
+            } catch {
+                page.isSaved = wasSaved
+            }
+        }
+    }
+
     // MARK: - Quiz submission
 
     /// Called on every "Next"/"Submit" tap in the quiz card. Only actually

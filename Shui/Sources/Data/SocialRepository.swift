@@ -6,6 +6,11 @@ import Foundation
 protocol SocialRepository {
     func toggleLike(videoId: String) async throws -> Bool
     func likedVideos() async throws -> [LikedVideo]
+    /// A private bookmark, not a public engagement signal — see
+    /// `SavedVideo` for why this has no counter to keep in sync, unlike
+    /// `toggleLike`.
+    func toggleSave(videoId: String) async throws -> Bool
+    func savedVideos() async throws -> [SavedVideo]
     func comments(forVideo videoId: String, limit: Int, after cursor: PageCursor?) async throws -> Page<Comment>
     /// Up to `limit` replies to one top-level comment, oldest first (reply
     /// threads read like a conversation, unlike the newest-first top level).
@@ -48,6 +53,23 @@ struct FirestoreSocialRepository: SocialRepository {
         let snapshot = try await db.collection("users").document(uid)
             .collection("likes")
             .order(by: "likedAt", descending: true)
+            .getDocuments()
+        return snapshot.decoded()
+    }
+
+    func toggleSave(videoId: String) async throws -> Bool {
+        let result = try await functions.httpsCallable("toggleSave").call(["videoId": videoId])
+        guard let data = result.data as? [String: Any], let saved = data["saved"] as? Bool else {
+            throw RepositoryError.malformedResponse
+        }
+        return saved
+    }
+
+    func savedVideos() async throws -> [SavedVideo] {
+        guard let uid = auth.currentUser?.uid else { return [] }
+        let snapshot = try await db.collection("users").document(uid)
+            .collection("savedVideos")
+            .order(by: "savedAt", descending: true)
             .getDocuments()
         return snapshot.decoded()
     }
@@ -142,10 +164,13 @@ final class InMemorySocialRepository: SocialRepository {
     var likedVideoIDs: Set<String> = []
     var likedCommentIDs: Set<String> = []
     var likedVideoList: [LikedVideo]
+    var savedVideoIDs: Set<String> = []
+    var savedVideoList: [SavedVideo]
     var commentsByVideo: [String: [Comment]]
 
-    init(likedVideoList: [LikedVideo] = [], commentsByVideo: [String: [Comment]] = [:]) {
+    init(likedVideoList: [LikedVideo] = [], savedVideoList: [SavedVideo] = [], commentsByVideo: [String: [Comment]] = [:]) {
         self.likedVideoList = likedVideoList
+        self.savedVideoList = savedVideoList
         self.commentsByVideo = commentsByVideo
     }
 
@@ -160,6 +185,19 @@ final class InMemorySocialRepository: SocialRepository {
 
     func likedVideos() async throws -> [LikedVideo] {
         likedVideoList
+    }
+
+    func toggleSave(videoId: String) async throws -> Bool {
+        if savedVideoIDs.contains(videoId) {
+            savedVideoIDs.remove(videoId)
+            return false
+        }
+        savedVideoIDs.insert(videoId)
+        return true
+    }
+
+    func savedVideos() async throws -> [SavedVideo] {
+        savedVideoList
     }
 
     func comments(forVideo videoId: String, limit: Int, after cursor: PageCursor?) async throws -> Page<Comment> {

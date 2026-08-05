@@ -382,7 +382,14 @@ describe("users", () => {
     await assertFails(deleteDoc(doc(learner("alice").firestore(), "users/alice")));
   });
 
-  for (const sub of ["topicProgress/t1", "videoProgress/v1", "likes/v1", "aiUsage/2026-07-30", "commentLikes/c1"]) {
+  for (const sub of [
+    "topicProgress/t1",
+    "videoProgress/v1",
+    "likes/v1",
+    "savedVideos/v1",
+    "aiUsage/2026-07-30",
+    "commentLikes/c1",
+  ]) {
     describe(`users/{uid}/${sub.split("/")[0]}`, () => {
       test("owner can read", async () => {
         await seedDoc(`users/alice/${sub}`, { value: 1 });

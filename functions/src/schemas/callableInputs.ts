@@ -50,6 +50,11 @@ export const ToggleLikeInputSchema = z.object({
 });
 export type ToggleLikeInput = z.infer<typeof ToggleLikeInputSchema>;
 
+export const ToggleSaveInputSchema = z.object({
+  videoId: z.string().min(1),
+});
+export type ToggleSaveInput = z.infer<typeof ToggleSaveInputSchema>;
+
 export const ToggleCommentLikeInputSchema = z.object({
   videoId: z.string().min(1),
   commentId: z.string().min(1),

@@ -244,6 +244,15 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // ---- users/{uid}/savedVideos/{videoId} --------------------------
+      // A private bookmark — same owner-read, Function-only-write shape as
+      // likes, but there's no counter on the video for this one to keep in
+      // sync with, since nobody but the saver ever needs to know it exists.
+      match /savedVideos/{videoId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
       // ---- users/{uid}/commentLikes/{commentId} -----------------------
       // Same pattern, for comment likes — written only by
       // toggleCommentLike.

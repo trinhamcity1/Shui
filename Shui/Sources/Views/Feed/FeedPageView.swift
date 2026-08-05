@@ -230,6 +230,7 @@ struct FeedPageView: View {
                     }
                     showAITutor = true
                 },
+                onSave: { viewModel.toggleSave(for: page) },
                 onRequireSignIn: onRequireSignIn
             )
         }

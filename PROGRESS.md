@@ -1299,6 +1299,57 @@ Function trigger, rather than retrofitting ranking onto `arrayContainsAny` queri
 `SearchKeywords` index is a reasonable data source to migrate off of when that happens,
 not throwaway work.
 
+### Two more live bugs, found signed out on a second account
+
+Cross-account testing (signed out, then a fresh account) confirmed publishing genuinely
+works end to end — a stranger could see and play the published topic — but surfaced two
+more real bugs:
+
+**Back button in the topic feed had a dead hit target.** The visible chevron did nothing;
+tapping slightly down-and-left of it worked, with no visible target there at all. The
+back `Button` sat deep inside a `ZStack` with a competing ancestor `.onTapGesture`, and
+without an explicit `.contentShape()` a button's actual tappable region can drift from
+where it's drawn. Fixed with `.contentShape(Rectangle())` on the button's label and
+`.buttonStyle(.plain)` on the button itself (`FeedPageView.swift`).
+
+**Tab bar stayed visible through the first autoplay**, only correctly hiding after a
+later pause/unpause toggle — a different bug from the earlier "stuck hidden forever" one
+(already fixed, see above). Two contributing causes: the visibility check only counted
+the async-confirmed `.playing` state, missing the `.loading` state set synchronously well
+before it; and an explicit `.animation()` modifier likely had its first transition
+swallowed by the concurrent `NavigationLink` push transition into the feed. Fixed by
+widening the state check to include `.loading` and removing the explicit `.animation()`
+in favor of `.toolbar`'s own built-in transition (`FeedView.swift`).
+
+### Save videos + a redesigned Profile "Your videos" shelf
+
+Two enhancement requests: a bookmark-style save button on the feed (separate from Like,
+private rather than a public engagement signal), and a UX pass on how saved/liked videos
+surface on Profile.
+
+**Backend** (`toggleSave` callable, `users/{uid}/savedVideos/{videoId}`) mirrors
+`toggleLike`/`users/{uid}/likes` exactly in shape and rules — same owner-read,
+Function-only-write, same transaction pattern — with one deliberate difference: no
+video-level counter. A save is a private bookmark; nothing else in the app needs to know
+how many people saved a video, only the saver does, so there's nothing to keep in sync
+the way `likeCount` has to be.
+
+**Feed UI**: a bookmark/bookmark.fill button in the right rail, directly below the AI
+tutor button, matching the Like button's optimistic-toggle-then-revert-on-failure
+pattern and light-impact haptic.
+
+**Profile UI redesign**: rather than stack a growing "Liked videos" grid and a new
+"Saved videos" grid one after another — competing for scroll space and duplicating the
+same grid twice — both now live under one "Your videos" section with a segmented control
+(Saved | Liked), the same shelf pattern short-video apps use for a profile's multiple
+video collections. Defaults to the Saved tab; if a user has no saved videos yet but does
+have liked ones, it opens on Liked instead so the section never opens empty when there's
+something to show. Both grids were also upgraded from a generic placeholder rectangle to
+each video's real thumbnail (`TopicCoverThumbnail`, already built for Explore) — a small
+scope increase to the *existing* Liked grid made in the course of this work, since
+shipping the new Saved grid with real thumbnails next to a Liked grid still showing
+placeholders would have been an inconsistent regression in the same screen.
+
 ## Phase 6
 
 Not started.
