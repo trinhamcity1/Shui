@@ -25,7 +25,7 @@ struct FeedPageView: View {
     @EnvironmentObject private var environment: AppEnvironment
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showPauseGlyph = false
-    @State private var showInfoSheet = false
+    @State private var isCaptionExpanded = false
     @State private var showComments = false
     @State private var showAITutor = false
     @State private var wasPlayingBeforeAITutor = false
@@ -81,9 +81,6 @@ struct FeedPageView: View {
         }
         .onChange(of: playbackState) { _, newValue in
             handlePlaybackStateChange(newValue)
-        }
-        .sheet(isPresented: $showInfoSheet) {
-            VideoInfoSheet(video: page.video)
         }
         .sheet(isPresented: $showComments) {
             CommentsSheet(videoId: page.video.id ?? "", initialCommentCount: page.commentCount, environment: environment)
@@ -180,24 +177,29 @@ struct FeedPageView: View {
     private var bottomOverlay: some View {
         HStack(alignment: .bottom, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
-                Button { showInfoSheet = true } label: {
-                    Text(page.video.topicTitle)
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.white)
-                }
+                Text(page.video.topicTitle)
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.white)
 
                 Text(page.video.title)
                     .font(.headline)
                     .foregroundStyle(.white)
 
                 if !page.video.description.isEmpty {
+                    // Expands in place over the video rather than opening a
+                    // full-screen sheet — "more" was covering the whole
+                    // screen for what's often two extra lines of text.
                     Text(page.video.description)
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.85))
-                        .lineLimit(2)
-                    Button("more") { showInfoSheet = true }
-                        .font(.caption.bold())
-                        .foregroundStyle(.white.opacity(0.7))
+                        .lineLimit(isCaptionExpanded ? nil : 2)
+                    Button(isCaptionExpanded ? "less" : "more") {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isCaptionExpanded.toggle()
+                        }
+                    }
+                    .font(.caption.bold())
+                    .foregroundStyle(.white.opacity(0.7))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

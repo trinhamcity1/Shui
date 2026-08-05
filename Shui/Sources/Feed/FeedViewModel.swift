@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 /// Drives one feed screen — either the mixed Learn tab or a single topic
@@ -28,6 +29,7 @@ final class FeedViewModel: ObservableObject {
     private let environment: AppEnvironment
     private let persistence: PersistenceController
     private let pageBatchSize = 10
+    private var cancellables: Set<AnyCancellable> = []
 
     /// `(position, total)`, 1-indexed, for any fixed-list mode (topic or an
     /// explicit video list) — drives the "3 of 12" pill; `nil` in the mixed
@@ -58,6 +60,18 @@ final class FeedViewModel: ObservableObject {
         playerPool.onEnded = { [weak self] index in
             self?.handlePlayerEnded(at: index)
         }
+        // `playerPool` is a plain stored property, not `@Published` — a
+        // reference type's own internal mutations (states/progress changing)
+        // never propagate through `self`'s objectWillChange on their own.
+        // Without this forward, any view that reads playback state only
+        // through `viewModel` (not `playerPool` held as its own separate
+        // @ObservedObject) stops re-rendering the moment nothing else on
+        // FeedViewModel happens to change at the same time — which is
+        // exactly what silently broke the tab-bar-visibility toggle tied to
+        // play/pause state.
+        playerPool.objectWillChange
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
     }
 
     // MARK: - Loading
