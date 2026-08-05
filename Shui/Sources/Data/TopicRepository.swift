@@ -23,9 +23,21 @@ protocol TopicRepository {
     func searchByTitlePrefix(_ prefix: String, limit: Int) async throws -> [Topic]
     func topic(id: String) async throws -> Topic?
     func myTopics() async throws -> [Topic]
+    /// Every creator's topics, admin only — rules allow the read because
+    /// `isAdmin()` doesn't depend on document data, so the whole condition
+    /// short-circuits true for an admin and the query is provably safe.
+    /// Returns empty rather than throwing for a non-admin, since the caller
+    /// is a screen that shouldn't have been reachable at all.
+    func allTopics(limit: Int) async throws -> [Topic]
     func create(_ topic: Topic) async throws -> Topic
     func update(_ topic: Topic) async throws
     func setVisibility(topicId: String, visibility: Topic.Visibility) async throws
+    func softDelete(topicId: String) async throws
+    /// Structure only — title/subtitle/description/category/tags, no videos,
+    /// always private. Deliberately not a server-side copy: there's nothing
+    /// to fan out, and a client write keeps it inside the same rules the
+    /// editor already obeys.
+    func duplicate(_ topic: Topic) async throws -> Topic
 }
 
 struct FirestoreTopicRepository: TopicRepository {
@@ -100,7 +112,17 @@ struct FirestoreTopicRepository: TopicRepository {
         guard let uid = auth.currentUser?.uid else { return [] }
         let snapshot = try await db.collection("topics")
             .whereField("createdBy", isEqualTo: uid)
+            .whereField("isDeleted", isEqualTo: false)
             .order(by: "updatedAt", descending: true)
+            .getDocuments()
+        return snapshot.decoded()
+    }
+
+    func allTopics(limit: Int) async throws -> [Topic] {
+        let snapshot = try await db.collection("topics")
+            .whereField("isDeleted", isEqualTo: false)
+            .order(by: "updatedAt", descending: true)
+            .limit(to: limit)
             .getDocuments()
         return snapshot.decoded()
     }
@@ -165,6 +187,24 @@ struct FirestoreTopicRepository: TopicRepository {
             "visibility": visibility.rawValue,
         ])
     }
+
+    func softDelete(topicId: String) async throws {
+        _ = try await functions.httpsCallable("softDeleteTopic").call(["topicId": topicId])
+    }
+
+    func duplicate(_ topic: Topic) async throws -> Topic {
+        var copy = topic
+        copy.id = nil
+        copy.title = "\(topic.title) copy"
+        copy.coverImageURL = nil
+        copy.visibility = .private
+        copy.publishedAt = nil
+        copy.videoCount = 0
+        copy.totalDurationSec = 0
+        copy.learnerCount = 0
+        copy.isDeleted = false
+        return try await create(copy)
+    }
 }
 
 final class InMemoryTopicRepository: TopicRepository {
@@ -207,7 +247,11 @@ final class InMemoryTopicRepository: TopicRepository {
 
     func myTopics() async throws -> [Topic] {
         guard let uid = currentUID else { return [] }
-        return topics.filter { $0.createdBy == uid }
+        return topics.filter { $0.createdBy == uid && !$0.isDeleted }
+    }
+
+    func allTopics(limit: Int) async throws -> [Topic] {
+        Array(topics.filter { !$0.isDeleted }.prefix(limit))
     }
 
     func create(_ topic: Topic) async throws -> Topic {
@@ -226,5 +270,21 @@ final class InMemoryTopicRepository: TopicRepository {
     func setVisibility(topicId: String, visibility: Topic.Visibility) async throws {
         guard let index = topics.firstIndex(where: { $0.id == topicId }) else { return }
         topics[index].visibility = visibility
+    }
+
+    func softDelete(topicId: String) async throws {
+        guard let index = topics.firstIndex(where: { $0.id == topicId }) else { return }
+        topics[index].isDeleted = true
+    }
+
+    func duplicate(_ topic: Topic) async throws -> Topic {
+        var copy = topic
+        copy.id = nil
+        copy.title = "\(topic.title) copy"
+        copy.coverImageURL = nil
+        copy.visibility = .private
+        copy.videoCount = 0
+        copy.learnerCount = 0
+        return try await create(copy)
     }
 }

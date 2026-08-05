@@ -15,6 +15,7 @@ final class AppEnvironment: ObservableObject {
     let uploads: UploadRepository
     let aiTutor: AITutorRepository
     let auth: AuthRepository
+    let admin: AdminRepository
 
     /// The signed-in learner's server profile — reactive so the whole app
     /// (tab bar gating, Profile header, guest-only prompts) updates the
@@ -23,7 +24,15 @@ final class AppEnvironment: ObservableObject {
     /// window before `bootstrapSession()` finishes on launch.
     @Published private(set) var currentUser: UserAccount?
 
+    /// Read from the ID token's custom claim, not from `currentUser.role`
+    /// (a display mirror). Drives whether Creator mode is reachable at all —
+    /// note that hiding the entry point is a UX decision, not the security
+    /// boundary: rules and callables enforce the real one server-side.
+    @Published private(set) var role: UserAccount.Role = .learner
+
     var isGuest: Bool { auth.isGuest }
+    var isCreator: Bool { role == .creator || role == .admin }
+    var isAdmin: Bool { role == .admin }
 
     init(
         categories: CategoryRepository,
@@ -35,7 +44,8 @@ final class AppEnvironment: ObservableObject {
         users: UserRepository,
         uploads: UploadRepository,
         aiTutor: AITutorRepository,
-        auth: AuthRepository
+        auth: AuthRepository,
+        admin: AdminRepository
     ) {
         self.categories = categories
         self.topics = topics
@@ -47,6 +57,7 @@ final class AppEnvironment: ObservableObject {
         self.uploads = uploads
         self.aiTutor = aiTutor
         self.auth = auth
+        self.admin = admin
     }
 
     static func live() -> AppEnvironment {
@@ -60,7 +71,8 @@ final class AppEnvironment: ObservableObject {
             users: FirestoreUserRepository(),
             uploads: FirebaseUploadRepository(),
             aiTutor: FirestoreAITutorRepository(),
-            auth: FirebaseAuthRepository()
+            auth: FirebaseAuthRepository(),
+            admin: FirebaseAdminRepository()
         )
     }
 
@@ -75,7 +87,8 @@ final class AppEnvironment: ObservableObject {
             users: InMemoryUserRepository(),
             uploads: InMemoryUploadRepository(),
             aiTutor: InMemoryAITutorRepository(),
-            auth: InMemoryAuthRepository()
+            auth: InMemoryAuthRepository(),
+            admin: InMemoryAdminRepository()
         )
     }
 
@@ -92,9 +105,20 @@ final class AppEnvironment: ObservableObject {
             displayName: "Learner", photoURL: nil, authProviders: ["anonymous"], isGuest: true
         )
         await refreshCurrentUser()
+        await refreshRole(forceRefresh: false)
     }
 
     func refreshCurrentUser() async {
         currentUser = try? await users.currentUser()
+    }
+
+    /// Called on launch (cached token is fine) and again on every foreground
+    /// with `forceRefresh: true`. Custom claims are baked into the ID token
+    /// when it's minted, so a role granted while the app was backgrounded
+    /// stays invisible for up to an hour unless the token is re-minted —
+    /// forcing it here is what satisfies "appears without a reinstall"
+    /// (prompts/phase-05-creator-mode.md §1).
+    func refreshRole(forceRefresh: Bool) async {
+        role = await auth.roleClaim(forceRefresh: forceRefresh)
     }
 }

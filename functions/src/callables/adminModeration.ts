@@ -65,7 +65,8 @@ export const saveCategory = onCall(async (request) => {
   const base = {
     title: input.title,
     description: input.description,
-    symbolName: input.symbolName,
+    sfSymbol: input.sfSymbol,
+    accentHex: input.accentHex,
     sortOrder: input.sortOrder,
     isActive: input.isActive,
     updatedBy: uid,
@@ -100,6 +101,10 @@ export const saveCategory = onCall(async (request) => {
 
   await ref.set({
     ...base,
+    // `slug` is stored as a field as well as being the document id — the
+    // Swift `Category` model decodes it as non-optional, so omitting it
+    // would make every new category fail to decode client-side.
+    slug,
     topicCount: 0,
     createdBy: uid,
     createdAt: FieldValue.serverTimestamp(),

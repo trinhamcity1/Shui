@@ -60,6 +60,7 @@ struct PhasePlaceholderView: View {
 struct RootView: View {
     @EnvironmentObject private var appState: AppState
     @EnvironmentObject private var environment: AppEnvironment
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
@@ -74,6 +75,14 @@ struct RootView: View {
         // write to, and awaits this itself (idempotent) before saving, so
         // this doesn't need to block first paint.
         .task { await environment.bootstrapSession() }
+        // Re-mint the ID token on every foreground so a role granted from
+        // the admin surface (or the Firebase console) shows up without a
+        // reinstall — custom claims are fixed at mint time, so a cached
+        // token would keep reporting the old role for up to an hour.
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            Task { await environment.refreshRole(forceRefresh: true) }
+        }
         .onOpenURL { url in
             guard let link = DeepLink.parse(url) else { return }
             Task {

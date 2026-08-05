@@ -32,6 +32,17 @@ protocol AuthRepository {
     /// Starts (or resumes) a session. A no-op if already signed in, guest or
     /// otherwise — safe to call on every launch.
     func signInAnonymouslyIfNeeded() async throws
+    /// The `role` custom claim read from the ID token — the same value
+    /// `request.auth.token.role` carries server-side, and the only role
+    /// source app code should gate UI on. `users/{uid}.role` is a display
+    /// mirror that a client could in principle observe mid-update; this
+    /// comes from the signed token itself.
+    ///
+    /// `forceRefresh` re-mints the token instead of using the cached one,
+    /// which is what makes a just-granted `creator` role appear without a
+    /// reinstall — claims are baked into the token at mint time, so a
+    /// cached token keeps reporting the old role for up to an hour.
+    func roleClaim(forceRefresh: Bool) async -> UserAccount.Role
     /// Takes the raw pieces `SignInWithAppleButton`'s completion handler
     /// produces — the view owns the actual Apple authorization request
     /// (that's what draws the real HIG button and prompts Face ID) and this
@@ -71,6 +82,21 @@ final class FirebaseAuthRepository: AuthRepository {
     func signInAnonymouslyIfNeeded() async throws {
         guard auth.currentUser == nil else { return }
         _ = try await auth.signInAnonymously()
+    }
+
+    func roleClaim(forceRefresh: Bool) async -> UserAccount.Role {
+        guard let user = auth.currentUser else { return .learner }
+        // A failure here means "we couldn't prove elevated access", which is
+        // exactly `learner` — never surface it as an error the caller has to
+        // interpret, since every interpretation other than "no privileges"
+        // would be wrong.
+        guard let result = try? await user.getIDTokenResult(forcingRefresh: forceRefresh),
+              let raw = result.claims["role"] as? String,
+              let role = UserAccount.Role(rawValue: raw)
+        else {
+            return .learner
+        }
+        return role
     }
 
     func signInWithApple(idToken: String, rawNonce: String, fullName: PersonNameComponents?) async throws -> AuthUpgradeResult {
@@ -141,6 +167,9 @@ final class InMemoryAuthRepository: AuthRepository {
     var currentUID: String? = "preview-user"
     var isGuest = true
     var linkedProviderIDs: [String] = []
+    /// Settable so a preview or test can stand up a creator/admin session
+    /// without a real token — the whole point of the seam.
+    var role: UserAccount.Role = .learner
 
     func signInAnonymouslyIfNeeded() async throws {
         if currentUID == nil {
@@ -148,6 +177,8 @@ final class InMemoryAuthRepository: AuthRepository {
             isGuest = true
         }
     }
+
+    func roleClaim(forceRefresh: Bool) async -> UserAccount.Role { role }
 
     func signInWithApple(idToken: String, rawNonce: String, fullName: PersonNameComponents?) async throws -> AuthUpgradeResult {
         isGuest = false

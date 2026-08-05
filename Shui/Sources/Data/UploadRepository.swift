@@ -16,6 +16,13 @@ struct ThumbnailUploadTicket {
     var expiresAt: Date
 }
 
+struct TopicCoverUploadTicket {
+    var uploadURL: URL
+    var r2Key: String
+    var coverImageURL: String
+    var expiresAt: Date
+}
+
 protocol UploadRepository {
     func createVideoUpload(
         topicId: String,
@@ -34,6 +41,14 @@ protocol UploadRepository {
     func finalize(videoId: String, thumbnailR2Key: String?, transcript: String?) async throws
 
     func createThumbnailUpload(videoId: String, sizeBytes: Int) async throws -> ThumbnailUploadTicket
+
+    func createTopicCoverUpload(topicId: String, sizeBytes: Int) async throws -> TopicCoverUploadTicket
+
+    /// Uploads raw bytes already in memory (a JPEG the picker produced),
+    /// rather than a file on disk. Kept separate from `uploadFile` because
+    /// cover images and thumbnails are small and never worth writing to a
+    /// temp file first — videos are the opposite, and stream from disk.
+    func uploadData(_ data: Data, to uploadURL: URL, contentType: String) async throws
 }
 
 struct FirebaseUploadRepository: UploadRepository {
@@ -125,6 +140,40 @@ struct FirebaseUploadRepository: UploadRepository {
             expiresAt: Date(timeIntervalSince1970: expiresAtMillis / 1000)
         )
     }
+
+    func createTopicCoverUpload(topicId: String, sizeBytes: Int) async throws -> TopicCoverUploadTicket {
+        let result = try await functions.httpsCallable("createTopicCoverUpload").call([
+            "topicId": topicId,
+            "contentType": "image/jpeg",
+            "sizeBytes": sizeBytes,
+        ])
+        guard
+            let data = result.data as? [String: Any],
+            let uploadURLString = data["uploadURL"] as? String,
+            let uploadURL = URL(string: uploadURLString),
+            let r2Key = data["r2Key"] as? String,
+            let coverImageURL = data["coverImageURL"] as? String,
+            let expiresAtMillis = data["expiresAt"] as? Double
+        else {
+            throw RepositoryError.malformedResponse
+        }
+        return TopicCoverUploadTicket(
+            uploadURL: uploadURL,
+            r2Key: r2Key,
+            coverImageURL: coverImageURL,
+            expiresAt: Date(timeIntervalSince1970: expiresAtMillis / 1000)
+        )
+    }
+
+    func uploadData(_ data: Data, to uploadURL: URL, contentType: String) async throws {
+        var request = URLRequest(url: uploadURL)
+        request.httpMethod = "PUT"
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        let (_, response) = try await urlSession.upload(for: request, from: data)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw RepositoryError.uploadFailed
+        }
+    }
 }
 
 final class InMemoryUploadRepository: UploadRepository {
@@ -158,4 +207,15 @@ final class InMemoryUploadRepository: UploadRepository {
             expiresAt: Date().addingTimeInterval(1800)
         )
     }
+
+    func createTopicCoverUpload(topicId: String, sizeBytes: Int) async throws -> TopicCoverUploadTicket {
+        TopicCoverUploadTicket(
+            uploadURL: URL(string: "https://example.com/upload")!,
+            r2Key: "covers/preview.jpg",
+            coverImageURL: "https://example.com/cover.jpg",
+            expiresAt: Date().addingTimeInterval(1800)
+        )
+    }
+
+    func uploadData(_ data: Data, to uploadURL: URL, contentType: String) async throws {}
 }

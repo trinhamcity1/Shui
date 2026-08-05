@@ -13,9 +13,19 @@ protocol VideoRepository {
     func videos(withIds ids: [String]) async throws -> [Video]
     func video(id: String) async throws -> Video?
     func recordView(videoId: String, watchedSeconds: Double, completed: Bool) async throws
-    /// Creator-only (Phase 5 builds the real authoring UI around this) —
-    /// exposed now so debug/test flows can publish a video.
     func setVisibility(videoId: String, visibility: Video.Visibility) async throws
+
+    // ---- Creator mode (Phase 5) ------------------------------------------
+    // The learner-facing `videos(inTopic:)` above filters to ready+public
+    // because that's all a learner may see. The topic editor needs the
+    // opposite: every row including `pending`, `failed`, and private ones,
+    // since those are exactly the ones needing attention.
+    func allVideos(inTopic topicId: String) async throws -> [Video]
+    /// Sends the whole intended order rather than a move — see
+    /// `reorderTopicVideos` server-side for why.
+    func reorder(topicId: String, videoIds: [String]) async throws
+    func updateMetadata(videoId: String, title: String?, description: String?, transcript: String?) async throws
+    func softDelete(videoId: String) async throws
 }
 
 struct FirestoreVideoRepository: VideoRepository {
@@ -129,6 +139,34 @@ struct FirestoreVideoRepository: VideoRepository {
             "visibility": visibility.rawValue,
         ])
     }
+
+    func allVideos(inTopic topicId: String) async throws -> [Video] {
+        let snapshot = try await db.collection("videos")
+            .whereField("topicId", isEqualTo: topicId)
+            .whereField("isDeleted", isEqualTo: false)
+            .order(by: "order")
+            .getDocuments()
+        return snapshot.decoded()
+    }
+
+    func reorder(topicId: String, videoIds: [String]) async throws {
+        _ = try await functions.httpsCallable("reorderTopicVideos").call([
+            "topicId": topicId,
+            "videoIds": videoIds,
+        ])
+    }
+
+    func updateMetadata(videoId: String, title: String?, description: String?, transcript: String?) async throws {
+        var payload: [String: Any] = ["videoId": videoId]
+        if let title { payload["title"] = title }
+        if let description { payload["description"] = description }
+        if let transcript { payload["transcript"] = transcript }
+        _ = try await functions.httpsCallable("updateVideoMetadata").call(payload)
+    }
+
+    func softDelete(videoId: String) async throws {
+        _ = try await functions.httpsCallable("softDeleteVideo").call(["videoId": videoId])
+    }
 }
 
 final class InMemoryVideoRepository: VideoRepository {
@@ -174,5 +212,28 @@ final class InMemoryVideoRepository: VideoRepository {
     func setVisibility(videoId: String, visibility: Video.Visibility) async throws {
         guard let index = videos.firstIndex(where: { $0.id == videoId }) else { return }
         videos[index].visibility = visibility
+    }
+
+    func allVideos(inTopic topicId: String) async throws -> [Video] {
+        videos.filter { $0.topicId == topicId && !$0.isDeleted }.sorted { $0.order < $1.order }
+    }
+
+    func reorder(topicId: String, videoIds: [String]) async throws {
+        for (index, videoId) in videoIds.enumerated() {
+            guard let i = videos.firstIndex(where: { $0.id == videoId }) else { continue }
+            videos[i].order = index
+        }
+    }
+
+    func updateMetadata(videoId: String, title: String?, description: String?, transcript: String?) async throws {
+        guard let index = videos.firstIndex(where: { $0.id == videoId }) else { return }
+        if let title { videos[index].title = title }
+        if let description { videos[index].description = description }
+        if let transcript { videos[index].transcript = transcript }
+    }
+
+    func softDelete(videoId: String) async throws {
+        guard let index = videos.firstIndex(where: { $0.id == videoId }) else { return }
+        videos[index].isDeleted = true
     }
 }

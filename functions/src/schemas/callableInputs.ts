@@ -143,7 +143,13 @@ export const SaveCategoryInputSchema = z.object({
   categoryId: z.string().min(1).optional(),
   title: z.string().min(2).max(60),
   description: z.string().max(500),
-  symbolName: z.string().min(1).max(60),
+  // Field names mirror the `Category` Swift model and the seed script
+  // exactly (`sfSymbol`/`accentHex`, not `symbolName`/`color`) — a mismatch
+  // here writes documents the app decodes as nil.
+  sfSymbol: z.string().min(1).max(60),
+  accentHex: z
+    .string()
+    .regex(/^[0-9A-Fa-f]{6}$/, "accentHex must be a 6-digit hex value with no leading #"),
   sortOrder: z.number().int().min(0).max(999),
   isActive: z.boolean(),
 });
