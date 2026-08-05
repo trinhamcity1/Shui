@@ -24,7 +24,7 @@ been built, verified, and debugged phase by phase.
 | 1 | Firestore model, security rules, Cloud Functions, R2 upload pipeline, seed content | **done — verified end-to-end against the real deployed backend** |
 | 2 | Vertical video feed + end-of-video quiz + playback | **done — verified end-to-end against the real deployed backend** |
 | 3 | Categories, topic pages, auth, profile, progress, likes, comments | **done — verified end-to-end against the real deployed backend, including several real live-testing bug fixes** |
-| 4 | AI tutor: grounded chat + proactive retention checks | **written, pushed — backend verified (`tsc`, unit tests, rules suite); Swift side unverified by a real Xcode build; eval harness built but not yet run against a real model** |
+| 4 | AI tutor: grounded chat + proactive retention checks | **done — verified end-to-end against the real deployed backend and a real model, with one known accepted limitation (see Honest notes)** |
 | 5 | In-app creator console: topics, uploads, quiz builder, publish controls | not started |
 | 6 | Browser dashboard for bulk authoring | not started |
 
@@ -268,17 +268,19 @@ compiled. A green build is the minimum bar, not a formality.
 
 ## Honest notes
 
-- **Phase 4's Swift side hasn't been built on a real Mac yet** — there's no Xcode in the
-  sandbox this was authored in (same caveat every phase has had; Phases 1–3 each surfaced
-  real compiler errors this sandbox couldn't catch, and there's no reason to expect Phase 4
-  is different). Its backend half is verified for real: `tsc` across the whole `functions`
-  package, unit tests including the streaming meta-block parser, and the existing 69-case
-  rules suite (no rules changes were needed — `aiThreads`/`aiUsage` were already scoped
-  correctly back in Phase 3). The AI tutor's own eval harness
-  (`functions/src/ai/evals/`) is built and runs end-to-end, but has never been run against
-  a real model — nothing in this sandbox has model API credentials. Run
-  `AI_API_KEY=<key> npm run eval` from `functions/` for real scores before trusting the
-  prompts in production.
+- **The AI tutor doesn't always attach its structured metadata — a known, accepted
+  limitation.** Alongside its visible reply, the model is asked to append a delimited
+  block carrying two things: the suggested-reply chips, and (in "Quiz me") a
+  solid/shaky/missed verdict that pulls the video's review date forward through SM-2. Two
+  real eval runs against `claude-sonnet-5` showed it sometimes omits that block, or leaves
+  the verdict null, most often on ambiguous turns ("I don't know", partial answers) —
+  strengthening the prompt wording narrowed but did not close this. **Blast radius is
+  confined to the AI Tutor sheet**: when it happens, the chips row is empty and that one
+  answer doesn't nudge the review schedule. Nothing crashes, no wrong data is written, and
+  the in-feed quiz (a completely separate path) is unaffected. The real fix is structural —
+  forcing the metadata through Anthropic's tool-use mechanism instead of a free-text
+  delimiter the model has to remember — and is deliberately deferred, to be revisited as
+  usage scales. Both runs and the full analysis are in `functions/src/ai/evals/README.md`.
 - **Real speech-to-text transcript generation was deliberately not built.** The phase spec
   allows this — "if neither exists, ... degrade honestly" — and every video in this app
   today has no transcript anyway, so the degraded path (the tutor says so, and "Quiz me"
