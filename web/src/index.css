@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/**
+ * Same source as src/theme.ts: Shui/Sources/Theme/ThemePalettes.swift and
+ * Theme.swift. Tailwind v4's `@theme` block is plain CSS, evaluated at
+ * build time — it can't import from a .ts module, so these values are
+ * necessarily duplicated here rather than generated from theme.ts. Keep
+ * both in sync by hand when the Swift source changes; theme.ts is for any
+ * JS-side color logic (nothing needs that yet), this block is what makes
+ * `bg-canvas`, `text-primary`, etc. exist as Tailwind utilities.
+ *
+ * Light mode only for now, matching theme.ts's own note — no dark-mode
+ * toggle in the dashboard yet.
+ */
+@theme {
+  --color-canvas: #f4f3ef;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #eae8e1;
+
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #57534e;
+  --color-text-tertiary: #78716c;
+  --color-text-on-accent: #ffffff;
+
+  --color-accent: #b4530a;
+  --color-accent-2: #9a4a6b;
+  --color-accent-3: #4338ca;
+
+  --color-border: #928b7c;
+  --color-border-subtle: #ddd9d0;
+
+  --color-success: #15803d;
+  --color-warning: #9a5b0a;
+  --color-error: #b91c1c;
+  --color-info: #1d4ed8;
+
+  --radius-card: 20px;
+  --radius-large: 32px;
+}
+
+body {
+  @apply bg-canvas text-text-primary antialiased;
+}

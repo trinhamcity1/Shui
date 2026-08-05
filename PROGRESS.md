@@ -27,7 +27,7 @@ in response to live feedback rather than as its own numbered phase.
 | 3 | Categories, topic pages, auth, profile, progress, likes, comments | ✅ Done — backend verified against the emulator; live-tested on a real device across multiple rounds (Explore, Profile, Comments, search, likes), real bugs found and fixed |
 | 4 | AI tutor: grounded chat + proactive retention checks | ✅ Done — backend verified (`tsc`, unit tests, eval harness smoke-tested — no live model credentials in this sandbox, so no real eval scores); live-tested on a real device, including a real paging regression found and fixed |
 | 5 | In-app creator console: topics, uploads, quiz builder, publish controls | ✅ Done — backend verified (`tsc`, rules emulator, composite indexes declared up front); live-tested extensively on a real device across many rounds (topic editor, upload flow, quiz builder, publish gates, admin surface, role claims), each round's real bugs found and fixed. Substantial enhancement work built on top after the phase itself closed out — see that section below for the full list |
-| 6 | Browser dashboard for bulk authoring | 🚧 Starting now |
+| 6 | Browser dashboard for bulk authoring | 🚧 In progress — scaffold done (6.1), auth/role gating and the real screens next |
 
 ---
 
@@ -1514,6 +1514,58 @@ no live peek, still a real 1:1 finger-tracking swipe) rather than gamble a secon
 custom-bar styling nobody could verify. If the live peek becomes worth pursuing again, the
 `git revert`'s parent commit has the working implementation to resume from.
 
-## Phase 6
+## Phase 6 — Web dashboard
 
-Not started.
+### Goal
+
+`prompts/phase-06-web-dashboard.md`: a second client — Vite + React + TypeScript in
+`web/` — over the exact same `shui-prod` Firebase backend the iOS app uses. No new data
+model, no new privileged path; every write goes through the same Cloud Functions and
+Firestore rules as the phone. What the phone can't do comfortably: long descriptions
+with a real keyboard, batch video upload, a reports queue, per-question miss-rate
+analytics.
+
+### 6.1 — Scaffold
+
+Project structure, tooling, theme port, and Firebase JS SDK wiring — nothing else yet.
+Broken into its own sub-phase (matching Phase 5's 5.1–5.9 pattern) since this is one of
+the largest single builds in the project: seven real screens against one shared spec,
+in a stack this codebase hasn't touched before now.
+
+**A genuinely different verification story than every Swift phase so far.** This
+sandbox has no Xcode/Swift compiler, so every prior phase's Swift half has only ever
+been checked by hand (brace balance, manual symbol cross-referencing) and actually
+proven correct only once the user built it on a real Mac. The web dashboard is
+different: this sandbox *does* have Node/npm, so `tsc`, ESLint, and a real production
+`vite build` all ran for real during this sub-phase — and the pre-installed headless
+Chromium loaded the actual dev server and screenshotted it, confirming zero console
+errors and that the ported color palette renders correctly, not just that the code
+compiles. Real verification, not the best-available substitute for it.
+
+**What got built**: `web/` as a standalone npm package (not a workspace member of
+`functions/` — the existing repo has no workspace tooling, and standing one up now was
+judged more invasive than this scaffold needs; see `web/README.md` for the explicit
+zod-version tradeoff that decision implies). Vite + React 19 + TypeScript 6 (not the
+newer TypeScript 7 — confirmed via a real `npm install` failure that `typescript-eslint`
+doesn't support it yet) + Tailwind v4, wired to `shui-prod` via the Firebase JS SDK.
+`src/theme.ts` and `index.css`'s `@theme` block both port `ThemePalettes.swift`'s and
+`Theme.swift`'s tokens by hand — necessarily duplicated between the two, since
+Tailwind v4's CSS-first config can't import a `.ts` module; visually confirmed correct
+via the Chromium screenshot above.
+
+**Two real, disclosed `react-router` vulnerabilities were investigated and left
+unaddressed on purpose**, not ignored — both are scoped to React Router's RSC
+("framework") mode, which this plain client-rendered `BrowserRouter` SPA doesn't use at
+all. `npm audit fix`'s suggested downgrade was actually tried and rejected: it
+reintroduced nine *other*, worse disclosed vulnerabilities (open redirects, XSS, DoS)
+that later releases had already fixed — a strictly worse trade for a fix that doesn't
+even apply to how this app uses the library. Documented in `web/README.md` as something
+to revisit on the next routine dependency update, not a permanent decision.
+
+**What still needs the user's own action, not something this sandbox can do**:
+registering a Web app for `shui-prod` in the Firebase console (produces the config
+`web/.env` needs — a public client config, not a secret, same status as
+`GoogleService-Info.plist`) and, later in 6.10, creating the Firebase Hosting site and
+GitHub Action deploy secrets. `web/README.md` documents exactly what to fill in.
+
+Next: 6.2 (auth + role gating), then the seven screens themselves.

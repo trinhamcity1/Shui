@@ -25,8 +25,8 @@ been built, verified, and debugged phase by phase.
 | 2 | Vertical video feed + end-of-video quiz + playback | **done — verified end-to-end against the real deployed backend** |
 | 3 | Categories, topic pages, auth, profile, progress, likes, comments | **done — verified end-to-end against the real deployed backend, including several real live-testing bug fixes** |
 | 4 | AI tutor: grounded chat + proactive retention checks | **done — verified end-to-end against the real deployed backend and a real model, with one known accepted limitation (see Honest notes)** |
-| 5 | In-app creator console: topics, uploads, quiz builder, publish controls | **written, pushed — backend verified (`tsc`, unit tests, rules suite); Swift side not yet built on a real Mac** |
-| 6 | Browser dashboard for bulk authoring | not started |
+| 5 | In-app creator console: topics, uploads, quiz builder, publish controls | **done — backend verified (`tsc`, unit tests, rules suite), live-tested extensively on a real device across many rounds (topic editor, upload flow, quiz builder, publish gates, admin surface), real bugs found and fixed** |
+| 6 | Browser dashboard for bulk authoring | **in progress — scaffold up (Vite + React + Tailwind reading the app's own palette, Firebase JS SDK wired), auth/role gating and the real screens next** |
 
 Phases 0–3 are the shippable core. Phase 4 is the differentiator. Phases 5–6 are what
 make the app maintainable without touching code.

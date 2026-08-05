@@ -31,3 +31,7 @@ ui-debug.log
 functions/node_modules/
 functions/lib/
 scripts/node_modules/
+web/node_modules/
+web/dist/
+web/.env
+web/node_modules/.tmp/
