@@ -73,6 +73,10 @@ struct ProfileView: View {
                     collectionsTab = .liked
                 }
             }
+            // Profile's own root — see the matching comment on
+            // `ExploreView` for why this is `isRoot: true` while the
+            // pushed video feeds below are not.
+            .ringSwipeNavigation(isRoot: true)
             .navigationDestination(item: $likedVideosFeed) { destination in
                 FeedView(
                     mode: .videoList(videos: destination.videos, startingAtVideoId: destination.startingAtVideoId),

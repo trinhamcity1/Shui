@@ -9,10 +9,20 @@ struct FeedView: View {
     @State private var scrollPositionID: String?
     @State private var showSignInSheet = false
     var onExploreRequested: (() -> Void)?
+    /// `true` only for the Learn tab's own mixed feed — every other mode
+    /// (`.topic`, `.videoList`) is something pushed on top of Explore or
+    /// Profile's own stack, which is what `isRoot` on
+    /// `ringSwipeNavigation` needs to know.
+    private let isTabRoot: Bool
 
     init(mode: FeedViewModel.Mode, environment: AppEnvironment, onExploreRequested: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: FeedViewModel(mode: mode, environment: environment))
         self.onExploreRequested = onExploreRequested
+        if case .mixed = mode {
+            isTabRoot = true
+        } else {
+            isTabRoot = false
+        }
     }
 
     var body: some View {
@@ -49,6 +59,14 @@ struct FeedView: View {
         // (rather than a new gesture competing with those two) is what
         // avoids a real conflict, not just a smaller one.
         .toolbar(isImmersed ? .hidden : .automatic, for: .tabBar)
+        // The video feed no longer shows a visible back button when it's
+        // something pushed (see `FeedPageView.topBar`) — this, plus the
+        // ring-forward gesture, is the whole replacement. `dismiss` is
+        // passed explicitly rather than letting the modifier read its own
+        // `@Environment(\.dismiss)`, matching the same captured-once
+        // pattern `onNextLesson`/`onRequireSignIn` already use below for
+        // views instantiated inside the feed's `ForEach`.
+        .ringSwipeNavigation(isRoot: isTabRoot, onSwipeBack: swipeBackAction)
         .task { await viewModel.loadInitial() }
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected {
@@ -58,6 +76,15 @@ struct FeedView: View {
         .sheet(isPresented: $showSignInSheet) {
             SignInSheet()
         }
+    }
+
+    /// `nil` for the tab root (nothing to pop, `ringSwipeNavigation`
+    /// retreats the ring instead); `dismiss` for anything pushed.
+    private var swipeBackAction: (() -> Void)? {
+        if isTabRoot {
+            return nil
+        }
+        return dismiss.callAsFunction
     }
 
     /// Hidden once a video is loading or playing, not only once it's
@@ -103,7 +130,6 @@ struct FeedView: View {
                             index: index,
                             onNextLesson: { scrollToNext(after: index) },
                             onRequireSignIn: { showSignInSheet = true },
-                            onBack: dismiss.callAsFunction,
                             tabBarBottomInset: tabBarBottomInset
                         )
                         .frame(width: geo.size.width, height: geo.size.height)

@@ -8,13 +8,6 @@ struct FeedPageView: View {
     let index: Int
     let onNextLesson: () -> Void
     let onRequireSignIn: () -> Void
-    /// Captured once at `FeedView`'s top level and threaded down explicitly,
-    /// rather than each page reading `@Environment(\.dismiss)` itself —
-    /// environment values are not always reliably re-resolved for views
-    /// lazily instantiated inside `LazyVStack`/`ForEach` (this page's actual
-    /// container), a known SwiftUI rough edge. A plain closure captured
-    /// above that container doesn't depend on it working correctly.
-    let onBack: () -> Void
     /// The real, tab-bar-inclusive bottom safe area inset, captured above
     /// `FeedView`'s `.ignoresSafeArea()` — see that file for why this can't
     /// just be read locally via `@Environment`. Used only to keep the quiz
@@ -146,39 +139,17 @@ struct FeedPageView: View {
             .padding(.horizontal, 12)
             .accessibilityHidden(true)
 
+            // No back button — this feed is left purely to the swipe
+            // gesture (`FeedView`'s `.ringSwipeNavigation`) now, matching
+            // the fully gestural, no-chrome feel a full-bleed video wants.
             if let topicInfo = viewModel.topicModeInfo {
-                HStack {
-                    Button { onBack() } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(width: 44, height: 44)
-                            // Without an explicit shape, a Button's hit area
-                            // is derived from its label's own drawn bounds —
-                            // for a single small SF Symbol inside a bare
-                            // `.frame()`, that can end up narrower than (and
-                            // offset from) the visible 44×44 box, especially
-                            // competing with the whole-page tap-to-play/pause
-                            // gesture underneath. This pins the tappable area
-                            // to exactly the visible square.
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Back")
-
-                    Spacer()
-
-                    Text("\(topicInfo.index) of \(topicInfo.total)")
-                        .font(.caption.bold())
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(.black.opacity(0.4)))
-                        .foregroundStyle(.white)
-
-                    Spacer()
-                    Color.clear.frame(width: 44, height: 44)
-                }
-                .padding(.horizontal, 8)
+                Text("\(topicInfo.index) of \(topicInfo.total)")
+                    .font(.caption.bold())
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(.black.opacity(0.4)))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
             }
         }
         .padding(.top, 8)

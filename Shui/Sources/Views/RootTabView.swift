@@ -1,19 +1,15 @@
 import SwiftUI
 
-private enum RootTab: Hashable {
-    case learn, explore, profile, debug
-}
-
 /// The three-tab shell. Learn is the real video feed as of Phase 2; Explore
 /// and Profile are still placeholders until Phase 3.
 struct RootTabView: View {
     @EnvironmentObject private var environment: AppEnvironment
+    @EnvironmentObject private var appState: AppState
     @Environment(\.theme) private var theme
-    @State private var selection: RootTab = .learn
 
     var body: some View {
-        TabView(selection: $selection) {
-            FeedView(mode: .mixed, environment: environment, onExploreRequested: { selection = .explore })
+        TabView(selection: $appState.rootTab) {
+            FeedView(mode: .mixed, environment: environment, onExploreRequested: { appState.rootTab = .explore })
                 .tabItem { Label(Strings.learnTab, systemImage: "play.rectangle.fill") }
                 .tag(RootTab.learn)
             ExploreView(environment: environment)

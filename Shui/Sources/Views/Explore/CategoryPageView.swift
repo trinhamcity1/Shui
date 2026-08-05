@@ -5,6 +5,7 @@ import SwiftUI
 struct CategoryPageView: View {
     let category: Category
     let environment: AppEnvironment
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: CategoryPageViewModel
 
     init(category: Category, environment: AppEnvironment) {
@@ -38,6 +39,9 @@ struct CategoryPageView: View {
         .navigationTitle(category.title)
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.loadInitial() }
+        // See the matching comment on `TopicPageView` — same treatment,
+        // one level up the stack.
+        .ringSwipeNavigation(isRoot: false, onSwipeBack: dismiss.callAsFunction)
     }
 
     private var header: some View {

@@ -52,6 +52,12 @@ struct TopicPageView: View {
         .navigationBarTitleDisplayMode(.inline)
         .shuiShellBackground()
         .task { await viewModel.load() }
+        // Pushed on top of Explore's own stack — a backward swipe pops
+        // back to whatever's underneath (Explore's root, or a category),
+        // not the ring. The system nav bar's own back button/edge-swipe
+        // stays too; this just adds the same full-screen gesture the video
+        // feed uses, so the two feel consistent.
+        .ringSwipeNavigation(isRoot: false, onSwipeBack: dismiss.callAsFunction)
     }
 
     @ViewBuilder

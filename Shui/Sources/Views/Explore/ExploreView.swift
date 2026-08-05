@@ -36,6 +36,11 @@ struct ExploreView: View {
             .navigationTitle(Strings.exploreTab)
             .shuiShellBackground()
             .task { await load() }
+            // This is Explore's own root — nothing to pop, so a backward
+            // swipe here always retreats to Learn instead. Anything pushed
+            // from here (a category, a topic, a video) gets its own
+            // `isRoot: false` attachment that pops first.
+            .ringSwipeNavigation(isRoot: true)
         }
         .searchable(text: $searchText, prompt: "Search topics")
         .onChange(of: searchText) { _, newValue in

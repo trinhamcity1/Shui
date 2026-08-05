@@ -1388,6 +1388,55 @@ underlying network fetch is async — before calling `activate()`, so a slot is
 guaranteed to exist every time, closing the race deterministically rather than relying
 on prefetch timing to have won it.
 
+### Swipe-to-navigate: replacing the video feed's back button with a two-rule gesture model
+
+Enhancement request: remove the video feed's visible back chevron entirely, replace it
+with an Instagram-style swipe, and layer swipe navigation across Learn/Explore/Profile
+on top of that — a much bigger ask than it first sounded, so the model was confirmed
+explicitly before writing any code (see the worked examples the user gave, reproduced
+step for step by the two rules below) rather than guessed at.
+
+**The model, confirmed with the user**: Learn, Explore, and Profile form a fixed ring.
+- **Forward** (right-to-left) always advances one step through the ring — Learn →
+  Explore → Profile — no matter how deep the current tab is pushed (a topic, a video).
+  It never pops anything.
+- **Backward** (left-to-right) pops one level of whatever's pushed on the current tab,
+  if anything is; only once a tab is back at its own root does backward retreat one
+  step through the ring.
+
+Both stop dead at the ends (confirmed: no wraparound) rather than looping. The tab bar
+stays visible and tappable throughout (confirmed: swipe is additive, not a replacement)
+— exactly the same layering Snapchat and TikTok use. Scope (confirmed): the back-button
+removal and swipe-to-pop apply to Explore's topic video feed *and* Profile's
+Saved/Liked/due-for-review feeds (all three are just `FeedView` in non-`.mixed` mode),
+but not the Learn tab's own mixed feed, which was never pushed onto anything to begin
+with.
+
+**Architecture**: `AppState` (already the home for cross-cutting, non-repository state)
+gained `rootTab: RootTab` — moved out of `RootTabView`'s local `@State` so screens
+pushed several levels deep can drive it directly without threading it through every
+intermediate initializer. `RootTab` gained `nextInRing`/`previousInRing`, stepping a
+fixed `[.learn, .explore, .profile]` array and returning `nil` at either end. A new
+`RingSwipeNavigation` view modifier (`Shui/Sources/Views/RingSwipeNavigation.swift`)
+implements the two rules as one direction-locked `DragGesture` (`.simultaneousGesture`,
+so it never competes with a feed's own vertical video-paging scroll for the same touch)
+and is attached with `isRoot: true` to each tab's own root content (`ExploreView`,
+`ProfileView`, and `FeedView` in `.mixed` mode) and `isRoot: false` to everything pushed
+on top of Explore or Profile (`CategoryPageView`, `TopicPageView`, and `FeedView` in
+`.topic`/`.videoList` mode) — the same modifier and rules everywhere, no per-screen
+special-casing. `FeedPageView.topBar` lost its back button and progress-pill spacer
+layout entirely; the pill is just centered now.
+
+**Known real-device risks, flagged rather than silently assumed away** — this sandbox
+has no Swift compiler or device to test gestures against: the drag-distance and
+direction-lock thresholds (60pt horizontal, 1.5× the vertical distance) are a starting
+point that needs real tuning; and `CategoryPageView`/`TopicPageView` still show the
+standard system nav bar (their own back button wasn't asked to be removed), so their
+existing native edge-swipe-to-pop gesture and this new full-screen `DragGesture` both
+listen for backward swipes starting right at the left edge — worth watching for on a
+real device, though `simultaneousGesture` combined with the interactive pop gesture is
+a well-established combination elsewhere, not a novel risk.
+
 ## Phase 6
 
 Not started.
