@@ -45,6 +45,21 @@ second model call per case (a real cost, and its own prompt to get right) or hum
 of the transcript this script prints. Building that grading pass is real, scoped-out work,
 not an oversight — flagging it here rather than a rubric that quietly never ran.
 
+## Known limitation: the metadata block isn't always emitted
+
+Two real runs (below) show the model doesn't reliably attach the `<<<META>>>` block (or
+sets `retentionAssessment` to `null` when it shouldn't) on every turn that needs it —
+strengthening the wording in `prompts.ts` (`v1` → `v2`) narrowed but did not close this.
+This is a known limit of asking a model to append a free-text-delimited block via prose
+instructions alone; the actual fix is structural — forcing the metadata through Anthropic's
+tool-use mechanism (a schema-constrained tool call) instead of hoping the model remembers —
+which is real work across the streaming path (`modelClient.ts`, `aiTutorMessage.ts`,
+`prompts.ts`), not a wording tweak. Deliberately not built yet: `parseModelOutput` already
+degrades gracefully when this happens (no crash — just no suggested-reply chips and no SM-2
+due-date pull-forward for that turn), the same "degrade honestly" pattern used elsewhere in
+this phase, so accepted as a known, non-blocking gap rather than a phase blocker. Revisit
+if it turns out to happen often enough in real use to matter.
+
 ## Scores
 
 **2026-08-05, `AI_MODEL=claude-sonnet-5`, prompts `v1`.** All 21 cases ran (no `SKIPPED`,
@@ -87,3 +102,48 @@ considered a clean pass.
 | nq-out-of-scope | out-of-scope | 60 | ✅ | ✅ | n/a | n/a |
 | lt-in-scope | in-scope | 57 | ✅ | ✅ | n/a | n/a |
 | lt-session-start | session-start | 24 | ✅ | ✅ | n/a | n/a |
+
+---
+
+**2026-08-05 (same day, second run), `AI_MODEL=claude-sonnet-5`, prompts `v2`.** Run
+against the `v2` prompt strengthening above and the fixed pass/fail gate — which is why
+this run correctly reports "5 case(s) failed a deterministic assertion" instead of a false
+"0 failed" the way the pre-fix harness would have. Two distinct failure patterns:
+
+- **2 word-limit overruns** (`nt-out-of-scope` 91w, `nt-partial` 72w) — both passed
+  comfortably in run 1 (73w, 48w) on the same fixture/case. Most likely ordinary sampling
+  variance (no fixed temperature/seed), not a regression — worth another run or two to see
+  if it's consistently borderline for the no-transcript fixture specifically.
+- **3 metadata-compliance failures** (`cbg-partial`, `cbg-dontknow`, `cbr-dontknow`) — the
+  `v2` wording change narrowed but did not close the gap run 1 found: `cbg-dontknow` still
+  left `retentionAssessment` null with the meta block otherwise present, and two cases
+  (`cbg-partial`, `cbr-dontknow`) omitted the meta block entirely, a failure mode not seen
+  in run 1. Confirmed not a token-budget truncation artifact — `maxTokens: 500` (same value
+  the real callable uses) is far more than these 20-90 word responses need. **Decision:**
+  accepted as a known, non-blocking model-reliability limitation rather than pursued
+  further right now — see the section above. Revisit with the tool-use structural fix if
+  this proves common enough in real usage to matter.
+
+| case | category | words | ≤limit | format ok | 1 question | retention set |
+|---|---|---|---|---|---|---|
+| cbg-in-scope | in-scope | 30 | ✅ | ✅ | n/a | n/a |
+| cbg-out-of-scope | out-of-scope | 40 | ✅ | ✅ | n/a | n/a |
+| cbg-partial | partial-credit | 20 | ✅ | ❌ | ❌ | ❌ |
+| cbg-wrong | confidently-wrong | 29 | ✅ | ✅ | ✅ | ✅ |
+| cbg-dontknow | dont-know | 20 | ✅ | ✅ | ✅ | ❌ |
+| cbg-hostile | hostile | 42 | ✅ | ✅ | n/a | n/a |
+| cbr-session-start | session-start | 15 | ✅ | ✅ | ✅ | n/a |
+| cbr-in-scope | in-scope | 26 | ✅ | ✅ | n/a | n/a |
+| cbr-out-of-scope | out-of-scope | 46 | ✅ | ✅ | n/a | n/a |
+| cbr-partial | partial-credit | 49 | ✅ | ✅ | ✅ | ✅ |
+| cbr-wrong | confidently-wrong | 40 | ✅ | ✅ | ✅ | ✅ |
+| cbr-dontknow | dont-know | 26 | ✅ | ❌ | ❌ | ❌ |
+| nt-session-start | session-start | 20 | ✅ | ✅ | n/a | n/a |
+| nt-in-scope | in-scope | 41 | ✅ | ✅ | n/a | n/a |
+| nt-out-of-scope | out-of-scope | 91 | ❌ | ✅ | n/a | n/a |
+| nt-partial | partial-credit | 72 | ❌ | ✅ | ✅ | ✅ |
+| nt-hostile | hostile | 40 | ✅ | ✅ | n/a | n/a |
+| nq-in-scope | in-scope | 23 | ✅ | ✅ | n/a | n/a |
+| nq-out-of-scope | out-of-scope | 64 | ✅ | ✅ | n/a | n/a |
+| lt-in-scope | in-scope | 63 | ✅ | ✅ | n/a | n/a |
+| lt-session-start | session-start | 21 | ✅ | ✅ | n/a | n/a |

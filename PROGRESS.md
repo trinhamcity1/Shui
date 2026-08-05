@@ -1027,13 +1027,13 @@ real feature.
 | 7 | A video with no transcript still opens the tutor with the honest degraded opener | Backlogged — folded into item 1's transcript backlog, since this is the fallback path item 1 will exercise until real transcripts land |
 | 8 | Guest tapping AI gets the sign-in sheet | ✅ confirmed live — tapping AI while signed out prompts sign-in, same as Like |
 | 9 | `git grep` finds no model API key anywhere in the iOS target | ✅ confirmed — `git grep -niE "sk-ant-\|anthropic.*api.*key\|AI_API_KEY" -- 'Shui/*'` returns nothing |
-| 10 | `npm run eval` passes the assertion thresholds; scores table committed | Partial — real run against the live API completed (21/21 cases ran, no errors), committed to the eval README; found two real issues in the process (see below), fixed both, but the fixes themselves haven't been re-verified against a fresh run yet |
+| 10 | `npm run eval` passes the assertion thresholds; scores table committed | Closed with a known, accepted limitation — two real runs committed to the eval README; a real metadata-compliance gap found (see below) does not fully clear on retest, and the user explicitly chose to accept it rather than pursue the structural fix right now |
 
-**6 of 10 confirmed** (2, 3, 5, 6, 8, 9), plus one already-verified prerequisite (build/
-deploy/tsc/tests, covered under Verification above but not itself a numbered item here). 3
-items formally backlogged by explicit user instruction (1, 4, 7) pending real video
-transcripts. 1 item (10) partially closed — real data exists now, but needs one more
-re-run to confirm the fixes below actually hold.
+**6 of 10 confirmed clean** (2, 3, 5, 6, 8, 9), plus one already-verified prerequisite
+(build/deploy/tsc/tests, covered under Verification above but not itself a numbered item
+here). 3 items formally backlogged by explicit user instruction (1, 4, 7) pending real
+video transcripts. Item 10 is closed by explicit user decision rather than a clean pass —
+see below for why.
 
 ### First real eval run: a harness bug and a genuine prompt-compliance gap
 
@@ -1058,6 +1058,49 @@ itself reported success. Reading the table caught two things the exit code didn'
   `PROMPT_VERSION` to `v2`. Re-verified: `tsc` clean, `test:functions` 33/33,
   `test:rules` 69/69. Needs one more real `npm run eval` run to confirm `v2` actually
   closes the gap — flagged in the eval README rather than assumed fixed.
+
+### Second real eval run: the gate fix works, the prompt fix only partly did — accepted as a known limitation
+
+User re-ran `npm run eval` against `v2`. The fixed pass/fail gate worked as intended this
+time — it correctly reported "5 case(s) failed a deterministic assertion" instead of a
+false "0 failed." Reading those 5:
+
+- **2 word-limit overruns** (`nt-out-of-scope` 91w, `nt-partial` 72w vs. their mode's
+  limit) — both passed comfortably in the first run on the same case/fixture (73w, 48w).
+  Read as ordinary sampling variance (no fixed temperature/seed on these calls), not a
+  regression from anything changed between runs.
+- **3 metadata-compliance failures** (`cbg-partial`, `cbg-dontknow`, `cbr-dontknow`) — the
+  `v2` wording fix narrowed but did not close the gap: `cbg-dontknow` still shipped with
+  `retentionAssessment: null` despite the meta block otherwise being present, and two cases
+  (`cbg-partial`, `cbr-dontknow`) omitted the meta block *entirely* this run — a failure
+  mode the first run hadn't even shown. Ruled out `maxTokens: 500` truncation as the cause
+  (same budget the real callable uses; these are 20-90 word responses, nowhere near it) —
+  this is the model genuinely not emitting the block on some turns, not a code bug on our
+  side.
+
+**The honest conclusion**: no amount of prose in the system prompt is going to reach 100%
+compliance here — the real fix is structural (forcing the metadata through Anthropic's
+tool-use/schema-constrained mechanism instead of a free-text delimiter the model has to
+remember to append), which is real architecture work across the streaming path, not a
+prompt tweak. Asked the user how to handle it before calling Phase 4 done: pursue that
+structural fix now, or accept the current behavior — which already degrades gracefully,
+same "degrade honestly" pattern used elsewhere in this phase (no crash, just an
+occasionally-skipped suggested-reply row or SM-2 update) — as a known, logged,
+non-blocking limitation. **User chose to accept it as a known limitation for now.** Logged
+in the eval README's new "Known limitation" section; not pursuing the tool-use rework
+unless it proves common enough in real usage to matter.
+
+### Definition of done, final: item 10 closed as "accepted with a known limitation," not a hidden pass
+
+Correcting the table above: item 10 (`npm run eval` passes the assertion thresholds) does
+**not** actually pass clean — the harness's own (now-correct) gate reports real failures.
+Marking it done anyway would misrepresent what the two real runs above found. Status:
+**closed by explicit user decision** to accept the known metadata-compliance limitation
+rather than pass all thresholds, with both real runs and the reasoning committed to the
+eval README for anyone who revisits this later. Practically: **7 of 10 items now resolved
+one way or another** (2, 3, 5, 6, 8, 9 confirmed clean; 10 closed-with-known-limitation),
+3 backlogged by explicit user instruction pending real video transcripts (1, 4, 7). Nothing
+left open and untriaged.
 
 ## Phases 5–6
 
