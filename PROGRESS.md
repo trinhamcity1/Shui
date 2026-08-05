@@ -5,12 +5,17 @@ phase plan itself lives in [`prompts/README.md`](prompts/README.md); this file
 is the narrative of actually executing it — read it if you're picking the
 project back up and want context faster than re-reading every commit.
 
-Updated as each phase progresses. Current state: **Phase 3 written and
-pushed** — a full semantic, WCAG AA-verified theme system plus real auth,
-onboarding, Explore, Profile, and Comments. The backend half (rules,
-callables, indexes) is verified against the real Firestore emulator and a
-real `tsc` build; the Swift half awaits its first real Xcode build, same
-caveat as every phase before it in this sandbox.
+Updated as each phase progresses. Current state: **Phases 0–5 done and
+live-verified on a real device** — foundation, backend, the video feed,
+discovery/social (Explore, Profile, Comments), the AI tutor, and in-app
+creator mode are all built, pushed, and have each been through at least
+one real round of "user tests on a physical build, reports an actual bug,
+it gets root-caused and fixed" — not just static review. A long tail of
+post-Phase-5 enhancement work (Save videos, Explore/Profile navigation
+redesign, swipe-to-navigate, several real bug fixes) is layered on top of
+Phase 5's own section below, since it was scoped and built incrementally
+in response to live feedback rather than as its own numbered phase.
+**Phase 6 — the browser dashboard — starts next**, not yet begun.
 
 ## Phase status
 
@@ -19,10 +24,10 @@ caveat as every phase before it in this sandbox.
 | 0 | Foundation: strip the dead lesson engine, English-only, Firebase SDK, clean build | ✅ Done |
 | 1 | Firestore model, security rules, Cloud Functions, R2 upload pipeline, seed content | ✅ Done — verified end-to-end on the real `shui-prod` project |
 | 2 | Vertical video feed + end-of-video quiz + playback | ✅ Done — verified end-to-end on the real `shui-prod` project |
-| 3 | Categories, topic pages, auth, profile, progress, likes, comments | Written, pushed — backend verified against the emulator; awaiting Xcode build |
-| 4 | AI tutor: grounded chat + proactive retention checks | Not started |
-| 5 | In-app creator console: topics, uploads, quiz builder, publish controls | Not started |
-| 6 | Browser dashboard for bulk authoring | Not started |
+| 3 | Categories, topic pages, auth, profile, progress, likes, comments | ✅ Done — backend verified against the emulator; live-tested on a real device across multiple rounds (Explore, Profile, Comments, search, likes), real bugs found and fixed |
+| 4 | AI tutor: grounded chat + proactive retention checks | ✅ Done — backend verified (`tsc`, unit tests, eval harness smoke-tested — no live model credentials in this sandbox, so no real eval scores); live-tested on a real device, including a real paging regression found and fixed |
+| 5 | In-app creator console: topics, uploads, quiz builder, publish controls | ✅ Done — backend verified (`tsc`, rules emulator, composite indexes declared up front); live-tested extensively on a real device across many rounds (topic editor, upload flow, quiz builder, publish gates, admin surface, role claims), each round's real bugs found and fixed. Substantial enhancement work built on top after the phase itself closed out — see that section below for the full list |
+| 6 | Browser dashboard for bulk authoring | 🚧 Starting now |
 
 ---
 
