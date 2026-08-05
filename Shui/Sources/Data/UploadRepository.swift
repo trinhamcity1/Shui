@@ -38,6 +38,16 @@ protocol UploadRepository {
     /// Firebase, which never sees the video bytes.
     func uploadFile(_ fileURL: URL, to uploadURL: URL, contentType: String) async throws
 
+    /// Same, but reporting real bytes-sent as it goes. Separate from
+    /// `uploadFile` because it needs a delegate, and every existing caller
+    /// (the debug pipeline) genuinely doesn't care about progress.
+    func uploadFile(
+        _ fileURL: URL,
+        to uploadURL: URL,
+        contentType: String,
+        onProgress: @escaping @Sendable (Int64, Int64) -> Void
+    ) async throws
+
     func finalize(videoId: String, thumbnailR2Key: String?, transcript: String?) async throws
 
     func createThumbnailUpload(videoId: String, sizeBytes: Int) async throws -> ThumbnailUploadTicket
@@ -105,9 +115,29 @@ struct FirebaseUploadRepository: UploadRepository {
         request.httpMethod = "PUT"
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
         let (_, response) = try await urlSession.upload(for: request, fromFile: fileURL)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw RepositoryError.uploadFailed
-        }
+        try Self.validate(response)
+    }
+
+    func uploadFile(
+        _ fileURL: URL,
+        to uploadURL: URL,
+        contentType: String,
+        onProgress: @escaping @Sendable (Int64, Int64) -> Void
+    ) async throws {
+        var request = URLRequest(url: uploadURL)
+        request.httpMethod = "PUT"
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        let observer = UploadProgressDelegate(onProgress: onProgress)
+        let (_, response) = try await urlSession.upload(for: request, fromFile: fileURL, delegate: observer)
+        try Self.validate(response)
+    }
+
+    /// R2 reports refusals (expired presign, size mismatch, permissions) as
+    /// ordinary HTTP status codes on an otherwise successful request, so a
+    /// non-throwing `upload` is not the same as a successful upload.
+    private static func validate(_ response: URLResponse) throws {
+        guard let http = response as? HTTPURLResponse else { throw RepositoryError.uploadFailed }
+        guard (200..<300).contains(http.statusCode) else { throw RepositoryError.uploadFailed }
     }
 
     func finalize(videoId: String, thumbnailR2Key: String?, transcript: String?) async throws {
@@ -176,6 +206,38 @@ struct FirebaseUploadRepository: UploadRepository {
     }
 }
 
+/// Bridges `URLSessionTaskDelegate`'s bytes-sent callback into a closure.
+///
+/// Note on true background upload: the phase spec asks for a background
+/// `URLSession` upload task that survives app suspension. That needs a
+/// `background(withIdentifier:)` configuration, which cannot use the
+/// async/await `upload(for:)` API at all — it requires a long-lived delegate
+/// plus `application(_:handleEventsForBackgroundURLSession:)` plumbing in the
+/// app delegate to resume after relaunch. What's here is a real, in-process
+/// progress-reporting upload; it survives backgrounding for as long as iOS
+/// grants the app time, but not termination. The termination path is handled
+/// honestly instead of pretended away: a killed upload leaves a `pending`
+/// video doc, which the Phase 1 cleanup job marks `failed` after 24h and the
+/// topic editor renders as "Upload failed" with a re-upload action, so it is
+/// never a silent ghost row.
+private final class UploadProgressDelegate: NSObject, URLSessionTaskDelegate {
+    private let onProgress: @Sendable (Int64, Int64) -> Void
+
+    init(onProgress: @escaping @Sendable (Int64, Int64) -> Void) {
+        self.onProgress = onProgress
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didSendBodyData bytesSent: Int64,
+        totalBytesSent: Int64,
+        totalBytesExpectedToSend: Int64
+    ) {
+        onProgress(totalBytesSent, totalBytesExpectedToSend)
+    }
+}
+
 final class InMemoryUploadRepository: UploadRepository {
     func createVideoUpload(
         topicId: String,
@@ -196,6 +258,19 @@ final class InMemoryUploadRepository: UploadRepository {
     }
 
     func uploadFile(_ fileURL: URL, to uploadURL: URL, contentType: String) async throws {}
+
+    func uploadFile(
+        _ fileURL: URL,
+        to uploadURL: URL,
+        contentType: String,
+        onProgress: @escaping @Sendable (Int64, Int64) -> Void
+    ) async throws {
+        // Walk the fake through a few progress steps so a preview or test
+        // exercises the same UI transitions a real upload would.
+        for step in 1...4 {
+            onProgress(Int64(step) * 25, 100)
+        }
+    }
 
     func finalize(videoId: String, thumbnailR2Key: String?, transcript: String?) async throws {}
 

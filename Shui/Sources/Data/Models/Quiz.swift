@@ -34,7 +34,9 @@ struct QuizAttemptAnswer: Codable {
 /// The creator-side shape of a question — unlike `QuizQuestion`, this one
 /// does carry the answer key, since authoring a quiz means defining it.
 /// Used only by `QuizRepository.saveQuiz`, never returned by a read.
-struct QuizQuestionDraft: Codable {
+/// `Equatable` so the creator's quiz builder can mirror edits to local
+/// storage via `.onChange`, and `Identifiable` for its `ForEach` rows.
+struct QuizQuestionDraft: Codable, Equatable, Identifiable {
     var id: String
     var prompt: String
     var options: [QuizOption]

@@ -85,6 +85,32 @@ final class FeedPageViewModel: ObservableObject, Identifiable {
         }
     }
 
+    /// Drops straight into answering an unsaved draft, for the creator's
+    /// quiz preview (prompts/phase-05-creator-mode.md §5). Deliberately
+    /// separate from `videoDidEnd()`: that path gates on `video.hasQuiz`,
+    /// which is false for exactly the case the preview exists to serve — a
+    /// quiz being written for the first time.
+    ///
+    /// Loops back to the first question at the end instead of submitting.
+    /// Grading a draft would mean recording an attempt against a quiz the
+    /// server has never seen.
+    func startPreview(with quiz: Quiz) {
+        self.quiz = quiz
+        selectedOptionsByQuestion = [:]
+        quizResult = nil
+        endState = quiz.questions.isEmpty ? .noQuiz : .answering(questionIndex: 0)
+    }
+
+    func advancePreview() {
+        guard case .answering(let index) = endState else { return }
+        if index < sortedQuestions.count - 1 {
+            endState = .answering(questionIndex: index + 1)
+        } else {
+            selectedOptionsByQuestion = [:]
+            endState = .answering(questionIndex: 0)
+        }
+    }
+
     func replay() {
         endState = .notEnded
         selectedOptionsByQuestion = [:]

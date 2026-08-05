@@ -34,7 +34,7 @@ struct QuizOverlayContainer: View {
                         )
                     case .answering:
                         if let question = page.currentQuestion() {
-                            QuizAnsweringCard(page: page, viewModel: viewModel, question: question)
+                            QuizAnsweringCard(page: page, question: question, onAdvance: { viewModel.advanceQuiz(for: page) })
                         }
                     case .submissionFailed(let message):
                         QuizSubmissionFailedCard(message: message, onRetry: { viewModel.retrySubmission(for: page) })
@@ -98,10 +98,16 @@ private extension LessonEndState {
 
 // MARK: - Answering
 
-private struct QuizAnsweringCard: View {
+/// Internal rather than private, and taking an `onAdvance` closure rather
+/// than the whole `FeedViewModel`: the creator's quiz builder previews a
+/// draft with this exact view (prompts/phase-05-creator-mode.md §5 —
+/// "render the actual Phase 2 quiz card", since authoring blind is how bad
+/// quizzes ship), and it can supply a page plus an advance action without
+/// standing up the entire feed.
+struct QuizAnsweringCard: View {
     @ObservedObject var page: FeedPageViewModel
-    @ObservedObject var viewModel: FeedViewModel
     let question: QuizQuestion
+    let onAdvance: () -> Void
 
     var body: some View {
         ScrollView {
@@ -135,7 +141,7 @@ private struct QuizAnsweringCard: View {
                 }
 
                 Button(page.isLastQuestion() ? "Submit" : "Next") {
-                    viewModel.advanceQuiz(for: page)
+                    onAdvance()
                 }
                 .buttonStyle(.shuiPill)
                 .disabled(!page.canAdvance(question: question))

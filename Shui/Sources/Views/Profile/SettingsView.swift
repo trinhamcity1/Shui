@@ -24,10 +24,13 @@ struct SettingsView: View {
                     comingSoonRow("Privacy Policy", phase: nil)
                     comingSoonRow("Terms of Service", phase: nil)
                 }
-                if environment.currentUser?.role == .creator || environment.currentUser?.role == .admin {
+                // Gated on the ID token's claim, not `currentUser.role` (a
+                // Firestore display mirror) — and refreshed on foreground,
+                // so a just-granted role appears here without a reinstall.
+                if environment.isCreator {
                     Section {
-                        NavigationLink("Creator mode") {
-                            PhasePlaceholderView(title: "Creator mode", phase: 5, detail: "Upload, quiz builder, and publish controls live here.")
+                        NavigationLink("Creator") {
+                            CreatorHomeView(environment: environment)
                         }
                     }
                 }
