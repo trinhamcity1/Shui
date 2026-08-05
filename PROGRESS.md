@@ -1350,6 +1350,44 @@ scope increase to the *existing* Liked grid made in the course of this work, sin
 shipping the new Saved grid with real thumbnails next to a Liked grid still showing
 placeholders would have been an inconsistent regression in the same screen.
 
+### Two more real bugs: the Creator entry point disappearing, and the tab bar's actual root cause
+
+**Creator button missing after switching from a normal account to an admin account,
+in-session.** `environment.role` (the ID token's custom claim, gating whether the
+Creator entry point in Settings is reachable at all) is deliberately cached rather than
+re-fetched on every read — the existing design re-mints it on app foreground so a
+newly-granted role shows up without a reinstall. But `SignInSheet`'s `handleUpgrade()`,
+run right after a sign-in completes, only ever called `refreshCurrentUser()` (the
+Firestore profile mirror) — never `refreshRole()`. So switching accounts *within a
+running session* (sign out → sign in as admin, no backgrounding in between) left `role`
+stuck at whatever the previous, now-signed-out session had — `.learner`, since a guest
+can never carry a creator/admin claim — and the only thing that ever fixed it was
+backgrounding and reopening the app, which happens to also fire `refreshRole`. Fixed by
+calling `environment.refreshRole(forceRefresh: true)` right after both `handleUpgrade`
+outcomes (`.linked` and `.signedIntoExistingAccount`), not just on foreground.
+
+**The tab bar's real root cause, found after two earlier attempts only patched the
+symptom.** Both previous fixes (widening the immersion check to include `.loading`,
+removing an `.animation()` modifier) targeted `FeedView`'s `isImmersed` computed
+property — reasonable given what was visible, but neither was the actual bug.
+`FeedPlayerPool.activate(index:)` only starts playback and sets `.playing` if a pooled
+player slot *already exists* for that index; if none does, it silently returns and does
+nothing. `FeedViewModel.onPageAppear()` was calling `activate(index:)` synchronously,
+while the only thing that ever creates a slot — `prepare()` — was kicked off inside an
+async `Task` in that same function. For a page reached by scrolling, this usually didn't
+matter: the *previous* page's own prefetch window already covers the next one, so a slot
+already exists by the time you scroll to it. But the very first page of any fresh feed
+(cold launch, a topic pushed from Explore, the Profile Saved/Liked feed) has nothing
+prepared yet — `activate()` found no slot, silently no-op'd, and the video sat there
+`.loading` → `.paused` once its item became ready, never `.playing`. Since the tab bar's
+visibility is driven directly off that state, it never hid — matching exactly what got
+reported: the bar visible on open, and a video on screen that never actually started
+until manually tapped. Fixed by making `onPageAppear()` call `playerPool.prepare()`
+synchronously for the current index — `prepare()` itself is synchronous; only the
+underlying network fetch is async — before calling `activate()`, so a slot is
+guaranteed to exist every time, closing the race deterministically rather than relying
+on prefetch timing to have won it.
+
 ## Phase 6
 
 Not started.

@@ -228,6 +228,22 @@ final class FeedViewModel: ObservableObject {
 
     func onPageAppear(index: Int) {
         currentIndex = index
+        // `activate()` only starts playback if a pooled slot already exists
+        // for `index` — true for a page reached by scrolling, since the
+        // page before it already prepared this one in its own prefetch
+        // window, but never true for the very first page of a fresh feed,
+        // where nothing has prepared anything yet. `activate()` silently
+        // no-ops when it can't find a slot, so without this the first video
+        // of every fresh feed loaded, hit `.readyToPlay`, and settled on
+        // `.paused` instead of `.playing` — never actually autoplaying,
+        // and leaving the tab bar visible since nothing was ever
+        // `.playing`. Preparing synchronously here — `prepare()` itself is
+        // synchronous; only the underlying asset load is async — closes
+        // that gap deterministically instead of depending on the
+        // `prefetchAround` task below to have won a timing race.
+        if pages.indices.contains(index), let url = URL(string: pages[index].video.playbackURL) {
+            playerPool.prepare(index: index, url: url, window: windowRange(around: index))
+        }
         playerPool.activate(index: index)
         Task { await prefetchAround(index: index) }
         loadMoreIfNeeded(currentlyShowing: index)

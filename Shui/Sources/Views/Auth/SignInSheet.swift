@@ -184,6 +184,13 @@ struct SignInSheet: View {
                 isGuest: false
             )
             await environment.refreshCurrentUser()
+            // The ID token minted for this sign-in already carries whatever
+            // role this account has — but `environment.role` itself is a
+            // separate cached value that otherwise only updates on
+            // foreground. Without this, a guest who signs into an existing
+            // creator/admin account keeps seeing the learner-only UI until
+            // the app is backgrounded and reopened.
+            await environment.refreshRole(forceRefresh: true)
             AppAnalytics.logSignInCompleted(method: method)
             // An empty handle is the reliable "never claimed one" signal —
             // more so than Firebase's isNewUser, which describes whether
@@ -197,6 +204,7 @@ struct SignInSheet: View {
             }
         case .signedIntoExistingAccount:
             await environment.refreshCurrentUser()
+            await environment.refreshRole(forceRefresh: true)
             AppAnalytics.logSignInCompleted(method: method)
             showMergeNotice = true
         }
