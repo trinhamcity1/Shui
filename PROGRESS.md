@@ -922,6 +922,36 @@ from the earlier round, not a custom `@Environment` key, for the same reason: no
 dependency on environment values propagating reliably through the `LazyVStack`/`ForEach`
 these views live inside.
 
+### Real deploy error: missing composite index for grounding's sibling-video query
+
+`aiTutorMessage` failed every time with a bare "INTERNAL" (Firebase scrubs `internal`-code
+error messages before they reach the client) — real cause, from the actual Cloud
+Functions logs: `FAILED_PRECONDITION: The query requires an index`. `grounding.ts`'s
+"previous/next video in this topic" query (`topicId ==`, `status ==`, `isDeleted ==`,
+`orderBy(order)`) needs a composite index this phase never declared in
+`firestore.indexes.json` — a real oversight, not caught by `tsc` or the unit tests since
+neither actually executes a live Firestore query, and the emulator run doesn't enforce
+index requirements at all (same category of gap Phase 1's and Phase 3's index gotchas
+were). Existing `videos` indexes are all close but not exact matches — they include
+`visibility`/`topicVisibility` as additional equality filters this specific query doesn't
+use, and Firestore composite indexes require an exact field-set match, not just a prefix.
+Added the missing index. Firestore index builds take a few minutes even after being
+declared — the fastest fix for anyone hitting this before a redeploy lands is the direct
+"create it here" link Firestore includes in its own error message, which builds the exact
+same index without waiting on a functions deploy at all.
+
+While investigating, also traced (from the client's, not yet confirmed against real
+Firestore data) a **separate, pre-existing "INTERNAL" on `submitQuizAttempt`**: its
+`"Quiz answer key missing for question X"` guard throws `HttpsError("internal", ...)`
+when a video's `quiz/current` and `quiz/answers` docs have mismatched question IDs.
+`saveQuiz`'s transaction writes both atomically from the same input array
+(`splitQuizForStorage`), so this shouldn't happen from normal use — likely stale/
+inconsistent debug data on the specific video tested rather than a code bug. Not fixed in
+code since there's nothing to fix without evidence of an actual write-path bug; the
+concrete next step is checking that video's `quiz/current`/`quiz/answers` docs directly in
+the Firestore console, and re-running "Attach test quiz + publish" for it if they're out
+of sync.
+
 ## Phases 5–6
 
 Not started.
