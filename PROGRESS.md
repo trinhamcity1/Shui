@@ -974,6 +974,67 @@ or polling needed. The composer and suggested-reply chips also disable themselve
 rate-limited, rather than letting a tap round-trip to the server just to fail the same
 way again.
 
+### Eval harness bug: every case erroring with `model: String should have at least 1 character`
+
+Ran `npm run eval` for real for the first time (with `AI_API_KEY` actually set) — all 22
+cases failed immediately with a 400 from Anthropic's API, not a scoring failure. Root
+cause: `AnthropicModelClient` read the model name via `aiModel.value()`, a Firebase
+`defineString("AI_MODEL", { default: "claude-sonnet-5" })` parameter. That resolution
+path — including the declared default — only works correctly inside the real,
+Firebase-managed Functions runtime (a live deploy or the emulator); a bare `node
+lib/ai/evals/run.js` process, which is what `npm run eval` actually runs, never goes
+through that machinery, so `.value()` silently returned an empty string instead of
+falling back to `"claude-sonnet-5"`, and the API rejected the empty model name. This is
+the mirror image of a gotcha already documented for `defineSecret`: secrets *are* always
+delivered as plain `process.env` vars by Secret Manager regardless of context (which is
+why `AI_API_KEY` worked fine here) — `defineString`'s default-fallback is not the same
+kind of passthrough, it's part of Firebase's own runtime, not something `.value()`
+reapplies generically outside it.
+
+Fixed two ways: `AnthropicModelClient`'s constructor now takes an optional explicit
+`model?: string`, falling back to `aiModel.value()` only when the caller doesn't supply
+one (the real `aiTutorMessage` callable's call site is unchanged and unaffected — it runs
+inside the real runtime where `.value()` was never broken); and the eval runner now
+passes one explicitly (`process.env.AI_MODEL || "claude-sonnet-5"`), since it's exactly
+the kind of bare-`node` caller the bug was about. Re-verified after the fix: `tsc` clean,
+`npm run test:functions` (33/33) and `npm run test:rules` (69/69) both still pass. Real
+scores from an actual `npm run eval` run against the live API are still needed from the
+user — this only fixes the harness itself, not the prompts' quality.
+
+### Explicit scope decision: transcript-dependent testing backlogged until real videos exist
+
+User instruction, verbatim: *"anything related to transcript lets backlog it and test it
+again once we have video."* Logged here as a deliberate, user-directed scope cut, not an
+oversight — every video in the app today is a placeholder with no real transcript, so
+transcript-dependent behavior can only exercise the spec's own honest-degradation path
+(tutor admits it only has the lesson summary; "Quiz me" falls back to multiple-choice),
+never the grounded, transcript-aware behavior the spec actually describes. Retesting
+those items against placeholder data would just re-confirm the fallback path, not the
+real feature.
+
+### Definition of done: live status against the spec's §7 Verify checklist
+
+`prompts/phase-04-ai-tutor.md` §7, the actual bar:
+
+| # | Item | Status |
+|---|---|---|
+| 1 | Open AI on a video with a transcript: three starter questions, grounded in-scope answer | Backlogged — no video has a real transcript yet; only the honest-degradation path is exercisable today, per the user's explicit instruction above |
+| 2 | Ask something the video never covers: tutor says so instead of inventing an answer | ✅ confirmed live |
+| 3 | "Quiz me" asks one question at a time, accepts a correctly-worded-differently answer | ✅ confirmed live |
+| 4 | A conversationally missed concept moves that video's `dueDate` earlier | Backlogged by user request — retest once real videos/transcripts exist |
+| 5 | Reopening the same video restores the thread | Open — not yet tested, cheap to test, not transcript-dependent |
+| 6 | Exceeding the rate limit shows the cap message with a reset time | ✅ confirmed live (screenshot), plus the live-countdown-timer feature added in response |
+| 7 | A video with no transcript still opens the tutor with the honest degraded opener | Backlogged — folded into item 1's transcript backlog, since this is the fallback path item 1 will exercise until real transcripts land |
+| 8 | Guest tapping AI gets the sign-in sheet | Open — not yet tested live, cheap to test (already gated in code at the rail button) |
+| 9 | `git grep` finds no model API key anywhere in the iOS target | ✅ confirmed — `git grep -niE "sk-ant-\|anthropic.*api.*key\|AI_API_KEY" -- 'Shui/*'` returns nothing |
+| 10 | `npm run eval` passes the assertion thresholds; scores table committed | Open — harness bug just fixed above, no real scored run against the live API yet, README's Scores section still unfilled |
+
+**3 of 10 confirmed** (2, 3, 6, 9), plus one already-verified prerequisite (build/deploy/
+tsc/tests, covered under Verification above but not itself a numbered item here). 3 items
+formally backlogged by explicit user instruction (1, 4, 7) pending real video transcripts.
+3 items open and cheap to close now (5, 8, 10) — none blocked on anything, just not yet
+run.
+
 ## Phases 5–6
 
 Not started.

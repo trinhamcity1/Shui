@@ -108,7 +108,10 @@ async function main(): Promise<void> {
         "end-to-end against the fixtures.\n"
     );
   }
-  const model: ModelClient | null = hasKey ? new AnthropicModelClient() : null;
+  // `AnthropicModelClient`'s no-arg default reads `AI_MODEL` via a Firebase
+  // `defineString` param, which only resolves outside the real Functions
+  // runtime — this bare `node` process needs the model passed explicitly.
+  const model: ModelClient | null = hasKey ? new AnthropicModelClient(process.env.AI_MODEL || "claude-sonnet-5") : null;
 
   const results: CaseResult[] = [];
   for (const evalCase of cases) {

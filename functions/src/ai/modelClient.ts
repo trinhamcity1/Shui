@@ -33,10 +33,25 @@ export interface ModelClient {
 }
 
 export class AnthropicModelClient implements ModelClient {
+  private readonly model: string;
+
+  /**
+   * `model` defaults to `aiModel.value()`, which only resolves correctly
+   * inside the real, Firebase-managed function runtime — `defineString`
+   * (unlike `defineSecret`) isn't a plain `process.env` passthrough, so a
+   * bare `node` process (the eval runner) silently gets an empty string
+   * back instead of the declared default. Callers running outside that
+   * runtime (evals) must pass the model explicitly rather than relying on
+   * this default.
+   */
+  constructor(model?: string) {
+    this.model = model ?? aiModel.value();
+  }
+
   async stream(params: StreamParams): Promise<string> {
     const client = new Anthropic({ apiKey: aiApiKey.value() });
     const stream = client.messages.stream({
-      model: aiModel.value(),
+      model: this.model,
       max_tokens: params.maxTokens,
       system: params.system,
       messages: params.messages.map((m) => ({ role: m.role, content: m.content })),
