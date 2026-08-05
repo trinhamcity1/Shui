@@ -1437,6 +1437,67 @@ listen for backward swipes starting right at the left edge — worth watching fo
 real device, though `simultaneousGesture` combined with the interactive pop gesture is
 a well-established combination elsewhere, not a novel risk.
 
+### The tab bar bug, a fourth time — and this time root-caused to the swipe feature itself
+
+A screen recording of a genuine cold launch (force-quit, relaunch) showed the video
+playing — content visibly advancing frame to frame — with the tab bar fully visible the
+entire time, never hiding. Confirmed across multiple frames, not a loading-phase
+artifact: this is a real, reproducing bug, and specifically only on a true cold launch,
+never after just backgrounding and foregrounding.
+
+The one thing that changed in this exact area since it last worked: the swipe-
+navigation commit above moved `TabView`'s `selection` binding from `RootTabView`'s own
+local `@State` to `appState.rootTab`, an `@EnvironmentObject`-sourced `@Published`
+property, so screens pushed deep inside Explore/Profile could also drive it. That's the
+leading suspect — SwiftUI's `.toolbar(for: .tabBar)` bridging to the underlying
+`UITabBarController` has already needed two earlier rounds of fixes in this exact spot
+this session (the `.loading`-state widening, the `objectWillChange` forwarding fix), so
+a third timing-sensitive regression here, specifically only reproducing on the slower,
+more asynchronous cold-launch path, is plausible. Rather than dig for definitive proof
+this sandbox has no device to actually obtain, the fix is a cheap, low-risk revert:
+`TabView` binds back to a local `@State` exactly as before, synced both directions with
+`appState.rootTab` via `.onChange` so tapping a tab icon and swiping can never drift out
+of step — `appState.rootTab` stays the thing every swipe gesture actually reads and
+writes, unchanged.
+
+### Swipe navigation, take two: a live, finger-tracking drag instead of gesture-then-jump
+
+Enhancement request: make the swipe feel like Instagram's — content visibly follows the
+finger while dragging, not a discrete gesture that's evaluated only once released and
+then jumps. The original `RingSwipeNavigation` only ever inspected `DragGesture`'s
+`.onEnded` value, computed a decision, and applied it instantly — functionally correct
+but visually a snap-cut, not a drag.
+
+Rewritten to track `.onChanged` too: an `offset` `@State` value is set directly (no
+animation wrapper) to the live horizontal translation on every gesture update, so
+content is glued to the touch with no lag. Releasing short of a 90pt commit threshold
+springs the offset back to 0 (`.interactiveSpring`); releasing past it finishes the
+slide the rest of the way off-screen (a fixed 600pt — comfortably past any real device
+width, so it never needs to know the actual screen size) using
+`withAnimation(_:completionCriteria:completion:)`, and only *after* that animation
+genuinely completes does the real navigation change (`appState.rootTab = next`, or
+`dismiss()`) fire and reset the offset — avoiding any guessed, hand-tuned delay between
+the visual slide and the real state change landing underneath it.
+
+Dragging in a direction with nothing to go to (past Profile, back past Learn) now does
+nothing at all rather than a rubber-band tug that would visually promise a destination
+that doesn't exist — checked live, per `.onChanged` frame, since a drag can reverse
+direction mid-gesture.
+
+**Deliberate scope cut, stated plainly rather than silently under-delivered**: this
+makes the *current* screen follow the finger and animate off; it does not render a live
+peek of the destination screen sliding in from the opposite edge the way a true
+Instagram/TikTok transition does. Building that properly — either a fully custom paging
+container (loses `TabView`'s native, already-correct safe-area/tab-bar behavior, a
+nontrivial rebuild with real regression risk across every screen that reads
+`safeAreaInsets`) or `TabView`'s native `.page` style (which removes the standard tab
+bar entirely and would still fight the very real gesture-conflict problem of two
+different native horizontal-pan recognizers — `.page`'s own paging gesture and
+`NavigationStack`'s interactive pop gesture — both wanting the same touch at different
+depths of the view hierarchy) — is real, further work with real risk, not something to
+attempt blind with no device or compiler to verify against. Worth reconsidering once the
+current version has been felt on a real device.
+
 ## Phase 6
 
 Not started.

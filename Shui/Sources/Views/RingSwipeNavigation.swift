@@ -12,9 +12,18 @@ import SwiftUI
 ///   if there is one (`isRoot == false`); only once a tab is back at its
 ///   own root does backward retreat one step through the ring.
 ///
-/// Both stop dead at the ends (Learn going back, Profile going forward)
-/// rather than wrapping around. `onSwipeBack` lets a caller pass its own
-/// already-captured `dismiss` instead of this modifier's own
+/// Both stop dead at the ends (Learn going back, Profile going forward) —
+/// dragging in a direction with nowhere to go simply doesn't move the
+/// content at all, rather than a rubber-band tug that implies something
+/// would happen on release.
+///
+/// The content tracks the finger 1:1 while dragging (an instagram-style
+/// "this is a physical sheet of paper" feel, not a discrete gesture that
+/// only *decides* where to go once released): dragging past the commit
+/// threshold and lifting finishes the slide the rest of the way off-screen
+/// before the real navigation change lands underneath it; releasing short
+/// of the threshold springs back to rest. `onSwipeBack` lets a caller pass
+/// its own already-captured `dismiss` instead of this modifier's own
 /// `@Environment(\.dismiss)` — needed for anything instantiated inside a
 /// `ForEach`/`LazyVStack`, where `@Environment` re-resolution is unreliable
 /// (see `FeedView`'s own comment on the same gotcha).
@@ -24,25 +33,72 @@ struct RingSwipeNavigation: ViewModifier {
     let isRoot: Bool
     var onSwipeBack: (() -> Void)?
 
+    @State private var offset: CGFloat = 0
+    /// Blocks a new drag from starting while the previous one is still
+    /// mid-commit-animation — the underlying content is about to be
+    /// swapped out from under it anyway.
+    @State private var isCommitting = false
+
+    /// How far, in points, a drag has to travel horizontally before
+    /// release commits the navigation instead of springing back. A
+    /// starting point, not a tuned value — this sandbox has no device to
+    /// tune it against.
+    private let commitThreshold: CGFloat = 90
+    /// How far content visibly finishes sliding once a swipe commits —
+    /// comfortably past any real device width, so "fully off-screen"
+    /// never depends on knowing the actual screen size.
+    private let commitSlideDistance: CGFloat = 600
+
     func body(content: Content) -> some View {
-        content.simultaneousGesture(
-            DragGesture(minimumDistance: 24)
-                .onEnded { value in
-                    let dx = value.translation.width
-                    let dy = value.translation.height
-                    // Direction-locked: only a drag that's clearly more
-                    // horizontal than vertical counts, so this never fights
-                    // a feed's own vertical video-paging scroll for the
-                    // same touch. Thresholds are a starting point — this
-                    // sandbox has no device to tune them against.
-                    guard abs(dx) > abs(dy) * 1.5, abs(dx) > 60 else { return }
-                    if dx < 0 {
-                        swipeForward()
-                    } else {
-                        swipeBack()
+        content
+            .offset(x: offset)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 16)
+                    .onChanged { value in
+                        guard !isCommitting, isHorizontalDrag(value.translation) else { return }
+                        // No animation wrapper here on purpose — this needs
+                        // to read as glued to the touch, not catching up to
+                        // it a frame later the way an animated value would.
+                        offset = canCommit(dx: value.translation.width) ? value.translation.width : 0
                     }
-                }
-        )
+                    .onEnded { value in
+                        guard !isCommitting, isHorizontalDrag(value.translation) else { return }
+                        handleEnded(dx: value.translation.width)
+                    }
+            )
+    }
+
+    /// Only a drag that's clearly more horizontal than vertical counts, so
+    /// this never fights a feed's own vertical video-paging scroll (or any
+    /// other vertical scroll view) for the same touch.
+    private func isHorizontalDrag(_ translation: CGSize) -> Bool {
+        abs(translation.width) > abs(translation.height) * 1.5
+    }
+
+    private func canCommit(dx: CGFloat) -> Bool {
+        if dx < 0 {
+            return appState.rootTab.nextInRing != nil
+        }
+        return isRoot ? appState.rootTab.previousInRing != nil : true
+    }
+
+    private func handleEnded(dx: CGFloat) {
+        guard abs(dx) > commitThreshold, canCommit(dx: dx) else {
+            withAnimation(.interactiveSpring(response: 0.35, dampingFraction: 0.82)) {
+                offset = 0
+            }
+            return
+        }
+        let direction: CGFloat = dx < 0 ? -1 : 1
+        let action = dx < 0 ? swipeForward : swipeBack
+        isCommitting = true
+        withAnimation(.easeIn(duration: 0.22), completionCriteria: .logicallyComplete) {
+            offset = direction * commitSlideDistance
+        } completion: {
+            action()
+            offset = 0
+            isCommitting = false
+        }
     }
 
     private func swipeForward() {

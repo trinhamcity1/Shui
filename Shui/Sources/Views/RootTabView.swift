@@ -6,10 +6,24 @@ struct RootTabView: View {
     @EnvironmentObject private var environment: AppEnvironment
     @EnvironmentObject private var appState: AppState
     @Environment(\.theme) private var theme
+    /// `TabView`'s own selection binding deliberately stays local `@State`
+    /// — the same way it worked before swipe navigation existed — rather
+    /// than binding directly to `appState.rootTab`. Routing `TabView`
+    /// straight through an `@EnvironmentObject`-sourced `@Published`
+    /// property is the leading suspect for a real regression: the tab bar
+    /// stopped reliably hiding during the very first autoplay after a
+    /// genuine cold launch (backgrounding/foregrounding was unaffected,
+    /// and this is the only thing that changed in this area since it last
+    /// worked). `appState.rootTab` stays the single source of truth swipe
+    /// gestures read and write — reachable from screens pushed deep inside
+    /// Explore/Profile, which local `@State` here never could be — synced
+    /// both directions below so tapping a tab icon and swiping can never
+    /// drift out of step with each other.
+    @State private var selection: RootTab = .learn
 
     var body: some View {
-        TabView(selection: $appState.rootTab) {
-            FeedView(mode: .mixed, environment: environment, onExploreRequested: { appState.rootTab = .explore })
+        TabView(selection: $selection) {
+            FeedView(mode: .mixed, environment: environment, onExploreRequested: { selection = .explore })
                 .tabItem { Label(Strings.learnTab, systemImage: "play.rectangle.fill") }
                 .tag(RootTab.learn)
             ExploreView(environment: environment)
@@ -25,6 +39,12 @@ struct RootTabView: View {
             #endif
         }
         .tint(theme.accent)
+        .onChange(of: appState.rootTab) { _, newValue in
+            if selection != newValue { selection = newValue }
+        }
+        .onChange(of: selection) { _, newValue in
+            if appState.rootTab != newValue { appState.rootTab = newValue }
+        }
     }
 }
 
