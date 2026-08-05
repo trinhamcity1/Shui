@@ -31,6 +31,7 @@ struct TopicPageView: View {
     @Environment(\.theme) private var theme
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: TopicPageViewModel
+    @State private var isDescriptionExpanded = false
 
     init(topicId: String, environment: AppEnvironment) {
         self.topicId = topicId
@@ -63,38 +64,66 @@ struct TopicPageView: View {
                 if let progress = viewModel.topicProgress {
                     progressBlock(progress)
                 }
-                if !topic.description.isEmpty {
-                    Text((try? AttributedString(markdown: topic.description)) ?? AttributedString(topic.description))
-                        .font(.body)
-                        .foregroundStyle(theme.textPrimary)
-                        .padding(.horizontal, 20)
-                }
+                descriptionSection(topic: topic)
                 videoList
             }
             .padding(.bottom, 32)
         }
     }
 
-    private func cover(topic: Topic) -> some View {
-        TopicCoverThumbnail(urlString: topic.coverImageURL, placeholderFont: .largeTitle)
-            .frame(height: 180)
-    }
+    /// A fixed warm-cream, not `theme.textPrimary` — the scrim underneath is
+    /// the same near-black in both app themes, so the title needs to stay
+    /// light regardless of which theme is active, the same way it would sit
+    /// on a permanently-dark scrim in either light or dark mode. Matches the
+    /// exact swatch `DarkPalette.textPrimary` already uses, so it reads as
+    /// "this app's cream," not an arbitrary white.
+    private static let heroTextColor = Color(hex: 0xF5F1EA)
 
-    private func header(topic: Topic) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(topic.title)
-                    .font(.title2.bold())
-                    .foregroundStyle(theme.textPrimary)
+    private func cover(topic: Topic) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            TopicCoverThumbnail(urlString: topic.coverImageURL, placeholderFont: .largeTitle)
+            // Transparent through the top two-thirds so the photo itself
+            // stays vivid; darkens only where the title actually sits.
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: .black.opacity(0.04), location: 0.6),
+                    .init(color: .black.opacity(0.68), location: 1),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            VStack(alignment: .leading, spacing: 4) {
                 if topic.visibility == .private {
                     Text("Private")
                         .font(.caption2.weight(.semibold))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(Capsule().fill(theme.warning.opacity(0.18)))
-                        .foregroundStyle(theme.warning)
+                        .background(Capsule().fill(.white.opacity(0.22)))
+                        .foregroundStyle(Self.heroTextColor)
                 }
+                Text(topic.title)
+                    .font(.title2.bold())
+                    .foregroundStyle(Self.heroTextColor)
+                    // A soft, close shadow rather than a hard outline — legible
+                    // over a busy photo without looking like a sticker.
+                    .shadow(color: .black.opacity(0.35), radius: 4, y: 1)
             }
+            .padding(16)
+        }
+        .frame(height: 220)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        // A soft, low, wide shadow under the whole card — a lifted-off-the-
+        // page feel rather than a hard edge, matching "soft UI" without
+        // reaching for a whole neumorphic inset/outset shadow pair, which
+        // reads as busy under scroll and needs its own light-source
+        // consistency this codebase doesn't otherwise establish.
+        .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
+        .padding(.horizontal, 20)
+    }
+
+    private func header(topic: Topic) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
             Text(topic.subtitle)
                 .font(.subheadline)
                 .foregroundStyle(theme.textSecondary)
@@ -150,6 +179,35 @@ struct TopicPageView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value).font(.subheadline.weight(.semibold)).foregroundStyle(theme.textPrimary)
             Text(label).font(.caption2).foregroundStyle(theme.textSecondary)
+        }
+    }
+
+    /// Collapsed to a few lines with a tap-to-expand affordance, so a long
+    /// description doesn't push the video list — the thing you actually
+    /// came here for — several screens down. A character-count threshold
+    /// rather than measuring actual rendered truncation: simple, and short
+    /// descriptions never show a toggle that would just collapse back to
+    /// the exact same text it started as.
+    @ViewBuilder
+    private func descriptionSection(topic: Topic) -> some View {
+        if !topic.description.isEmpty {
+            let isLong = topic.description.count > 220
+            VStack(alignment: .leading, spacing: 6) {
+                Text((try? AttributedString(markdown: topic.description)) ?? AttributedString(topic.description))
+                    .font(.body)
+                    .foregroundStyle(theme.textPrimary)
+                    .lineLimit(isDescriptionExpanded || !isLong ? nil : 4)
+                if isLong {
+                    Button(isDescriptionExpanded ? "Show less" : "Read more") {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isDescriptionExpanded.toggle()
+                        }
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(theme.accent)
+                }
+            }
+            .padding(.horizontal, 20)
         }
     }
 

@@ -38,15 +38,12 @@ struct QuizOverlayContainer: View {
                         }
                     case .submissionFailed(let message):
                         QuizSubmissionFailedCard(message: message, onRetry: { viewModel.retrySubmission(for: page) })
-                    case .revealing:
-                        if let reveal = page.revealForCurrentQuestion() {
-                            QuizRevealCard(
-                                question: reveal.question,
-                                result: reveal.result,
-                                selectedOptionIds: page.selectedOptionsByQuestion[reveal.question.id] ?? [],
-                                onContinue: { page.advanceReveal() }
-                            )
-                        }
+                    case .revealingAll:
+                        QuizAllResultsCard(
+                            items: page.allRevealItems(),
+                            selections: page.selectedOptionsByQuestion,
+                            onContinue: { page.finishReveal() }
+                        )
                     case .result:
                         QuizResultCard(page: page, onNext: onNextLesson, onReplay: { viewModel.replay(page) })
                     }
@@ -90,7 +87,7 @@ private extension LessonEndState {
         case .answering: return 3
         case .submitting: return 4
         case .submissionFailed: return 5
-        case .revealing: return 6
+        case .revealingAll: return 6
         case .result: return 7
         }
     }
@@ -214,51 +211,66 @@ private struct QuizSubmissionFailedCard: View {
 
 // MARK: - Reveal
 
-private struct QuizRevealCard: View {
+/// Every question's result in one scroll, not stepped through with a
+/// "Continue" tap per question — a learner comparing question 2's
+/// explanation against question 4's shouldn't have to remember it or step
+/// backward to see it again.
+private struct QuizAllResultsCard: View {
     @Environment(\.theme) private var theme
-    let question: QuizQuestion
-    let result: QuizQuestionResult
-    let selectedOptionIds: Set<String>
+    let items: [(question: QuizQuestion, result: QuizQuestionResult)]
+    let selections: [String: Set<String>]
     let onContinue: () -> Void
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                HStack(spacing: 8) {
-                    Image(systemName: result.wasCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundStyle(result.wasCorrect ? theme.success : theme.error)
-                    Text(result.wasCorrect ? "Correct" : "Not quite")
-                        .font(.headline)
-                }
+            VStack(alignment: .leading, spacing: 24) {
+                ForEach(Array(items.enumerated()), id: \.element.question.id) { index, item in
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 8) {
+                            Image(systemName: item.result.wasCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .foregroundStyle(item.result.wasCorrect ? theme.success : theme.error)
+                            Text("Question \(index + 1) of \(items.count)")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(theme.textSecondary)
+                        }
 
-                Text(question.prompt)
-                    .font(.title3.weight(.bold))
-                    .fixedSize(horizontal: false, vertical: true)
+                        Text(item.question.prompt)
+                            .font(.headline)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                VStack(spacing: 12) {
-                    ForEach(question.options) { option in
-                        RevealOptionRow(
-                            text: option.text,
-                            isSelected: selectedOptionIds.contains(option.id),
-                            isCorrect: result.correctOptionIds.contains(option.id)
-                        )
+                        VStack(spacing: 10) {
+                            ForEach(item.question.options) { option in
+                                RevealOptionRow(
+                                    text: option.text,
+                                    isSelected: (selections[item.question.id] ?? []).contains(option.id),
+                                    isCorrect: item.result.correctOptionIds.contains(option.id)
+                                )
+                            }
+                        }
+
+                        Text(item.result.explanation)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if index < items.count - 1 {
+                        Divider()
                     }
                 }
 
-                Text(result.explanation)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 4)
-
                 Button("Continue", action: onContinue)
                     .buttonStyle(.shuiPill)
+                    .frame(maxWidth: .infinity)
                     .padding(.top, 4)
             }
             .padding(20)
         }
         .scrollBounceBehavior(.basedOnSize)
         .onAppear {
-            if result.wasCorrect {
+            // A single success beat for "you got everything right," rather
+            // than firing once per question — that reads as one continuous
+            // buzz on a screen that shows every question at once.
+            if !items.isEmpty, items.allSatisfy(\.result.wasCorrect) {
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
             }
         }

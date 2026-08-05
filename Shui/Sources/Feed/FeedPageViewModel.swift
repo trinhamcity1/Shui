@@ -19,7 +19,12 @@ enum LessonEndState: Equatable {
     /// won't just clear up on its own, and telling the learner so beats a
     /// canned offline message that's misleading for anything else.
     case submissionFailed(message: String?)
-    case revealing(questionIndex: Int)
+    /// Every question's result at once, scrollable — not stepped through
+    /// question-by-question with a "Continue" tap each time. A learner who
+    /// wants to compare their answer against the explanation for question 2
+    /// while question 4 is still visible below shouldn't have to remember
+    /// it or step backward.
+    case revealingAll
     case result
 }
 
@@ -195,7 +200,7 @@ final class FeedPageViewModel: ObservableObject, Identifiable {
     func receiveResult(_ result: QuizResult, masteryDelta: Int?) {
         quizResult = result
         self.masteryDelta = masteryDelta
-        endState = sortedQuestions.isEmpty ? .result : .revealing(questionIndex: 0)
+        endState = sortedQuestions.isEmpty ? .result : .revealingAll
     }
 
     func failSubmission(_ error: Error? = nil) {
@@ -214,18 +219,19 @@ final class FeedPageViewModel: ObservableObject, Identifiable {
 
     // MARK: - Revealing
 
-    func revealForCurrentQuestion() -> (question: QuizQuestion, result: QuizQuestionResult)? {
-        guard case .revealing(let index) = endState,
-              sortedQuestions.indices.contains(index),
-              let quizResult
-        else { return nil }
-        let question = sortedQuestions[index]
-        guard let result = quizResult.results.first(where: { $0.questionId == question.id }) else { return nil }
-        return (question, result)
+    /// Every answered question paired with its graded result, in the same
+    /// order the learner saw them — the full data `QuizAllResultsCard`
+    /// scrolls through in one pass.
+    func allRevealItems() -> [(question: QuizQuestion, result: QuizQuestionResult)] {
+        guard let quizResult else { return [] }
+        return sortedQuestions.compactMap { question in
+            guard let result = quizResult.results.first(where: { $0.questionId == question.id }) else { return nil }
+            return (question, result)
+        }
     }
 
-    func advanceReveal() {
-        guard case .revealing(let index) = endState else { return }
-        endState = index < sortedQuestions.count - 1 ? .revealing(questionIndex: index + 1) : .result
+    func finishReveal() {
+        guard endState == .revealingAll else { return }
+        endState = .result
     }
 }

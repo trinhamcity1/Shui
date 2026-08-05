@@ -46,6 +46,11 @@ struct ExploreView: View {
                 }
                 .padding(.vertical, 16)
             }
+            // `.task` only runs once per view lifetime — TabView keeps every
+            // tab's hierarchy alive, so switching away and back never
+            // re-triggers it. Without this, topicCount (and everything else
+            // here) can only ever go stale until the app relaunches.
+            .refreshable { await load() }
         }
     }
 

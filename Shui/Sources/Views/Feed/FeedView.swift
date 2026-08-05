@@ -41,6 +41,15 @@ struct FeedView: View {
         // stops the system back button from doubling up with
         // FeedPageView's own immersive one.
         .toolbar(.hidden, for: .navigationBar)
+        // Full immersion while a video is actually playing; the tab bar
+        // comes right back the moment it's paused, ends, or a quiz opens —
+        // not tied to a swipe gesture, since up/down are already spoken for
+        // by page-to-page paging and a tap already toggles play/pause.
+        // Binding hide/reveal to a state transition that already exists
+        // (rather than a new gesture competing with those two) is what
+        // avoids a real conflict, not just a smaller one.
+        .toolbar(isCurrentVideoPlaying ? .hidden : .automatic, for: .tabBar)
+        .animation(.easeInOut(duration: 0.25), value: isCurrentVideoPlaying)
         .task { await viewModel.loadInitial() }
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected {
@@ -50,6 +59,11 @@ struct FeedView: View {
         .sheet(isPresented: $showSignInSheet) {
             SignInSheet()
         }
+    }
+
+    private var isCurrentVideoPlaying: Bool {
+        if case .playing = viewModel.playerPool.states[viewModel.currentIndex] { return true }
+        return false
     }
 
     @ViewBuilder

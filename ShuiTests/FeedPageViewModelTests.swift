@@ -147,7 +147,7 @@ final class FeedPageViewModelTests: XCTestCase {
         XCTAssertEqual(answers?.first(where: { $0.questionId == "q1" })?.selectedOptionIds, ["b"])
     }
 
-    func testReceivingAResultMovesToRevealingTheFirstQuestion() {
+    func testReceivingAResultMovesToRevealingAllQuestionsAtOnce() {
         let page = FeedPageViewModel(video: makeVideo(), source: .everythingElse)
         let quiz = makeQuiz(questionCount: 2)
         page.quizDidLoad(quiz)
@@ -167,12 +167,15 @@ final class FeedPageViewModelTests: XCTestCase {
         )
         page.receiveResult(result, masteryDelta: 5)
 
-        XCTAssertEqual(page.endState, .revealing(questionIndex: 0))
+        XCTAssertEqual(page.endState, .revealingAll)
         XCTAssertEqual(page.masteryDelta, 5)
-        XCTAssertEqual(page.revealForCurrentQuestion()?.question.id, "q0")
+        let items = page.allRevealItems()
+        XCTAssertEqual(items.count, 2)
+        XCTAssertEqual(items.first?.question.id, "q0")
+        XCTAssertEqual(items.last?.question.id, "q1")
     }
 
-    func testAdvancingRevealPastTheLastQuestionReachesResult() {
+    func testFinishingRevealReachesResult() {
         let page = FeedPageViewModel(video: makeVideo(), source: .everythingElse)
         let quiz = makeQuiz(questionCount: 2)
         page.quizDidLoad(quiz)
@@ -192,9 +195,7 @@ final class FeedPageViewModelTests: XCTestCase {
         )
         page.receiveResult(result, masteryDelta: nil)
 
-        page.advanceReveal()
-        XCTAssertEqual(page.endState, .revealing(questionIndex: 1))
-        page.advanceReveal()
+        page.finishReveal()
         XCTAssertEqual(page.endState, .result)
     }
 
