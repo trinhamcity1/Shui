@@ -57,7 +57,7 @@ struct TopicPageView: View {
         // not the ring. The system nav bar's own back button/edge-swipe
         // stays too; this just adds the same full-screen gesture the video
         // feed uses, so the two feel consistent.
-        .ringSwipeNavigation(isRoot: false, onSwipeBack: dismiss.callAsFunction)
+        .ringSwipeNavigation(onSwipeBack: dismiss.callAsFunction)
     }
 
     @ViewBuilder

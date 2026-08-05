@@ -41,7 +41,7 @@ struct CategoryPageView: View {
         .task { await viewModel.loadInitial() }
         // See the matching comment on `TopicPageView` — same treatment,
         // one level up the stack.
-        .ringSwipeNavigation(isRoot: false, onSwipeBack: dismiss.callAsFunction)
+        .ringSwipeNavigation(onSwipeBack: dismiss.callAsFunction)
     }
 
     private var header: some View {

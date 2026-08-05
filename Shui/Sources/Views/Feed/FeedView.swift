@@ -5,27 +5,49 @@ import SwiftUI
 struct FeedView: View {
     @StateObject private var viewModel: FeedViewModel
     @StateObject private var networkMonitor = NetworkMonitor()
+    @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @State private var scrollPositionID: String?
     @State private var showSignInSheet = false
     var onExploreRequested: (() -> Void)?
-    /// `true` only for the Learn tab's own mixed feed — every other mode
-    /// (`.topic`, `.videoList`) is something pushed on top of Explore or
-    /// Profile's own stack, which is what `isRoot` on
-    /// `ringSwipeNavigation` needs to know.
-    private let isTabRoot: Bool
+    /// Which ring tab this feed conceptually belongs to — Learn for its
+    /// own mixed feed, Explore for a pushed topic, Profile for a pushed
+    /// Saved/Liked/due-for-review list. Two things read this: which swipe
+    /// modifier a root feed gets vs. a pushed one (see `body`), and —
+    /// since `RootTabView`'s pager keeps every ring tab's content alive
+    /// simultaneously, the same way `TabView` always did, rather than
+    /// tearing it down when it scrolls off-screen — whether *this*
+    /// instance is the one currently allowed to drive the shared tab bar
+    /// (see the `appState.isTabBarHidden` handling below).
+    private let owningRootTab: RootTab
+    private var isTabRoot: Bool { owningRootTab == .learn }
 
     init(mode: FeedViewModel.Mode, environment: AppEnvironment, onExploreRequested: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: FeedViewModel(mode: mode, environment: environment))
         self.onExploreRequested = onExploreRequested
-        if case .mixed = mode {
-            isTabRoot = true
-        } else {
-            isTabRoot = false
+        switch mode {
+        case .mixed: owningRootTab = .learn
+        case .topic: owningRootTab = .explore
+        case .videoList: owningRootTab = .profile
         }
     }
 
     var body: some View {
+        // The root case gets the ring-level peek swipe (this is one of the
+        // three tabs `RootTabView`'s pager lays out side by side); a
+        // pushed instance gets pop-or-advance instead — see
+        // `RingSwipeNavigation`'s own doc comment for why these are two
+        // different modifiers rather than one with a flag.
+        Group {
+            if isTabRoot {
+                feedContent.rootRingPeekSwipe()
+            } else {
+                feedContent.ringSwipeNavigation(onSwipeBack: dismiss.callAsFunction)
+            }
+        }
+    }
+
+    private var feedContent: some View {
         // Two nested readers on purpose. `outerGeo` sits *above* the
         // `.ignoresSafeArea()` below, so it still sees the real, tab-bar-
         // inclusive bottom safe area inset — `.ignoresSafeArea()` zeroes
@@ -52,21 +74,41 @@ struct FeedView: View {
         // FeedPageView's own immersive one.
         .toolbar(.hidden, for: .navigationBar)
         // Full immersion while a video is actually playing; the tab bar
-        // comes right back the moment it's paused, ends, or a quiz opens —
-        // not tied to a swipe gesture, since up/down are already spoken for
-        // by page-to-page paging and a tap already toggles play/pause.
-        // Binding hide/reveal to a state transition that already exists
-        // (rather than a new gesture competing with those two) is what
-        // avoids a real conflict, not just a smaller one.
-        .toolbar(isImmersed ? .hidden : .automatic, for: .tabBar)
-        // The video feed no longer shows a visible back button when it's
-        // something pushed (see `FeedPageView.topBar`) — this, plus the
-        // ring-forward gesture, is the whole replacement. `dismiss` is
-        // passed explicitly rather than letting the modifier read its own
-        // `@Environment(\.dismiss)`, matching the same captured-once
-        // pattern `onNextLesson`/`onRequireSignIn` already use below for
-        // views instantiated inside the feed's `ForEach`.
-        .ringSwipeNavigation(isRoot: isTabRoot, onSwipeBack: swipeBackAction)
+        // comes right back the moment it's paused, ends, or a quiz opens.
+        // `appState.isTabBarHidden` is a plain, directly-set boolean —
+        // `RootTabView`'s own custom bottom bar reads it directly, with no
+        // `.toolbar(for: .tabBar)`/`UITabBarController` bridging involved
+        // to get out of sync the way it did three separate times before
+        // this feed's tab bar was rebuilt as a custom view.
+        //
+        // Gated on `appState.rootTab == owningRootTab` throughout: since
+        // the pager never tears this view down when its ring tab scrolls
+        // off-screen, a video left playing in the background could
+        // otherwise keep writing `true` forever, leaving the bar stuck
+        // hidden on whichever tab the learner actually swiped to.
+        .onAppear {
+            if appState.rootTab == owningRootTab { appState.isTabBarHidden = isImmersed }
+        }
+        .onDisappear {
+            if appState.rootTab == owningRootTab { appState.isTabBarHidden = false }
+        }
+        .onChange(of: isImmersed) { _, newValue in
+            guard appState.rootTab == owningRootTab else { return }
+            appState.isTabBarHidden = newValue
+        }
+        .onChange(of: appState.rootTab) { oldTab, newTab in
+            if oldTab == owningRootTab, newTab != owningRootTab {
+                // Just stopped being the active ring tab — let go of the
+                // bar if we were the one holding it hidden. A no-op if we
+                // weren't.
+                appState.isTabBarHidden = false
+            } else if newTab == owningRootTab {
+                // Just became the active tab (or already were) — reflect
+                // our own current immersion state, in case it changed
+                // while we were the one off-screen.
+                appState.isTabBarHidden = isImmersed
+            }
+        }
         .task { await viewModel.loadInitial() }
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected {
@@ -78,25 +120,12 @@ struct FeedView: View {
         }
     }
 
-    /// `nil` for the tab root (nothing to pop, `ringSwipeNavigation`
-    /// retreats the ring instead); `dismiss` for anything pushed.
-    private var swipeBackAction: (() -> Void)? {
-        if isTabRoot {
-            return nil
-        }
-        return dismiss.callAsFunction
-    }
-
     /// Hidden once a video is loading or playing, not only once it's
     /// confirmed `.playing` — `.loading` is set synchronously the instant
     /// `prepare()` runs, before any async player-readiness callback, so
     /// gating on it too means the very first autoplay on landing in the
     /// feed hides the bar immediately rather than only on some later,
-    /// unrelated state change. (An explicit `.animation()` here was
-    /// removed for the same reason: wrapping a value that changes
-    /// concurrently with the enclosing NavigationLink's own push transition
-    /// tends to get its first transition swallowed — `.toolbar`'s own
-    /// built-in transition handles this correctly without it.)
+    /// unrelated state change.
     private var isImmersed: Bool {
         switch viewModel.playerPool.states[viewModel.currentIndex] {
         case .playing, .loading: return true

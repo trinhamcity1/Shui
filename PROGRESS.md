@@ -1498,6 +1498,73 @@ depths of the view hierarchy) — is real, further work with real risk, not some
 attempt blind with no device or compiler to verify against. Worth reconsidering once the
 current version has been felt on a real device.
 
+### Swipe navigation, take three: the real Instagram-style peek, via a custom pager
+
+The user pushed back on the deliberate scope cut above: they specifically wanted what
+was flagged as deferred — the destination tab visibly peeking in at the edge while
+dragging, the way Instagram's own feed-to-camera swipe shows the camera screen approach
+before you finish the gesture, not just the current screen sliding away over a plain
+background. Confirmed this is genuinely only possible by replacing `TabView`, since
+`TabView` cannot render two tabs' content at once under any configuration — and built it.
+
+**Architecture**: `RootTabView` is no longer a `TabView`. Learn, Explore, and Profile are
+laid out as three full-width siblings in one `HStack` inside a `GeometryReader`, offset by
+`-index * width + appState.rootDragOffset` — all three stay instantiated simultaneously
+the whole time (the same "every tab keeps its own live state" behavior `TabView` already
+provided, just achieved by hand now), so the tab being swiped toward is real, live
+content, not a throwaway preview or a static placeholder. The bottom tab bar is now a
+hand-drawn view supplied via `.safeAreaInset(edge: .bottom)` — the standard, documented
+API for exactly this ("a custom bar that other content should treat as consuming safe
+area space"), which is what lets `FeedView`'s existing `tabBarBottomInset` calculation
+(used to keep the quiz card clear of the bar) keep working unmodified. Debug stays
+reachable only by tapping its own bar icon, tracked separately from the ring entirely
+(`isShowingDebug`, local to `RootTabView`) — it was never part of `RootTab.ring` and isn't
+part of this pager either, just a full-screen swap.
+
+**The swipe gesture itself moved, not just its visual result.** `RootRingPeekSwipe` (new)
+is attached to each ring tab's *own root content* — `FeedView` in `.mixed` mode,
+`ExploreView`, `ProfileView` — exactly the same attachment point the previous round's
+`RingSwipeNavigation(isRoot: true)` already used successfully. That's a deliberate reuse
+of a proven pattern, not a new risk: the live screen recording from the previous round
+already demonstrated empirically that a gesture attached at a NavigationStack's own root
+content correctly stops receiving touches the moment something is pushed on top of it
+(the pushed screen becomes what's actually hit-testable), so there's no conflict between
+this and `RingSwipeNavigation` (kept, simplified, for pushed screens) fighting over the
+same touch — confirmed by reasoning from that earlier evidence, not asserted blind, since
+this session has already been burned three times by unverified SwiftUI gesture/timing
+assumptions in this exact area. `RootRingPeekSwipe` writes the live drag straight to
+`appState.rootDragOffset`, which the pager applies to its `HStack`'s offset — the peek is
+just that shared value being read by two different places at once, no additional
+plumbing. Committing animates `rootTab` and `rootDragOffset` back to 0 in the *same*
+transaction, so the interpolation continues smoothly from wherever the finger let go
+straight to the new tab's exact resting position, rather than a fixed slide-and-reset.
+
+**A real bug this rebuild would otherwise have introduced, caught before shipping it**:
+since the pager keeps every ring tab's content alive simultaneously — including a video
+still playing in the background on a tab the learner has swiped away from, which nothing
+in this app has ever paused on tab-switch — the naive version of "any `FeedView` sets a
+shared `isTabBarHidden` flag while immersed" would let a backgrounded, still-playing Learn
+video keep the bar stuck hidden after swiping to Explore, where the video isn't even
+visible. Fixed by having every `FeedView` gate its writes to `appState.isTabBarHidden` on
+`appState.rootTab == owningRootTab` (which ring tab it actually belongs to — Learn,
+Explore, or Profile, computed from its `FeedViewModel.Mode`), plus explicit handling for
+the moment `rootTab` changes so the bar reliably lets go the instant a tab stops being
+active, not just when that tab's own immersion state happens to change.
+
+**Two things flagged rather than silently assumed correct, both real but lower-confidence
+than the rest of this change**: whether `.safeAreaInset`'s propagation genuinely reaches
+through the extra `GeometryReader`/`HStack`/`.frame` layers now sitting between it and
+`FeedView`'s own safe-area reads (standard, documented composition, but unverified without
+a build); and whether a fixed-width `.frame` inside the pager's `HStack` renders every
+screen identically to how it did as a direct `TabView` tab content. Both are the kind of
+thing that either just works or produces an immediately obvious visual glitch on first
+launch — not a subtle, hard-to-notice failure mode — so they're the first things worth
+checking on a real device rather than deep, hidden risks.
+
+**Deliberately still not covered**: `RingSwipeNavigation` (pushed screens — a topic, a
+video reached from Explore or Profile) still doesn't get a live peek of what's underneath
+on backward swipes — documented in the previous entry for why, unchanged by this round.
+
 ## Phase 6
 
 Not started.
