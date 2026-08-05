@@ -7,6 +7,12 @@ struct ExploreView: View {
     let environment: AppEnvironment
     @Environment(\.theme) private var theme
     @State private var categories: [Category] = []
+    /// Live per-category counts, keyed by category id — see
+    /// `TopicRepository.publicTopicCount(inCategory:)` for why this reads a
+    /// fresh aggregate query on every load rather than trusting
+    /// `Category.topicCount`, a denormalized counter that's now caused two
+    /// separate rounds of "why does this show 0" reports.
+    @State private var liveTopicCounts: [String: Int] = [:]
     @State private var continueTopics: [(topic: Topic, progress: TopicProgress)] = []
     @State private var isLoading = true
     @State private var searchText = ""
@@ -90,7 +96,7 @@ struct ExploreView: View {
                     NavigationLink {
                         CategoryPageView(category: category, environment: environment)
                     } label: {
-                        CategoryTile(category: category)
+                        CategoryTile(category: category, topicCount: liveTopicCounts[category.id ?? ""] ?? category.topicCount)
                     }
                     .buttonStyle(.plain)
                 }
@@ -142,6 +148,24 @@ struct ExploreView: View {
         )
         categories = fetchedCategories.sorted { $0.sortOrder < $1.sortOrder }
 
+        // One aggregate query per category, all concurrent — 11 categories
+        // means 11 near-free reads in parallel, not 11 round trips in
+        // series.
+        liveTopicCounts = await withTaskGroup(of: (String, Int).self) { group in
+            for category in fetchedCategories {
+                guard let categoryId = category.id else { continue }
+                group.addTask {
+                    let count = (try? await environment.topics.publicTopicCount(inCategory: categoryId)) ?? category.topicCount
+                    return (categoryId, count)
+                }
+            }
+            var results: [String: Int] = [:]
+            for await (categoryId, count) in group {
+                results[categoryId] = count
+            }
+            return results
+        }
+
         var entries: [(Topic, TopicProgress)] = []
         for progress in topicProgressList where progress.videosCompleted < progress.videosTotal {
             if let topic = try? await environment.topics.topic(id: progress.topicId) {
@@ -186,6 +210,9 @@ struct ExploreView: View {
 private struct CategoryTile: View {
     @Environment(\.theme) private var theme
     let category: Category
+    /// Passed in rather than read from `category.topicCount` directly — see
+    /// `ExploreView.load()`, which resolves this from a live query.
+    let topicCount: Int
 
     private var accent: Color {
         Color(hex: UInt32(category.accentHex.replacingOccurrences(of: "#", with: ""), radix: 16) ?? 0xB4530A)
@@ -200,7 +227,7 @@ private struct CategoryTile: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(theme.textPrimary)
                 .multilineTextAlignment(.leading)
-            Text("\(category.topicCount) topic\(category.topicCount == 1 ? "" : "s")")
+            Text("\(topicCount) topic\(topicCount == 1 ? "" : "s")")
                 .font(.caption)
                 .foregroundStyle(theme.textSecondary)
         }

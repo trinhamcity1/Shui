@@ -15,6 +15,17 @@ protocol TopicRepository {
     /// the paginated form the category page actually uses.
     func topics(inCategory categoryId: String) async throws -> [Topic]
     func topics(inCategory categoryId: String, sortedBy: TopicSort, limit: Int, after cursor: PageCursor?) async throws -> Page<Topic>
+    /// A live server-side count, not `Category.topicCount` (a denormalized
+    /// counter maintained by a Cloud Functions trigger on publish/unpublish
+    /// — one more moving part than a count strictly needs, and one that's
+    /// silently wrong until deployed, until every already-public topic gets
+    /// one more write to be picked up, or if it simply never fires for a
+    /// reason nothing surfaces). Explore's category grid reads this instead
+    /// specifically because it's the one place a wrong "0 topics" actively
+    /// misleads a learner into thinking a category is empty when it isn't —
+    /// worth a cheap aggregate query over trusting a counter with that much
+    /// surface area for silently drifting out of sync.
+    func publicTopicCount(inCategory categoryId: String) async throws -> Int
     /// Firestore has no full-text search — a `title`-prefix range query
     /// (`title >= q`, `title < q + high-codepoint`), scoped to public,
     /// non-deleted topics. Finds topics, not videos or tags; the caller is
@@ -125,6 +136,22 @@ struct FirestoreTopicRepository: TopicRepository {
             .limit(to: limit)
             .getDocuments()
         return snapshot.decoded()
+    }
+
+    /// Three equality-only filters, no `orderBy` — unlike every other
+    /// composite query in this file, this genuinely needs no composite
+    /// index at all (Firestore can satisfy an equality-only, multi-field
+    /// filter with its automatic single-field indexes; a composite index is
+    /// only required once an `orderBy` or a range filter joins the mix).
+    /// One aggregate read regardless of how many topics match, per
+    /// Firestore's count-query pricing — cheap even for a large category.
+    func publicTopicCount(inCategory categoryId: String) async throws -> Int {
+        let query = db.collection("topics")
+            .whereField("categoryId", isEqualTo: categoryId)
+            .whereField("visibility", isEqualTo: Topic.Visibility.public.rawValue)
+            .whereField("isDeleted", isEqualTo: false)
+        let snapshot = try await query.count.getAggregation(source: .server)
+        return snapshot.count.intValue
     }
 
     /// Writes only the fields rules permit a creator to set on create: the
@@ -252,6 +279,10 @@ final class InMemoryTopicRepository: TopicRepository {
 
     func allTopics(limit: Int) async throws -> [Topic] {
         Array(topics.filter { !$0.isDeleted }.prefix(limit))
+    }
+
+    func publicTopicCount(inCategory categoryId: String) async throws -> Int {
+        topics.filter { $0.categoryId == categoryId && $0.visibility == .public && !$0.isDeleted }.count
     }
 
     func create(_ topic: Topic) async throws -> Topic {
