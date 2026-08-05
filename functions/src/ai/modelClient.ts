@@ -6,7 +6,7 @@ import { defineSecret, defineString } from "firebase-functions/params";
  * either can change without an app deploy — prompts/phase-04-ai-tutor.md §3.
  */
 export const aiApiKey = defineSecret("AI_API_KEY");
-export const aiModel = defineString("AI_MODEL", { default: "claude-sonnet-4-5" });
+export const aiModel = defineString("AI_MODEL", { default: "claude-sonnet-5" });
 
 export const AI_SECRETS = [aiApiKey];
 
