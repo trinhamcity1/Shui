@@ -1220,6 +1220,85 @@ of it works against the real project.
 §9's verify checklist is end-to-end on a physical device with a creator account and hasn't
 been started — that's the next real milestone, not something to claim in advance.
 
+### Live verification: real bugs found and fixed against the actual build
+
+First live testing round against a real device surfaced a real problem list, each fixed
+and pushed separately (full reasoning lives in the individual commit messages; summarized
+here): a cover-image cache-busting bug (replacing a topic's cover wrote to the same
+deterministic R2 key, so `AsyncImage` never re-fetched it), no way to upload from
+Files/iCloud Drive (Photos-only picker), a haptic on publish, the `categories.topicCount`
+counter reading 0 (see below), cover images never actually rendered anywhere in the
+learner-facing Explore UI despite being uploadable, a two-level-visibility trap (a
+published topic with no individually-public video inside it renders as empty to a
+learner, with nothing telling the creator why), a dead "Explore more topics" button in an
+empty topic-scoped feed, a topic hero redesigned to overlay its title on the cover image
+with a proper scrim instead of plain text sitting awkwardly below it, the quiz reveal
+rebuilt from a step-through-one-question flow into a single scrollable summary, the tab
+bar hiding during video playback and reappearing on pause (plus a real reactivity bug
+where it froze hidden the first time this shipped — `FeedPlayerPool`'s own `@Published`
+changes weren't propagating through `FeedViewModel`'s `objectWillChange`, fixed by
+forwarding it explicitly), and a pre-existing "About this lesson" full-screen sheet
+replaced with the inline read-more/show-less pattern used everywhere else once its
+existence turned out to be a Phase 2 leftover nobody had actually asked for as a sheet.
+
+**The `topicCount` saga, resolved by removing the failure mode rather than chasing it
+further:** deployed a Cloud Functions trigger (`onTopicWritten`) to maintain
+`categories/{id}.topicCount`, confirmed correct on paper, and it still read 0 after two
+separate rounds of live testing. Rather than keep guessing at a bug I have no way to
+confirm without direct access to the user's Cloud Functions logs or live Firestore data,
+replaced the *learner-facing* count entirely with a live Firestore aggregate query
+(`Query.count.getAggregation(source: .server)`) run per category on every Explore load —
+always correct, no trigger to deploy, no one-time write needed to pick up an
+already-published topic, and (a genuine bonus) needs no composite index at all, since
+three equality-only filters don't require one. The trigger and the stored field stay in
+place for the lower-stakes admin category list, which nobody has reported as broken.
+
+### Explore search: word-for-word keyword matching, and a scope decision on ranking
+
+**The bug**: search only matched topics whose *title* literally started with the typed
+text (`searchByTitlePrefix`, a `titleLowercase` range query) — "How to" matched a topic
+titled "How to life live to the fullest," but "fullest," "life live," or any of the
+video's own tags (healing, life, enjoy, personal, development) did not, because Firestore
+has no native full-text search and nothing tokenized text into independently-matchable
+words.
+
+**The fix**: `SearchKeywords` (`Shui/Sources/Data/SearchKeywords.swift`) — one tokenizer
+shared by both the write side and the read side, which is what actually matters here: if
+the stored index and a typed query were tokenized differently, matches would silently
+miss cases nothing would catch until someone typed the "wrong" word. `TopicRepository.
+create`/`update` now write a `searchKeywords: [String]` array (every distinct word, 2+
+characters, across title/subtitle/description/tags, capped at 60), and a new
+`searchByKeywords` query matches on it via `arrayContainsAny` (up to 30 query tokens).
+`ExploreView.search()` now merges three sources — local cache, the title-prefix query,
+and the new keyword query — with title-prefix matches always ranked first (the clearest
+possible match a query can make) and everything else ranked by how many typed words it
+actually contains. Also fixed a real, pre-existing bug found while in this code: search-
+as-you-type fired one Firestore query per keystroke with no cancellation, wasting reads
+and letting a stale broad-query result occasionally overwrite a newer, more specific one
+— added a 300ms debounce with task cancellation.
+
+Added the composite index this needs (`topics`: `visibility`, `isDeleted`,
+`searchKeywords` with `arrayConfig: CONTAINS`) — declared up front this time, not
+discovered on a deploy failure. This is a client-only change plus one index; no Cloud
+Function involved, no per-search API/token cost. **A topic saved before this ships has no
+`searchKeywords` field yet** and won't be keyword-matchable until it's next edited and
+saved — same "needs one more touch" caveat as the topicCount trigger had, worth knowing
+about rather than rediscovering as a fresh "why doesn't search find this" report.
+
+**Backlog, explicitly scoped out at the user's request: paid topic ranking ("boosting").**
+The user's stated future direction — a creator can pay to have their topic show up first
+in search — is a genuinely different problem from *matching*, and was deliberately not
+designed around today. Firestore queries can't score or rank by relevance at all; today's
+"more matching words wins" order is an honest heuristic, not real ranking. Blending a paid
+boost fairly against relevance and recency by hand, on top of Firestore's query engine,
+gets hacky fast — that's precisely the job a real search service (Algolia, Typesense,
+Meilisearch) is built to do declaratively via first-class "promoted/boosted result"
+support. Recommendation for whenever this becomes a committed feature rather than a
+someday-idea: adopt one of those at that point, syncing from Firestore via a Cloud
+Function trigger, rather than retrofitting ranking onto `arrayContainsAny` queries. Today's
+`SearchKeywords` index is a reasonable data source to migrate off of when that happens,
+not throwaway work.
+
 ## Phase 6
 
 Not started.

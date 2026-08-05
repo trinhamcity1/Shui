@@ -18,6 +18,11 @@ struct ExploreView: View {
     @State private var searchText = ""
     @State private var searchResults: [Topic] = []
     @State private var isSearching = false
+    /// Debounces search-as-you-type: without it, every keystroke fired its
+    /// own Firestore query, wasting reads and — since network responses can
+    /// arrive out of order — occasionally letting a stale result for an
+    /// earlier, broader keystroke overwrite a newer, more specific one.
+    @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -34,7 +39,12 @@ struct ExploreView: View {
         }
         .searchable(text: $searchText, prompt: "Search topics")
         .onChange(of: searchText) { _, newValue in
-            Task { await search(newValue) }
+            searchTask?.cancel()
+            searchTask = Task {
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                guard !Task.isCancelled else { return }
+                await search(newValue)
+            }
         }
     }
 
@@ -184,26 +194,56 @@ struct ExploreView: View {
         isSearching = true
         defer { isSearching = false }
 
-        // Client-side prefix match over what's already cached on this
-        // screen (title or tags), supplemented by a title-prefix range
-        // query for topics never fetched here at all — per the phase spec,
-        // this finds topics, not videos, and doesn't pretend to be real
-        // full-text search.
+        // Three sources merged: a cheap local prefix check over what's
+        // already cached on this screen, a title-prefix range query (still
+        // needed — `arrayContainsAny` only matches *complete* words, so it
+        // can't catch "still typing the first word"), and the keyword-index
+        // query, which is what actually answers "healing", "fullest",
+        // "life live" — any complete word, anywhere in the topic's title,
+        // subtitle, description, or tags, not just how it starts.
         let normalized = trimmed.lowercased()
         let cachedMatches = continueTopics.map(\.topic).filter { topic in
             topic.title.lowercased().hasPrefix(normalized)
                 || topic.tags.contains { $0.lowercased().hasPrefix(normalized) }
         }
-        let remoteMatches = (try? await environment.topics.searchByTitlePrefix(trimmed, limit: 20)) ?? []
+        async let prefixTask = environment.topics.searchByTitlePrefix(trimmed, limit: 20)
+        async let keywordTask = environment.topics.searchByKeywords(trimmed, limit: 20)
+        let (prefixMatches, keywordMatches) = await ((try? prefixTask) ?? [], (try? keywordTask) ?? [])
 
         var seen = Set<String>()
         var combined: [Topic] = []
-        for topic in cachedMatches + remoteMatches {
+        // Title-prefix matches lead — "How to" typed against a topic titled
+        // "How to..." is the clearest possible match a query can make, and
+        // shouldn't be out-ranked by a keyword hit buried in a description.
+        for topic in cachedMatches + prefixMatches + keywordMatches {
             guard let id = topic.id, !seen.contains(id) else { continue }
             seen.insert(id)
             combined.append(topic)
         }
+
+        // Everything after the prefix-matched lead group is ranked by how
+        // many of the typed words it actually contains — not real
+        // relevance scoring (no field weighting, no typo tolerance), just
+        // "more of what you typed" over an arbitrary/database order. Real
+        // ranking (and where a paid "boosted" topic would plug in) is
+        // future, separate work — see PROGRESS.md.
+        let queryTokens = Set(SearchKeywords.query(trimmed))
+        let prefixMatchedIDs = Set(prefixMatches.compactMap(\.id))
+        combined.sort { lhs, rhs in
+            let lhsIsPrefixMatch = prefixMatchedIDs.contains(lhs.id ?? "")
+            let rhsIsPrefixMatch = prefixMatchedIDs.contains(rhs.id ?? "")
+            if lhsIsPrefixMatch != rhsIsPrefixMatch { return lhsIsPrefixMatch }
+            return matchScore(lhs, against: queryTokens) > matchScore(rhs, against: queryTokens)
+        }
+
         searchResults = combined
+    }
+
+    private func matchScore(_ topic: Topic, against queryTokens: Set<String>) -> Int {
+        let keywords = SearchKeywords.index(
+            title: topic.title, subtitle: topic.subtitle, description: topic.description, tags: topic.tags
+        )
+        return keywords.filter(queryTokens.contains).count
     }
 }
 

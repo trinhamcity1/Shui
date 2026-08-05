@@ -32,6 +32,13 @@ protocol TopicRepository {
     /// responsible for also matching cached topics against `tags`
     /// client-side, per the phase spec.
     func searchByTitlePrefix(_ prefix: String, limit: Int) async throws -> [Topic]
+    /// Whole-word matching across title, subtitle, description, and tags —
+    /// see `SearchKeywords` for what this can and can't do. Complements
+    /// `searchByTitlePrefix` rather than replacing it: the prefix query
+    /// still catches "still typing the first word" partial input
+    /// (`arrayContainsAny` only matches *complete* words), this catches any
+    /// complete word anywhere in the topic's text.
+    func searchByKeywords(_ query: String, limit: Int) async throws -> [Topic]
     func topic(id: String) async throws -> Topic?
     func myTopics() async throws -> [Topic]
     /// Every creator's topics, admin only — rules allow the read because
@@ -115,6 +122,18 @@ struct FirestoreTopicRepository: TopicRepository {
         return snapshot.decoded()
     }
 
+    func searchByKeywords(_ query: String, limit: Int) async throws -> [Topic] {
+        let tokens = SearchKeywords.query(query)
+        guard !tokens.isEmpty else { return [] }
+        let snapshot = try await db.collection("topics")
+            .whereField("visibility", isEqualTo: Topic.Visibility.public.rawValue)
+            .whereField("isDeleted", isEqualTo: false)
+            .whereField("searchKeywords", arrayContainsAny: tokens)
+            .limit(to: limit)
+            .getDocuments()
+        return snapshot.decoded()
+    }
+
     func topic(id: String) async throws -> Topic? {
         try await db.collection("topics").document(id).getDocument().decodedIfExists()
     }
@@ -164,6 +183,9 @@ struct FirestoreTopicRepository: TopicRepository {
         try await ref.setData([
             "title": topic.title,
             "titleLowercase": topic.title.lowercased(),
+            "searchKeywords": SearchKeywords.index(
+                title: topic.title, subtitle: topic.subtitle, description: topic.description, tags: topic.tags
+            ),
             "subtitle": topic.subtitle,
             "description": topic.description,
             "categoryId": topic.categoryId,
@@ -199,6 +221,9 @@ struct FirestoreTopicRepository: TopicRepository {
         try await db.collection("topics").document(id).updateData([
             "title": topic.title,
             "titleLowercase": topic.title.lowercased(),
+            "searchKeywords": SearchKeywords.index(
+                title: topic.title, subtitle: topic.subtitle, description: topic.description, tags: topic.tags
+            ),
             "subtitle": topic.subtitle,
             "description": topic.description,
             "categoryId": topic.categoryId,
@@ -264,6 +289,28 @@ final class InMemoryTopicRepository: TopicRepository {
         return Array(
             topics
                 .filter { $0.visibility == .public && !$0.isDeleted && $0.title.lowercased().hasPrefix(normalized) }
+                .prefix(limit)
+        )
+    }
+
+    /// No stored index to query against in memory — `Topic` doesn't carry
+    /// `searchKeywords` client-side any more than it carries
+    /// `titleLowercase`, both being Firestore-only derived fields. Computes
+    /// the same tokenization on the fly instead, which is exactly
+    /// equivalent for a small in-memory fixture and needs no separate index
+    /// to keep in sync.
+    func searchByKeywords(_ query: String, limit: Int) async throws -> [Topic] {
+        let tokens = Set(SearchKeywords.query(query))
+        guard !tokens.isEmpty else { return [] }
+        return Array(
+            topics
+                .filter { topic in
+                    guard topic.visibility == .public, !topic.isDeleted else { return false }
+                    let keywords = Set(SearchKeywords.index(
+                        title: topic.title, subtitle: topic.subtitle, description: topic.description, tags: topic.tags
+                    ))
+                    return !keywords.isDisjoint(with: tokens)
+                }
                 .prefix(limit)
         )
     }
