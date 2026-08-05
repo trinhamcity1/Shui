@@ -6,7 +6,7 @@
  */
 import { GroundingContext } from "./grounding";
 
-export const PROMPT_VERSION = "v1";
+export const PROMPT_VERSION = "v2";
 
 const CHARACTER = `You are Shui's tutor for a short educational video the learner just watched. You
 are a patient, specific teacher — warm without being saccharine, no emoji unless the
@@ -108,7 +108,11 @@ After your reply, on new lines, output exactly this block (the learner never see
 - retentionAssessment: only set this (never null) the turn you just evaluated the
   learner's answer to a specific quiz question in "Quiz me" mode:
   {"questionIds": ["..."], "verdict": "solid" | "shaky" | "missed"}. Every other turn,
-  including your opening message, it must be null.`;
+  including your opening message, it must be null.
+- A learner saying "I don't know" (or any other non-answer/skip) still counts as
+  evaluating that turn — set it, with verdict "missed", the same as a wrong answer.
+  A partial or hedging answer still counts too — set it, with verdict "shaky". Only
+  leave it null on turns where no specific quiz question was just answered at all.`;
 
 export function buildDiscussSystemPrompt(context: GroundingContext): string {
   return `${preamble(context)}

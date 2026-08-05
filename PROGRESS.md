@@ -822,7 +822,7 @@ that video's review date forward through the same SM-2 scheduler quiz answers us
 - **Evals** (`functions/src/ai/evals/`): 5 hand-written `GroundingContext` fixtures (two
   mirroring the real seeded civics topic — one clean pass, one with a specific missed
   question; a no-transcript video for the degradation path; a no-quiz video with
-  existing thread history; a transcript well over the truncation budget) and 22 cases
+  existing thread history; a transcript well over the truncation budget) and 21 cases
   across the spec's six categories (in-scope, out-of-scope, partial-credit,
   confidently-wrong, "I don't know", hostile). `npm run eval` checks deterministically:
   word-count limits (80 discuss / 60 quizMe), the meta block parses, one `?` per
@@ -1022,18 +1022,42 @@ real feature.
 | 2 | Ask something the video never covers: tutor says so instead of inventing an answer | ✅ confirmed live |
 | 3 | "Quiz me" asks one question at a time, accepts a correctly-worded-differently answer | ✅ confirmed live |
 | 4 | A conversationally missed concept moves that video's `dueDate` earlier | Backlogged by user request — retest once real videos/transcripts exist |
-| 5 | Reopening the same video restores the thread | Open — not yet tested, cheap to test, not transcript-dependent |
+| 5 | Reopening the same video restores the thread | ✅ confirmed live — relaunched the app and both comments and the AI thread were still there |
 | 6 | Exceeding the rate limit shows the cap message with a reset time | ✅ confirmed live (screenshot), plus the live-countdown-timer feature added in response |
 | 7 | A video with no transcript still opens the tutor with the honest degraded opener | Backlogged — folded into item 1's transcript backlog, since this is the fallback path item 1 will exercise until real transcripts land |
-| 8 | Guest tapping AI gets the sign-in sheet | Open — not yet tested live, cheap to test (already gated in code at the rail button) |
+| 8 | Guest tapping AI gets the sign-in sheet | ✅ confirmed live — tapping AI while signed out prompts sign-in, same as Like |
 | 9 | `git grep` finds no model API key anywhere in the iOS target | ✅ confirmed — `git grep -niE "sk-ant-\|anthropic.*api.*key\|AI_API_KEY" -- 'Shui/*'` returns nothing |
-| 10 | `npm run eval` passes the assertion thresholds; scores table committed | Open — harness bug just fixed above, no real scored run against the live API yet, README's Scores section still unfilled |
+| 10 | `npm run eval` passes the assertion thresholds; scores table committed | Partial — real run against the live API completed (21/21 cases ran, no errors), committed to the eval README; found two real issues in the process (see below), fixed both, but the fixes themselves haven't been re-verified against a fresh run yet |
 
-**3 of 10 confirmed** (2, 3, 6, 9), plus one already-verified prerequisite (build/deploy/
-tsc/tests, covered under Verification above but not itself a numbered item here). 3 items
-formally backlogged by explicit user instruction (1, 4, 7) pending real video transcripts.
-3 items open and cheap to close now (5, 8, 10) — none blocked on anything, just not yet
-run.
+**6 of 10 confirmed** (2, 3, 5, 6, 8, 9), plus one already-verified prerequisite (build/
+deploy/tsc/tests, covered under Verification above but not itself a numbered item here). 3
+items formally backlogged by explicit user instruction (1, 4, 7) pending real video
+transcripts. 1 item (10) partially closed — real data exists now, but needs one more
+re-run to confirm the fixes below actually hold.
+
+### First real eval run: a harness bug and a genuine prompt-compliance gap
+
+User ran `npm run eval` for real (`AI_MODEL=claude-sonnet-5`) after the model-resolution
+fix above and pasted the full 21-row table — no `SKIPPED`, no `ERROR`, and the script
+itself reported success. Reading the table caught two things the exit code didn't:
+
+- **`run.ts`'s pass/fail gate had its own bug**: it checked word-limit, format-block, and
+  one-question-mark, but never checked the "retention set" column — so 3 real failures
+  visible right there in the table (`cbg-partial`, `cbg-dontknow`, `cbr-dontknow`, all
+  missing a `retentionAssessment` the prompt says they should have set) still produced
+  "0 case(s) failed" and exit code 0. Fixed by including that column in the failure
+  filter — the harness's headline pass/fail now actually matches what its own table says.
+- **A real prompt-compliance gap, not just a test artifact**: those 3 misses cluster on
+  exactly the turns where a learner didn't give a clean right/wrong answer — a partial
+  answer, or "I don't know." That matters beyond the eval: item 4 above (a missed concept
+  pulls the review date forward) depends on the model actually tagging those turns, and
+  "I don't know" is the single clearest signal of a miss a learner can give. `prompts.ts`'s
+  output-format instructions technically covered this ("the turn you evaluated the
+  learner's answer") but didn't spell out that a non-answer or a hedge still counts as
+  evaluating that turn. Strengthened the instruction to say so explicitly, bumped
+  `PROMPT_VERSION` to `v2`. Re-verified: `tsc` clean, `test:functions` 33/33,
+  `test:rules` 69/69. Needs one more real `npm run eval` run to confirm `v2` actually
+  closes the gap — flagged in the eval README rather than assumed fixed.
 
 ## Phases 5–6
 

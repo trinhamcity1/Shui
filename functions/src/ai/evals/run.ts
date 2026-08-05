@@ -130,7 +130,13 @@ async function main(): Promise<void> {
   console.log(formatTable(results));
 
   const failed = results.filter(
-    (r) => !r.skipped && !r.error && (r.underWordLimit === false || r.formatParsed === false || r.oneQuestionMark === false)
+    (r) =>
+      !r.skipped &&
+      !r.error &&
+      (r.underWordLimit === false ||
+        r.formatParsed === false ||
+        r.oneQuestionMark === false ||
+        r.retentionSetWhenExpected === false)
   );
   if (failed.length > 0) {
     console.error(`\n${failed.length} case(s) failed a deterministic assertion.`);
