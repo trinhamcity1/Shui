@@ -25,11 +25,20 @@ been built, verified, and debugged phase by phase.
 | 2 | Vertical video feed + end-of-video quiz + playback | **done — verified end-to-end against the real deployed backend** |
 | 3 | Categories, topic pages, auth, profile, progress, likes, comments | **done — verified end-to-end against the real deployed backend, including several real live-testing bug fixes** |
 | 4 | AI tutor: grounded chat + proactive retention checks | **done — verified end-to-end against the real deployed backend and a real model, with one known accepted limitation (see Honest notes)** |
-| 5 | In-app creator console: topics, uploads, quiz builder, publish controls | not started |
+| 5 | In-app creator console: topics, uploads, quiz builder, publish controls | **written, pushed — backend verified (`tsc`, unit tests, rules suite); Swift side not yet built on a real Mac** |
 | 6 | Browser dashboard for bulk authoring | not started |
 
 Phases 0–3 are the shippable core. Phase 4 is the differentiator. Phases 5–6 are what
 make the app maintainable without touching code.
+
+**Creator mode is real as of Phase 5** — Settings → Creator, visible only to a `creator`
+or `admin` role claim. A dashboard that leads with what's blocking each draft, a topic
+editor with drag-reorder and an inline publish checklist mirroring the server's gate, a
+video upload flow that inspects/trims/transcodes locally before uploading with real byte
+progress, a quiz builder that validates exactly what `saveQuiz` validates and previews
+through the genuine feed quiz card, optional AI-drafted questions, and an admin surface
+for the reports queue, roles, and categories. Long-form edits are mirrored to local
+storage as you type and offered back on reopen.
 
 **The Learn tab is real as of Phase 2**, confirmed working end-to-end on the real deployed
 backend — a full-screen vertical video feed with pooled `AVPlayer` playback, the
@@ -237,14 +246,17 @@ service account key that is **never committed** (see `.gitignore`).
 ## Where content comes from
 
 **The creator console, not the repo.** There is no bundled content and no content
-generator script. Topics, videos, and quizzes are authored in-app (Phase 5) or in the web
-dashboard (Phase 6), stored in Firestore, with video in R2.
+generator script. Topics, videos, and quizzes are authored in-app — Settings → Creator,
+real as of Phase 5 — stored in Firestore, with video in R2. Adding a topic, uploading and
+trimming a video, writing its quiz, and publishing all happen on a phone with no code
+change, no script, and no redeploy.
 
-`scripts/seed_civics.ts` exists to bootstrap a fresh environment and for local emulator
-work — not as a place to add content. It seeds the 11 categories and one topic, **U.S.
-Citizenship Civics Test (2025)**, as `status: "pending"` video shells with real quizzes
-attached but no footage — a creator uploads actual video against these shells later
-(Phase 5).
+`scripts/seed_civics.ts` **exists only to bootstrap a fresh environment and for local
+emulator work. Do not add new content to it** — that's what creator mode is for, and a
+second authoring path that only runs from a developer's laptop is exactly what Phase 5
+removed. It seeds the 11 categories and one topic, **U.S. Citizenship Civics Test
+(2025)**, as `status: "pending"` video shells with real quizzes attached but no footage; a
+creator uploads actual video against those shells from the app.
 
 `scripts/sources/official_2025_civics.json` is a verbatim transcription of the current
 official USCIS civics test (form M-1778 (09/25), 128 questions with accepted answers).

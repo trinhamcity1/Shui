@@ -1102,6 +1102,124 @@ one way or another** (2, 3, 5, 6, 8, 9 confirmed clean; 10 closed-with-known-lim
 3 backlogged by explicit user instruction pending real video transcripts (1, 4, 7). Nothing
 left open and untriaged.
 
-## Phases 5–6
+## Phase 5 — Creator mode
+
+### Goal
+
+`prompts/phase-05-creator-mode.md`: make the app self-sufficient. Adding a topic,
+uploading a video, writing its quiz, and publishing all happen inside the app on a phone —
+no code change, no script, no redeploy. Content stops being a build artifact.
+
+### Phase 1 had already built more of this than expected
+
+Before writing anything, checked what existed. The upload presign pair
+(`createVideoUpload`/`finalizeVideoUpload`/`createThumbnailUpload`), both publish gates
+(`setTopicVisibility` refusing a topic with no ready video, `setVideoVisibility` refusing
+a video with no quiz), `saveQuiz`, `assignRole`, and `softDelete*` were all already
+there — and the Firestore rules already allowed a creator to create private topics and
+edit plain fields while fencing off `visibility`, the counters, and `createdBy`. Phase 1
+anticipated this phase properly, so 5.1 was filling gaps rather than building a layer.
+
+### What got built
+
+**Backend** (new callables): `reorderTopicVideos` and `updateVideoMetadata` (every client
+write to `videos` is denied by rule, so even a drag reorder needs a Function),
+`createTopicCoverUpload`, `actionReport` and `saveCategory` for the admin surface, and
+`suggestQuizQuestions` for AI quiz drafting.
+
+Two design calls worth recording:
+
+- **`reorderTopicVideos` takes the whole intended order, not a `(from, to)` pair.** A drag
+  rewrites every affected row's `order` anyway, and sending the full result makes the
+  write idempotent and immune to the client and server disagreeing about the starting
+  order. It rejects a list that doesn't exactly cover the topic's live videos rather than
+  applying a partial reorder — a silently dropped row would corrupt feed ordering.
+- **`suggestQuizQuestions` demands pure JSON, and sidesteps Phase 4's reliability gap by
+  construction.** The tutor has to append structured metadata *alongside* prose in a
+  delimited block, which two real eval runs showed the model sometimes omits entirely. A
+  quiz draft has no prose half — the entire response is the JSON — so the schema can be
+  demanded directly with no marker to miss. It also **refuses outright when a video has no
+  transcript**: a plausible-looking quiz drafted from a title alone is the easiest way to
+  ship a wrong one, and a creator can't tell by looking.
+
+**Five composite indexes declared up front**, derived from the new creator/admin queries
+rather than discovered on deploy. Missing indexes bit this project in Phases 1, 3, *and* 4
+for the same structural reason every time: `tsc`, unit tests, and the rules emulator all
+pass without them, and Firestore requires an exact equality-field-set match, so the
+existing `topics`/`videos` indexes don't cover a narrower query. This is the first phase
+where that lesson was applied before a deploy instead of after one.
+
+**iOS**: role now comes from the ID token's custom claim rather than the
+`users/{uid}.role` display mirror, and is force-refreshed on every foreground —
+without that re-mint, a newly granted creator role stays invisible for up to an hour,
+because claims are baked into the token when it's minted. That refresh is what makes §1's
+"appears without a reinstall" actually true.
+
+Then the authoring surface itself: creator dashboard, topic editor (drag reorder, inline
+publish checklist, markdown preview, tag chips, typed-title delete confirmation), the
+upload flow, the quiz builder, the admin surface, and local draft persistence. Details are
+in the commit messages; the decisions worth keeping:
+
+- **The quiz preview renders through the genuine feed `QuizAnsweringCard`**, not a
+  lookalike. The spec asks for the real card because "authoring blind is how bad quizzes
+  ship," and a re-creation would drift from the real one over time. That needed a small
+  refactor — the card now takes an `onAdvance` closure instead of the whole
+  `FeedViewModel` — plus a preview-only entry point on `FeedPageViewModel`, because the
+  normal path gates on `video.hasQuiz`, which is false for exactly the case preview exists
+  to serve: a quiz being written for the first time. Preview loops back to the first
+  question rather than submitting, since grading a draft would write an attempt against a
+  quiz the server has never seen.
+- **Local drafts are offered on reopen, never auto-applied.** Silently preferring the
+  local copy would be its own kind of data loss when the same topic was edited from
+  another device. Cleared only once a server write actually succeeds.
+- **Server error messages are surfaced verbatim** wherever a publish gate or validation
+  can reject — "Add a quiz before publishing this video" is more useful than anything
+  generic, and the inline checklist means the rejection is rarely the first the creator
+  hears of it.
+
+### Real bugs caught in self-review
+
+No Swift compiler in this sandbox, same as every prior phase, so verification was bracket
+balance plus cross-referencing every symbol against its definition. That found:
+
+- **`saveCategory` wrote the wrong field names** — `symbolName` where the `Category` Swift
+  model and the seed script both use `sfSymbol` plus `accentHex`, and it never wrote the
+  `slug` field the model decodes as non-optional. Every category created from the admin
+  surface would have failed to decode client-side.
+- **`AVAssetExportSession.export()` is iOS 18+**; this project targets 17. Switched to the
+  `exportAsynchronously` continuation form.
+- **`FlowLayout` didn't exist** — written against the `Layout` protocol rather than a
+  `GeometryReader`, so the tag field reports the right height on first pass instead of
+  reflowing visibly.
+- **`CreatorTopicSummary.id` used `UUID()` as a fallback**, which mints a new value on
+  every access and would have broken `ForEach` identity on every render.
+- **`.onMove` without an `EditButton`** is an affordance that exists but can't be reached.
+- A **redundant `Identifiable` conformance** on `Topic` (it already conformed) — a hard
+  compile error, not a warning.
+- Also worth recording: the bracket checker itself had a bug, reporting a false imbalance
+  because it stripped `//` inside a URL literal as a comment. Fixing the checker's
+  ordering cleared it. A tool that reports phantom problems is worse than no tool, so it's
+  saved with that ordering documented.
+
+### Verification
+
+Backend is real: `tsc` clean, 44 unit tests (11 new for the AI draft parser — fence
+stripping, dropping questions that would fail `saveQuiz` anyway, refusing junk), and 77
+rules tests (8 new for the paths the topic editor writes directly — public-on-create
+denied, counters and `createdBy` not hand-editable, admins can reach other creators'
+topics, other creators can't).
+
+**The Swift side has not been built on a real Mac.** Every prior phase surfaced real
+compiler errors this sandbox couldn't catch, and there's no reason this one is different —
+it's also the largest Swift surface of any phase so far. **Next step for the user:** `git
+pull`, `xcodegen generate` (new `Views/Creator/` and `Views/Components/` folders — no
+`project.yml` change needed, it globs `Shui/Sources` recursively), build, and report what
+the compiler finds. Then `firebase deploy --only functions,firestore:indexes` before any
+of it works against the real project.
+
+§9's verify checklist is end-to-end on a physical device with a creator account and hasn't
+been started — that's the next real milestone, not something to claim in advance.
+
+## Phase 6
 
 Not started.
