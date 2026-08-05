@@ -888,6 +888,40 @@ plus set `AI_API_KEY` via `npm run secrets:push` (renamed from `set-r2-secrets.s
 `set-secrets.sh` this phase, now that it pushes more than R2 credentials) and
 `firebase deploy --only functions` before any of this works against the real project.
 
+### Regression found live: the earlier back-button fix broke paging
+
+First real live-testing bug against the actual deployed Phase 4 build: pausing a video
+showed the *next* reel already visible (and playing) in a sliver at the bottom of the
+screen, behind the tab bar — one screen showing the tail of the current page and the head
+of the next one at once.
+
+Root cause: this phase's earlier back-button fix (`FeedView.swift`, this same
+PROGRESS.md's round-5 entry) changed `.ignoresSafeArea()` from all edges to `.top` only,
+specifically to keep the quiz card's buttons clear of the floating tab bar. That
+side-stepped the button-clearance problem but created a worse one — `.ignoresSafeArea()`
+doesn't just change *reporting*, it changes what size the view is actually proposed by its
+parent. Scoping it to `.top` meant each page's own frame (`.frame(width:height:)`, sized
+from the same `GeometryReader`) shrank by the bottom safe-area inset, i.e. below one true
+screen height. The vertical paging `ScrollView` still pages by exactly one page-frame per
+swipe, so a page shorter than the physical screen left a gap at the bottom where the
+*next* page's top edge showed through — worse than the original bug, and only obviously
+visible while paused (a playing video draws the eye away from the seam).
+
+Fixed by separating the two concerns that got conflated: pages need full screen height for
+paging to line up with the physical screen, and the quiz card's buttons need to clear the
+tab bar — these are different problems needing different fixes, not one shared frame
+adjustment. `FeedView` now nests two `GeometryReader`s: an untouched outer one that still
+sees the real, tab-bar-inclusive safe area (`.ignoresSafeArea()` zeroes that reporting for
+everything *inside* it, so reading it has to happen *above* that modifier), and an inner
+one with the full (all-edges) `.ignoresSafeArea()` restored for correct full-height
+paging. The outer reader's `safeAreaInsets.bottom` is threaded explicitly through
+`FeedPageView` into `QuizOverlayContainer` as `tabBarBottomInset`, applied as bottom
+padding on the card's actual content (not its decorative background, which still extends
+flush to the true bottom edge) — the same explicit-parameter-threading pattern as `onBack`
+from the earlier round, not a custom `@Environment` key, for the same reason: no
+dependency on environment values propagating reliably through the `LazyVStack`/`ForEach`
+these views live inside.
+
 ## Phases 5–6
 
 Not started.

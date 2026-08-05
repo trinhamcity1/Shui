@@ -8,6 +8,11 @@ struct QuizOverlayContainer: View {
     @ObservedObject var viewModel: FeedViewModel
     let reduceMotion: Bool
     let onNextLesson: () -> Void
+    /// Keeps the card's actual buttons clear of the floating tab bar
+    /// without shrinking the page behind it — see `FeedView`'s comment on
+    /// why this has to be threaded down explicitly rather than read here
+    /// via `@Environment` or `GeometryProxy.safeAreaInsets`.
+    let tabBarBottomInset: CGFloat
 
     var body: some View {
         GeometryReader { geo in
@@ -47,6 +52,7 @@ struct QuizOverlayContainer: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
+                .padding(.bottom, tabBarBottomInset)
                 .frame(maxHeight: geo.size.height * 0.7, alignment: .bottom)
                 .background(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)

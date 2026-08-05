@@ -15,6 +15,12 @@ struct FeedPageView: View {
     /// container), a known SwiftUI rough edge. A plain closure captured
     /// above that container doesn't depend on it working correctly.
     let onBack: () -> Void
+    /// The real, tab-bar-inclusive bottom safe area inset, captured above
+    /// `FeedView`'s `.ignoresSafeArea()` — see that file for why this can't
+    /// just be read locally via `@Environment`. Used only to keep the quiz
+    /// card's buttons clear of the tab bar; this page's own frame stays
+    /// full screen height regardless, which is what keeps paging correct.
+    let tabBarBottomInset: CGFloat
 
     @EnvironmentObject private var environment: AppEnvironment
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -64,7 +70,8 @@ struct FeedPageView: View {
                 page: page,
                 viewModel: viewModel,
                 reduceMotion: reduceMotion,
-                onNextLesson: onNextLesson
+                onNextLesson: onNextLesson,
+                tabBarBottomInset: tabBarBottomInset
             )
         }
         .contentShape(Rectangle())

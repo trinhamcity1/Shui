@@ -16,16 +16,26 @@ struct FeedView: View {
     }
 
     var body: some View {
-        GeometryReader { geo in
-            content(in: geo)
+        // Two nested readers on purpose. `outerGeo` sits *above* the
+        // `.ignoresSafeArea()` below, so it still sees the real, tab-bar-
+        // inclusive bottom safe area inset — `.ignoresSafeArea()` zeroes
+        // that reporting for everything inside it, which is exactly why a
+        // previous fix here (scoping the ignore to `.top` only, to keep the
+        // quiz card's buttons clear of the tab bar) broke paging instead:
+        // it shrank every page's own frame below one true screen height,
+        // so the *next* page's top edge became visible at the bottom of
+        // the current one. Pages need full screen height for paging to
+        // line up with the physical screen; the tab bar clearance problem
+        // belongs to the quiz card's own bottom padding, not the page
+        // frame — see `tabBarBottomInset` threaded down to
+        // `QuizOverlayContainer` below.
+        GeometryReader { outerGeo in
+            GeometryReader { geo in
+                content(in: geo, tabBarBottomInset: outerGeo.safeAreaInsets.bottom)
+            }
+            .ignoresSafeArea()
         }
         .background(Color.black)
-        // Only the top (notch/status bar) is worth bleeding into — the tab
-        // bar always occupies the bottom regardless, so ignoring that edge
-        // too just let bottom-anchored controls (the quiz card's Replay
-        // button, previously) render underneath its hit-testing region
-        // instead of above it.
-        .ignoresSafeArea(edges: .top)
         // Harmless when this is a tab root (no nav bar there to begin
         // with); when pushed from a topic page in topic mode, this is what
         // stops the system back button from doubling up with
@@ -43,7 +53,7 @@ struct FeedView: View {
     }
 
     @ViewBuilder
-    private func content(in geo: GeometryProxy) -> some View {
+    private func content(in geo: GeometryProxy, tabBarBottomInset: CGFloat) -> some View {
         if viewModel.isInitialLoading {
             ProgressView().tint(.white)
         } else if let loadError = viewModel.loadError, viewModel.pages.isEmpty {
@@ -68,7 +78,8 @@ struct FeedView: View {
                             index: index,
                             onNextLesson: { scrollToNext(after: index) },
                             onRequireSignIn: { showSignInSheet = true },
-                            onBack: dismiss.callAsFunction
+                            onBack: dismiss.callAsFunction,
+                            tabBarBottomInset: tabBarBottomInset
                         )
                         .frame(width: geo.size.width, height: geo.size.height)
                         .id(page.id)
