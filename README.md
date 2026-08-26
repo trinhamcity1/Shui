@@ -27,9 +27,11 @@ been built, verified, and debugged phase by phase.
 | 4 | AI tutor: grounded chat + proactive retention checks | **done — verified end-to-end against the real deployed backend and a real model, with one known accepted limitation (see Honest notes)** |
 | 5 | In-app creator console: topics, uploads, quiz builder, publish controls | **done — backend verified (`tsc`, unit tests, rules suite), live-tested extensively on a real device across many rounds (topic editor, upload flow, quiz builder, publish gates, admin surface), real bugs found and fixed** |
 | 6 | Browser dashboard for bulk authoring | **in progress — scaffold up (Vite + React + Tailwind reading the app's own palette, Firebase JS SDK wired), auth/role gating and the real screens next** |
+| 7 | Lessons on demand: a learner types a topic, gets a personal video + quiz via Shui-WG | **spec written (`prompts/phase-07-lessons-on-demand.md`), not yet built** |
 
 Phases 0–3 are the shippable core. Phase 4 is the differentiator. Phases 5–6 are what
-make the app maintainable without touching code.
+make the app maintainable without touching code. Phase 7 is the shareholder-directed
+pivot from a purely curated feed to lessons on demand.
 
 **Creator mode is real as of Phase 5** — Settings → Creator, visible only to a `creator`
 or `admin` role claim. A dashboard that leads with what's blocking each draft, a topic
