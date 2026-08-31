@@ -19,12 +19,13 @@ order**. Each phase assumes every prior phase is merged and building.
 | 3 | `phase-03-discovery-social.md` | Categories, topic pages, auth, profile, progress, likes, comments |
 | 4 | `phase-04-ai-tutor.md` | The AI button: grounded chat + proactive retention checks |
 | 5 | `phase-05-creator-mode.md` | In-app creator/mod console: topics, uploads, quiz builder, publish controls |
-| 6 | `phase-06-web-dashboard.md` | Browser dashboard for bulk authoring on a laptop |
-| 7 | `phase-07-lessons-on-demand.md` | A learner types any topic and gets a personal video + quiz, generated via Shui-WG |
+| 6 | `phase-06-web-dashboard.md` | Browser dashboard for bulk authoring on a laptop — **paused**, see Phase 7 |
+| 7 | `phase-07-lessons-on-demand.md` | Shareholder pivot: any topic → personal video + quiz via GolpoAI, a four-tier credit economy, a Social tab replacing Learn, and a self-serve developer API |
 
-Phases 0–3 are the shippable core. Phase 4 is the differentiator. Phases 5–6 are
-what make the app maintainable without touching code again. Phase 7 is the
-shareholder-directed pivot from a purely curated feed to lessons on demand.
+Phases 0–3 are the shippable core. Phase 4 is the differentiator. Phase 5 is what
+makes the app maintainable without touching code again. **Phase 6 is paused by
+shareholder direction** in favor of Phase 7, the pivot from a purely curated feed to
+lessons on demand — the current priority.
 
 ---
 

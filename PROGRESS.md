@@ -15,7 +15,13 @@ post-Phase-5 enhancement work (Save videos, Explore/Profile navigation
 redesign, swipe-to-navigate, several real bug fixes) is layered on top of
 Phase 5's own section below, since it was scoped and built incrementally
 in response to live feedback rather than as its own numbered phase.
-**Phase 6 — the browser dashboard — starts next**, not yet begun.
+
+**Phase 6 (browser dashboard) is paused by shareholder direction — not
+resuming until Phase 7 ships.** The shareholder pivot: Shui moves from a
+purely curated feed to lessons-on-demand, backed by the third-party
+GolpoAI render API instead of an in-house whiteboard-video product, with
+a four-tier credit economy and a new Social tab replacing Learn. See
+`prompts/phase-07-lessons-on-demand.md`, not yet begun.
 
 ## Phase status
 
@@ -27,7 +33,8 @@ in response to live feedback rather than as its own numbered phase.
 | 3 | Categories, topic pages, auth, profile, progress, likes, comments | ✅ Done — backend verified against the emulator; live-tested on a real device across multiple rounds (Explore, Profile, Comments, search, likes), real bugs found and fixed |
 | 4 | AI tutor: grounded chat + proactive retention checks | ✅ Done — backend verified (`tsc`, unit tests, eval harness smoke-tested — no live model credentials in this sandbox, so no real eval scores); live-tested on a real device, including a real paging regression found and fixed |
 | 5 | In-app creator console: topics, uploads, quiz builder, publish controls | ✅ Done — backend verified (`tsc`, rules emulator, composite indexes declared up front); live-tested extensively on a real device across many rounds (topic editor, upload flow, quiz builder, publish gates, admin surface, role claims), each round's real bugs found and fixed. Substantial enhancement work built on top after the phase itself closed out — see that section below for the full list |
-| 6 | Browser dashboard for bulk authoring | 🚧 In progress — scaffold done (6.1), auth/role gating and the real screens next |
+| 6 | Browser dashboard for bulk authoring | ⏸️ Paused — scaffold done (6.1); shareholder redirected focus to Phase 7 before auth/role gating and the real screens were built |
+| 7 | Lessons on demand: GolpoAI backend, four-tier credit economy, Social tab replacing Learn, self-serve developer API | 📝 Spec rewritten for the pivot (`prompts/phase-07-lessons-on-demand.md`), not yet begun |
 
 ---
 
