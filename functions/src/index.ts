@@ -26,6 +26,10 @@ export { checkOnDemandLessonStatus } from "./callables/checkOnDemandLessonStatus
 export { shareLessonToSocial } from "./callables/shareLessonToSocial";
 export { verifyAndApplyPurchase } from "./callables/verifyAndApplyPurchase";
 export { appStoreServerNotifications } from "./webhooks/appStoreServerNotifications";
+export { createApiKey } from "./callables/createApiKey";
+export { revokeApiKey } from "./callables/revokeApiKey";
+export { listApiKeys } from "./callables/listApiKeys";
+export { lessonsApi } from "./api/lessonsApi";
 
 export { onCommentWritten } from "./triggers/onCommentWritten";
 export { onTopicWritten } from "./triggers/onTopicWritten";

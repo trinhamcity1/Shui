@@ -1,6 +1,7 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { db } from "./admin";
 import { CategorySlug } from "./categories";
+import { TierConfig } from "./tiers";
 
 export function personalTopicId(uid: string): string {
   return `personal-${uid}`;
@@ -34,6 +35,19 @@ export async function ensurePersonalTopic(uid: string): Promise<string> {
     { merge: true }
   );
   return topicId;
+}
+
+/**
+ * Which of a ready lesson's two URLs a *viewer* gets is decided by their own
+ * current tier, not the tier the owner had at generation time (phase-07
+ * §4/§7) — both URLs always exist once a lesson is ready, so a later tier
+ * upgrade retroactively unlocks the clean copy of old lessons for free.
+ */
+export function resolvePlaybackUrl(
+  video: { playbackURL: string | null; watermarkedPlaybackURL: string | null },
+  viewerTier: TierConfig
+): string | null {
+  return viewerTier.watermarked ? video.watermarkedPlaybackURL : video.playbackURL;
 }
 
 export function truncateTitle(topic: string): string {

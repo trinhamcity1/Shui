@@ -24,6 +24,12 @@ export async function runShareLessonToSocial(uid: string, videoId: string): Prom
   if (video.createdBy !== uid) {
     throw new HttpsError("permission-denied", "This is not your lesson.");
   }
+  if (video.originatedFromApi === true) {
+    // phase-07 §8 — the developer API is isolated from the consumer social
+    // graph; sharing would be the one path that could smuggle API-generated
+    // content back into a surface it's explicitly excluded from.
+    throw new HttpsError("failed-precondition", "Lessons generated through the developer API can't be shared to Social.");
+  }
   if (video.status !== "ready") {
     throw new HttpsError("failed-precondition", "Only a finished lesson can be shared.");
   }

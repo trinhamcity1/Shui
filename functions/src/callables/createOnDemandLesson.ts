@@ -37,7 +37,13 @@ async function writeQuiz(videoId: string, questions: unknown, updatedBy: string)
 export async function runCreateOnDemandLesson(
   uid: string,
   topic: string,
-  deps: { modelClient: ModelClient; golpoClient: GolpoClient }
+  deps: { modelClient: ModelClient; golpoClient: GolpoClient },
+  // true only for requests through the developer API (functions/src/api/lessonsApi.ts) —
+  // the app callable at the bottom of this file always leaves this at its
+  // default. Drives the Social feed's `originatedFromApi == false` filter
+  // (phase-07 §6/§8): API-generated content is cache-eligible but never
+  // Social-eligible.
+  originatedFromApi = false
 ): Promise<CreateOnDemandLessonResult> {
   const topicId = await ensurePersonalTopic(uid);
 
@@ -69,7 +75,7 @@ export async function runCreateOnDemandLesson(
           sizeBytes: source.sizeBytes ?? null,
           timing: debit.timing,
           generationSource: "on_demand",
-          originatedFromApi: false,
+          originatedFromApi,
           generatedFromCache: true,
           cacheSourceVideoId: cached.sourceVideoId,
           tierAtGeneration: tier.id,
@@ -107,7 +113,7 @@ export async function runCreateOnDemandLesson(
       sizeBytes: null,
       timing: debit.timing,
       generationSource: "on_demand",
-      originatedFromApi: false,
+      originatedFromApi,
       generatedFromCache: false,
       cacheSourceVideoId: null,
       tierAtGeneration: tier.id,

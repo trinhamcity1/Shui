@@ -207,3 +207,15 @@ export const VerifyAndApplyPurchaseInputSchema = z.object({
   signedTransactionInfo: z.string().min(1),
 });
 export type VerifyAndApplyPurchaseInput = z.infer<typeof VerifyAndApplyPurchaseInputSchema>;
+
+// ---- Phase 7 §8: developer API key management ----------------------------
+
+export const CreateApiKeyInputSchema = z.object({
+  label: z.string().min(1).max(60),
+});
+export type CreateApiKeyInput = z.infer<typeof CreateApiKeyInputSchema>;
+
+export const RevokeApiKeyInputSchema = z.object({
+  keyId: z.string().min(1),
+});
+export type RevokeApiKeyInput = z.infer<typeof RevokeApiKeyInputSchema>;
