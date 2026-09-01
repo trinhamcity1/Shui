@@ -21,7 +21,18 @@ resuming until Phase 7 ships.** The shareholder pivot: Shui moves from a
 purely curated feed to lessons-on-demand, backed by the third-party
 GolpoAI render API instead of an in-house whiteboard-video product, with
 a four-tier credit economy and a new Social tab replacing Learn. See
-`prompts/phase-07-lessons-on-demand.md`, not yet begun.
+`prompts/phase-07-lessons-on-demand.md`.
+
+**Phase 7 backend (Slices 1–6) and iOS (Slice 7) are both built and
+pushed** — every callable, the Apple IAP billing path, the tier-aware AI
+tutor, the Social ranking trigger, the developer API, and every iOS
+screen phase-07 §9 calls for. Backend is verified the same way every
+phase since 1 has been (`tsc`, the full unit suite, the rules suite
+against the real Firestore emulator). The iOS half is checked by hand
+only, same limitation as every Swift phase before it (see Phase 6's own
+note on this) — plus one new wrinkle specific to how much landed in one
+push: see "Slice 7" below for the Xcode project sync this needs before
+any of it builds.
 
 ## Phase status
 
@@ -34,7 +45,7 @@ a four-tier credit economy and a new Social tab replacing Learn. See
 | 4 | AI tutor: grounded chat + proactive retention checks | ✅ Done — backend verified (`tsc`, unit tests, eval harness smoke-tested — no live model credentials in this sandbox, so no real eval scores); live-tested on a real device, including a real paging regression found and fixed |
 | 5 | In-app creator console: topics, uploads, quiz builder, publish controls | ✅ Done — backend verified (`tsc`, rules emulator, composite indexes declared up front); live-tested extensively on a real device across many rounds (topic editor, upload flow, quiz builder, publish gates, admin surface, role claims), each round's real bugs found and fixed. Substantial enhancement work built on top after the phase itself closed out — see that section below for the full list |
 | 6 | Browser dashboard for bulk authoring | ⏸️ Paused — scaffold done (6.1); shareholder redirected focus to Phase 7 before auth/role gating and the real screens were built |
-| 7 | Lessons on demand: GolpoAI backend, four-tier credit economy, Social tab replacing Learn, self-serve developer API | 📝 Spec rewritten for the pivot (`prompts/phase-07-lessons-on-demand.md`), not yet begun |
+| 7 | Lessons on demand: GolpoAI backend, four-tier credit economy, Social tab replacing Learn, self-serve developer API | ✅ Backend and iOS both built — backend verified (`tsc`, unit + rules-emulator suites); iOS checked by hand only, and needs an Xcode project sync before it builds (see below). Not yet live-tested: no real GolpoAI/Anthropic/Apple sandbox credentials in this sandbox |
 
 ---
 
@@ -1576,3 +1587,123 @@ registering a Web app for `shui-prod` in the Firebase console (produces the conf
 GitHub Action deploy secrets. `web/README.md` documents exactly what to fill in.
 
 Next: 6.2 (auth + role gating), then the seven screens themselves.
+
+## Phase 7 — Lessons on demand
+
+`prompts/phase-07-lessons-on-demand.md`: the shareholder pivot. GolpoAI-backed
+on-demand video lessons, a four-tier credit economy (Siltstone/Obsidian/Alabaster/
+Pyramidion) billed through Apple In-App Purchase, a new Social tab replacing Learn,
+and a self-serve developer API. Built as 6 backend slices plus one large iOS slice,
+each a real commit.
+
+### Backend — Slices 1–6
+
+- **Slice 1**: schema/rules/tiers/credit ledger. `users/{uid}/private/wallet` (owner-
+  read, Function-write) rather than fields on the public `users/{uid}` doc — a real
+  security bug caught before it shipped. Nanodollar-precision math throughout so
+  summing thousands of tiny per-call AI costs never drifts. A real bug found and fixed
+  during this slice: `computeLikeRefund`'s cumulative case let an unlike-then-relike
+  cycle re-cross an already-paid threshold and double-credit; fixed with a `Math.max`
+  high-water mark and a regression test.
+- **Slice 2**: the generation pipeline — one Claude call produces script + quiz +
+  category together, GolpoAI renders the clean master, Shui burns its own watermark
+  as a post-process (never GolpoAI's `custom_logo`) so one render serves every tier
+  and a later upgrade retroactively unlocks clean downloads for free. A popular-topic
+  cache keyed on normalized-topic + `timing` for cost savings.
+- **Slice 3**: Apple IAP, not Stripe — caught and redirected before any Stripe code
+  was written, since App Store Review Guideline 3.1.1 requires IAP for in-app digital
+  goods. `appAccountToken` (minted once per user) is the only way an Apple transaction
+  ties back to a Shui uid; `appAccountTokens/{token}` is the reverse-lookup collection
+  that makes that work. Real Apple root certs committed (one fetched cert turned out
+  already expired, caught via `openssl x509 -noout -dates` before committing it).
+  `verifyAndApplyPurchase` (fast path) + `appStoreServerNotifications` webhook
+  (durable backstop) both exist; `REFUND`/`REVOKE` reversal is deliberately NOT
+  implemented — reversing a grant out of a pooled, already-possibly-spent balance
+  isn't a small addition, flagged in a comment rather than shipped half-correct.
+- **Slice 4**: tier-aware AI tutor — no daily cap, a per-tier dollar cost cap instead,
+  auto-downgrade from Sonnet to Haiku at 70% of the cap spent, prompt caching (real
+  cache-write/cache-read pricing, with the honest caveat that Haiku's 4096-token cache
+  minimum means most Free/Siltstone traffic won't actually cache). Required upgrading
+  `@anthropic-ai/sdk` from a badly stale 0.32.1 — it was missing `cache_control` and
+  the cache-usage fields from its TypeScript types entirely.
+- **Slice 5**: Social tab backend — a Function-maintained `socialScore` trigger
+  (`log1p` of likes/comments/views, minus age decay), wired into `toggleLike` for
+  Alabaster/Pyramidion's like-refunds.
+- **Slice 6**: developer API — `apiKeys/{keyId}` (SHA-256 hash, raw key shown once),
+  `createApiKey`/`listApiKeys`/`revokeApiKey` callables, `POST /v1/lessons` and
+  `GET /v1/lessons/{id}` as a single `onRequest` function wrapping the exact same
+  `runCreateOnDemandLesson`/`runCheckOnDemandLessonStatus` core the app uses — "one
+  implementation, two entry points," not a second pipeline. A 20 req/hour per-key
+  rate limit as a circuit breaker. Versioned reference at
+  `functions/docs/developer-api.md`.
+
+All six slices: clean `tsc`, full unit suite (124/124 at the end of Slice 6), full
+rules suite against the real Firestore emulator (90/90).
+
+### iOS — Slice 7
+
+Every screen `prompts/phase-07-lessons-on-demand.md` §9 calls for, built on a new
+data layer (repositories following the exact hand-wired-callable pattern every
+existing repository already uses — no generic call helper introduced):
+
+- **Data layer**: `Video`/`Topic` models extended for on-demand lessons (`.generating`
+  status; `playbackURL`/`durationSeconds`/`sizeBytes` become optional, since a
+  generating lesson's doc has them `null`; `Topic.categoryId` becomes optional for the
+  `personal-{uid}` topic). New `Wallet`, `ApiKeyInfo`, `TierInfo` (a display-only
+  mirror of `tiers.ts` — a paid tier's *shown* price always comes from StoreKit's own
+  `Product.displayPrice`, never a hardcoded cents value), `CreditTransaction` models.
+  New `OnDemandLessonRepository`, `BillingRepository`, `ApiKeyRepository`.
+- **Create** (`CreateLessonView`): "What do you want to learn today?", a stage
+  machine (idle/generating/ready/failed) mirroring `VideoUploadFlowView`'s existing
+  shape-changes-with-stage pattern, 3s polling, a cost preview read live from the
+  wallet.
+- **My Lessons**: reuses `CreatorVideoRow`/`StatusBadge` from the Creator topic
+  editor (made `internal`, not `private`) rather than a second video-list view, per
+  the phase spec's explicit instruction. Retry on a failed lesson, Share to Social on
+  a ready unshared one.
+- **Social tab**: replaces Learn as `RootTab`'s primary tab (`.learn` → `.social`
+  across `AppState`/`RootTabView`/`Strings`). Category chips and search sit in a
+  custom translucent overlay, not `.searchable` — `FeedView` hides the system nav bar
+  unconditionally, which `.searchable` needs to render into. Reuses the exact same
+  `FeedView`/quiz-card player Phase 2 built; `FeedView` gained an explicit
+  `isTabRoot` override so a `.videoList`-mode feed can still anchor swipe-navigation
+  as a real tab root. The old composed `FeedComposer`/`.mixed` review feed is
+  untouched and still fully tested — just no longer wired to any tab; where
+  spaced-repetition review surfaces next is an open product question this rename
+  doesn't resolve.
+- **Billing**: real StoreKit 2 (`Product.products`/`purchase`, `appAccountToken` read
+  from the wallet, a `Transaction.updates` listener), live wallet balance via a
+  Firestore listener, transaction history from `creditTransactions`.
+- **Developer API**: create/list/revoke keys; the raw key is shown exactly once in an
+  alert with a copy button.
+
+**Two real backend bugs found while wiring the iOS layer against it**, both fixed:
+`listApiKeys` was returning raw Firestore `Timestamp` objects, which don't survive
+the callable-functions JSON boundary as something a client can parse — now converts
+to ISO 8601 strings at the callable, matching `aiTutorMessage`'s existing convention
+for `resetAt`. And `createOnDemandLesson` wrote `rawTopic` on the cache-hit branch
+but not the real-generation branch, so `checkOnDemandLessonStatus`'s
+`if (!generatedFromCache && rawTopic)` cache-write gate could never actually fire for
+a fresh generation — the shared lesson cache (§5) was silently dead code since Slice 2
+shipped. Both fixes verified against the full backend suite afterward.
+
+**What this sandbox found but didn't fix**: `Shui.xcodeproj/project.pbxproj` only
+registers a small early-phase subset of what's actually in `Shui/Sources` on disk —
+this predates Phase 7 and isn't specific to it (every phase's Swift half has only
+ever been hand-verified in this sandbox, same note as Phase 6 above), but Phase 7
+landed enough new files at once that it's worth calling out explicitly here: open the
+project in Xcode and use "Add Files to Shui…" (or drag `Shui/Sources` and
+`ShuiTests` in) to sync the project with what's on disk before any of Phase 7's
+screens — or, per the same gap, several phases' worth of prior work — will actually
+build. Hand-editing the `.pbxproj` from this sandbox, with no `xcodebuild` available
+to validate the result, risks trading "some files aren't registered yet" for "the
+project file won't open at all" — a strictly worse failure mode for a fix that's a
+five-minute native Xcode operation.
+
+**What still needs the user's own action**: a real GolpoAI API subscription, Apple
+Developer Program enrollment with the 4 IAP products
+(`com.shui.app.topup.5`/`tier.{obsidian,alabaster,pyramidion}.monthly`) configured in
+App Store Connect plus the App Store Server Notifications webhook URL, and the Xcode
+project sync above — all three already in progress per the user's own account. Once
+those exist: real end-to-end testing on a device is the next real milestone, the same
+bar every phase before this one was held to.
