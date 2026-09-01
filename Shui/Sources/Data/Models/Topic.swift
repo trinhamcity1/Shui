@@ -13,7 +13,10 @@ struct Topic: Codable, Identifiable, Hashable {
     var title: String
     var subtitle: String
     var description: String
-    var categoryId: String
+    // Optional because `topics/personal-{uid}` (phase-07 — every learner's
+    // on-demand-lesson container, `ensurePersonalTopic`) is written with
+    // `categoryId: null`: it holds lessons across every category, not one.
+    var categoryId: String?
     var coverImageURL: String?
     var visibility: Visibility
     var createdBy: String
@@ -26,4 +29,17 @@ struct Topic: Codable, Identifiable, Hashable {
     var learnerCount: Int
     var tags: [String]
     var isDeleted: Bool
+    /// `true` only for a learner's own `personal-{uid}` on-demand topic —
+    /// excluded from every public topic listing (Explore, search) the same
+    /// way `isDeleted` is, just for a different reason.
+    var isPersonal: Bool? = nil
+}
+
+extension Topic {
+    /// Mirrors `personalTopicId(uid)` in
+    /// `functions/src/lib/onDemandVideo.ts` exactly — both sides compute the
+    /// same deterministic id independently rather than one telling the
+    /// other, since the client needs it to query `videos` before it has any
+    /// document (the topic, or a lesson) to read it back from.
+    static func personalTopicId(uid: String) -> String { "personal-\(uid)" }
 }

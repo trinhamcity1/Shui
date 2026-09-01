@@ -16,6 +16,9 @@ final class AppEnvironment: ObservableObject {
     let aiTutor: AITutorRepository
     let auth: AuthRepository
     let admin: AdminRepository
+    let onDemandLessons: OnDemandLessonRepository
+    let billing: BillingRepository
+    let apiKeys: ApiKeyRepository
 
     /// The signed-in learner's server profile — reactive so the whole app
     /// (tab bar gating, Profile header, guest-only prompts) updates the
@@ -45,7 +48,10 @@ final class AppEnvironment: ObservableObject {
         uploads: UploadRepository,
         aiTutor: AITutorRepository,
         auth: AuthRepository,
-        admin: AdminRepository
+        admin: AdminRepository,
+        onDemandLessons: OnDemandLessonRepository,
+        billing: BillingRepository,
+        apiKeys: ApiKeyRepository
     ) {
         self.categories = categories
         self.topics = topics
@@ -58,6 +64,9 @@ final class AppEnvironment: ObservableObject {
         self.aiTutor = aiTutor
         self.auth = auth
         self.admin = admin
+        self.onDemandLessons = onDemandLessons
+        self.billing = billing
+        self.apiKeys = apiKeys
     }
 
     static func live() -> AppEnvironment {
@@ -72,7 +81,10 @@ final class AppEnvironment: ObservableObject {
             uploads: FirebaseUploadRepository(),
             aiTutor: FirestoreAITutorRepository(),
             auth: FirebaseAuthRepository(),
-            admin: FirebaseAdminRepository()
+            admin: FirebaseAdminRepository(),
+            onDemandLessons: FirestoreOnDemandLessonRepository(),
+            billing: FirestoreBillingRepository(),
+            apiKeys: FirestoreApiKeyRepository()
         )
     }
 
@@ -88,7 +100,10 @@ final class AppEnvironment: ObservableObject {
             uploads: InMemoryUploadRepository(),
             aiTutor: InMemoryAITutorRepository(),
             auth: InMemoryAuthRepository(),
-            admin: InMemoryAdminRepository()
+            admin: InMemoryAdminRepository(),
+            onDemandLessons: InMemoryOnDemandLessonRepository(),
+            billing: InMemoryBillingRepository(),
+            apiKeys: InMemoryApiKeyRepository()
         )
     }
 

@@ -60,7 +60,7 @@ struct DebugUploadPipelineView: View {
                     .disabled(pickedFileURL == nil || isBusy)
                 }
 
-                if let readyVideo, let url = URL(string: readyVideo.playbackURL) {
+                if let readyVideo, let playbackURL = readyVideo.playbackURL, let url = URL(string: playbackURL) {
                     Section("3. Play the result") {
                         VideoPlayer(player: AVPlayer(url: url))
                             .frame(height: 300)
@@ -200,7 +200,7 @@ struct DebugUploadPipelineView: View {
                 log("❌ Video document not found after finalize")
                 return
             }
-            log("✅ status = \(video.status.rawValue), playbackURL = \(video.playbackURL)")
+            log("✅ status = \(video.status.rawValue), playbackURL = \(video.playbackURL ?? "nil")")
             readyVideo = video
         } catch {
             log("❌ Pipeline failed: \(error.localizedDescription)")

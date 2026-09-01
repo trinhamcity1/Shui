@@ -136,7 +136,7 @@ final class TopicEditorViewModel: ObservableObject {
         title = topic.title
         subtitle = topic.subtitle
         description = topic.description
-        categoryId = topic.categoryId
+        categoryId = topic.categoryId ?? ""
         tags = topic.tags
         coverImageURL = topic.coverImageURL
         visibility = topic.visibility

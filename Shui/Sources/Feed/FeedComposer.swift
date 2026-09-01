@@ -14,7 +14,7 @@ struct FeedItem: Identifiable, Equatable {
     let video: Video
     let source: FeedSource
 
-    var id: String { video.id ?? video.playbackURL }
+    var id: String { video.id ?? video.playbackURL ?? video.title }
 }
 
 /// Builds the Learn tab's ordering: reviews are prioritized but interleaved,
@@ -59,7 +59,7 @@ enum FeedComposer {
             while idx < bucket.count {
                 let video = bucket[idx]
                 idx += 1
-                let id = video.id ?? video.playbackURL
+                let id = video.id ?? video.playbackURL ?? video.title
                 if !seenIds.contains(id) {
                     return video
                 }
@@ -77,7 +77,7 @@ enum FeedComposer {
         }
 
         func place(_ video: Video, source: FeedSource) {
-            let id = video.id ?? video.playbackURL
+            let id = video.id ?? video.playbackURL ?? video.title
             seenIds.insert(id)
             output.append(FeedItem(video: video, source: source))
             recentSources.append(source)

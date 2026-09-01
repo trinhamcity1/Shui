@@ -154,7 +154,7 @@ struct TopicPageView: View {
         .buttonStyle(.shuiPill)
         .padding(.horizontal, 20)
         .simultaneousGesture(TapGesture().onEnded {
-            AppAnalytics.logTopicStarted(topicId: topicId, categoryId: topic.categoryId)
+            AppAnalytics.logTopicStarted(topicId: topicId, categoryId: topic.categoryId ?? "")
         })
     }
 
@@ -364,8 +364,8 @@ private struct VideoRow: View {
     }
 
     private var durationLabel: String {
-        let minutes = Int(video.durationSeconds) / 60
-        let seconds = Int(video.durationSeconds) % 60
+        let minutes = Int(video.durationSeconds ?? 0) / 60
+        let seconds = Int(video.durationSeconds ?? 0) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
 }

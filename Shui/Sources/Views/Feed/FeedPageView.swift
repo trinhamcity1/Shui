@@ -104,7 +104,7 @@ struct FeedPageView: View {
     }
 
     private func retryLoad() {
-        guard let url = URL(string: page.video.playbackURL) else { return }
+        guard let playbackURL = page.video.playbackURL, let url = URL(string: playbackURL) else { return }
         viewModel.playerPool.prepare(index: index, url: url, window: index...index)
         viewModel.playerPool.activate(index: index)
     }

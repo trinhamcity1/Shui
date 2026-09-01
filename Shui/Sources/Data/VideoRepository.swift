@@ -15,6 +15,16 @@ protocol VideoRepository {
     func recordView(videoId: String, watchedSeconds: Double, completed: Bool) async throws
     func setVisibility(videoId: String, visibility: Video.Visibility) async throws
 
+    // ---- Phase 7: on-demand lessons ---------------------------------------
+    /// Every on-demand lesson this learner has generated, newest first,
+    /// across every status (generating/ready/failed) and regardless of
+    /// visibility — "My Lessons" needs to see all of it, unlike the public
+    /// feed. Scoped to the learner's own `personal-{uid}` topic rather than
+    /// a `createdBy`+`generationSource` query, since every on-demand lesson
+    /// already lives there and this avoids needing a second composite
+    /// index for the same result.
+    func myLessons() async throws -> [Video]
+
     // ---- Creator mode (Phase 5) ------------------------------------------
     // The learner-facing `videos(inTopic:)` above filters to ready+public
     // because that's all a learner may see. The topic editor needs the
@@ -167,6 +177,16 @@ struct FirestoreVideoRepository: VideoRepository {
     func softDelete(videoId: String) async throws {
         _ = try await functions.httpsCallable("softDeleteVideo").call(["videoId": videoId])
     }
+
+    func myLessons() async throws -> [Video] {
+        guard let uid = auth.currentUser?.uid else { return [] }
+        let snapshot = try await db.collection("videos")
+            .whereField("topicId", isEqualTo: Topic.personalTopicId(uid: uid))
+            .whereField("isDeleted", isEqualTo: false)
+            .order(by: "createdAt", descending: true)
+            .getDocuments()
+        return snapshot.decoded()
+    }
 }
 
 final class InMemoryVideoRepository: VideoRepository {
@@ -235,5 +255,11 @@ final class InMemoryVideoRepository: VideoRepository {
     func softDelete(videoId: String) async throws {
         guard let index = videos.firstIndex(where: { $0.id == videoId }) else { return }
         videos[index].isDeleted = true
+    }
+
+    func myLessons() async throws -> [Video] {
+        videos
+            .filter { $0.isOnDemandLesson && !$0.isDeleted }
+            .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
     }
 }

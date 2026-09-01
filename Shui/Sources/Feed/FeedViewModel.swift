@@ -241,7 +241,7 @@ final class FeedViewModel: ObservableObject {
         // synchronous; only the underlying asset load is async — closes
         // that gap deterministically instead of depending on the
         // `prefetchAround` task below to have won a timing race.
-        if pages.indices.contains(index), let url = URL(string: pages[index].video.playbackURL) {
+        if pages.indices.contains(index), let playbackURL = pages[index].video.playbackURL, let url = URL(string: playbackURL) {
             playerPool.prepare(index: index, url: url, window: windowRange(around: index))
         }
         playerPool.activate(index: index)
@@ -270,7 +270,7 @@ final class FeedViewModel: ObservableObject {
     private func prefetchAround(index: Int) async {
         let window = windowRange(around: index)
         for i in window {
-            guard pages.indices.contains(i), let url = URL(string: pages[i].video.playbackURL) else { continue }
+            guard pages.indices.contains(i), let playbackURL = pages[i].video.playbackURL, let url = URL(string: playbackURL) else { continue }
             playerPool.prepare(index: i, url: url, window: window)
             if pages[i].video.hasQuiz {
                 await prefetchQuiz(for: pages[i])
@@ -313,7 +313,7 @@ final class FeedViewModel: ObservableObject {
         page.hasRecordedView = true
 
         let fraction = playerPool.progress[index] ?? 0
-        let watchedSeconds = fraction * page.video.durationSeconds
+        let watchedSeconds = fraction * (page.video.durationSeconds ?? 0)
         let completed = page.endState != .notEnded
 
         Task {

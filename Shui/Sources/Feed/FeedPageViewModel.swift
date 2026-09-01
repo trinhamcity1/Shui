@@ -49,7 +49,7 @@ final class FeedPageViewModel: ObservableObject, Identifiable {
     var hasRecordedView = false
     var hasMarkedCompleted = false
 
-    var id: String { video.id ?? video.playbackURL }
+    var id: String { video.id ?? video.playbackURL ?? video.title }
 
     init(video: Video, source: FeedSource) {
         self.video = video
