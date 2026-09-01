@@ -59,6 +59,32 @@ describe("computeLikeRefund — Pyramidion (cumulative across videos)", () => {
     const result = computeLikeRefund(config, { cumulative: true, accountedLikes: 120, newTotalLikes: 150 });
     expect(result.refundCents).toBe(0);
   });
+
+  test("regression: an unlike-then-relike cycle never re-earns a refund already paid", () => {
+    // Crossed 100, got paid. Someone unlikes (live count drops to 99).
+    const crossed = computeLikeRefund(config, { cumulative: true, accountedLikes: 0, newTotalLikes: 100 });
+    expect(crossed.refundCents).toBe(200);
+    expect(crossed.newAccountedLikes).toBe(100);
+
+    const afterUnlike = computeLikeRefund(config, {
+      cumulative: true,
+      accountedLikes: crossed.newAccountedLikes,
+      newTotalLikes: 99,
+    });
+    expect(afterUnlike.refundCents).toBe(0);
+    // The high-water mark must NOT fall back down to 99 just because the
+    // live count did — if it did, the very next like back to 100 would
+    // look like a fresh crossing and pay out a second time for the same
+    // 100 likes.
+    expect(afterUnlike.newAccountedLikes).toBe(100);
+
+    const relike = computeLikeRefund(config, {
+      cumulative: true,
+      accountedLikes: afterUnlike.newAccountedLikes,
+      newTotalLikes: 100,
+    });
+    expect(relike.refundCents).toBe(0);
+  });
 });
 
 describe("capRefundToCycle", () => {

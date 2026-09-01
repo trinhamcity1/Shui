@@ -4,6 +4,7 @@ import { db } from "../lib/admin";
 import { requireAuth } from "../lib/auth";
 import { parseInput } from "../lib/validate";
 import { ToggleLikeInputSchema } from "../schemas/callableInputs";
+import { applyLikeRefundIfEligible } from "../lib/credits";
 
 export const toggleLike = onCall(async (request) => {
   const uid = requireAuth(request);
@@ -33,6 +34,18 @@ export const toggleLike = onCall(async (request) => {
       likedAt: FieldValue.serverTimestamp(),
     });
     t.update(videoRef, { likeCount: FieldValue.increment(1) });
+
+    // Alabaster/Pyramidion's like-refund (phase-07 §4) — a no-op for every
+    // other tier, and only ever evaluated on a fresh like, never an
+    // unlike. Runs in this same transaction since it's derived from the
+    // exact counter change this transaction is already making.
+    if (video.createdBy && video.createdBy !== uid) {
+      await applyLikeRefundIfEligible(t, video.createdBy, videoRef, {
+        likeCount: video.likeCount ?? 0,
+        refundClaimed: video.refundClaimed ?? false,
+      });
+    }
+
     return true;
   });
 

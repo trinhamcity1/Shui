@@ -32,3 +32,4 @@ export { onTopicWritten } from "./triggers/onTopicWritten";
 export { onUserCreated } from "./triggers/onUserCreated";
 export { cleanupOrphanedUploads } from "./triggers/cleanupOrphanedUploads";
 export { flushViewCounts } from "./triggers/flushViewCounts";
+export { onVideoEngagementChanged } from "./triggers/onVideoEngagementChanged";

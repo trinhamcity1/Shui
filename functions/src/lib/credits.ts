@@ -45,6 +45,17 @@ export interface Wallet {
    * one pool — see functions/src/ai/pricing.ts.
    */
   aiSpentNanodollarsThisCycle: number;
+  /**
+   * Pyramidion's cumulative like-refund tracking (phase-07 §4) —
+   * `cumulativeLikesReceived` is the true running total of likes across
+   * every video this account owns (moves up on a like, down on an unlike);
+   * `cumulativeLikesAccountedFor` is the high-water mark of how much of
+   * that total has already been priced into a refund, and only ever
+   * climbs — see computeLikeRefund's own doc comment for why an unlike
+   * must never pull it back down. Unused (stays 0) outside Pyramidion.
+   */
+  cumulativeLikesReceived: number;
+  cumulativeLikesAccountedFor: number;
 }
 
 /**
@@ -62,6 +73,8 @@ export const DEFAULT_WALLET: Omit<Wallet, "appAccountToken"> = {
   aiCycleStart: null,
   aiCycleEnd: null,
   aiSpentNanodollarsThisCycle: 0,
+  cumulativeLikesReceived: 0,
+  cumulativeLikesAccountedFor: 0,
 };
 
 export function walletRef(uid: string) {
@@ -162,7 +175,80 @@ export function computeLikeRefund(
   const blocksBefore = Math.floor(params.accountedLikes / config.thresholdLikes);
   const blocksNow = Math.floor(params.newTotalLikes / config.thresholdLikes);
   const newBlocks = Math.max(0, blocksNow - blocksBefore);
-  return { refundCents: newBlocks * config.refundCents, newAccountedLikes: params.newTotalLikes };
+  // The high-water mark can only climb, never fall back to a lower live
+  // count — an unlike-then-relike cycle must not re-earn a refund for
+  // likes that were already paid out for once. Without max() here, a like
+  // that later gets undone would reset accountedLikes down, and the next
+  // like back past that same point would incorrectly cross the threshold
+  // a second time.
+  return {
+    refundCents: newBlocks * config.refundCents,
+    newAccountedLikes: Math.max(params.accountedLikes, params.newTotalLikes),
+  };
+}
+
+/**
+ * Called from toggleLike, inside its own transaction, right after a fresh
+ * like (never an unlike — only a new like can ever cross a threshold)
+ * increments the video's likeCount. A no-op for any tier without a
+ * likeRefund config (Free/Siltstone/Obsidian). "Like-refunds extend
+ * toggleLike, not a new trigger" — phase-07 §4 — since the counter this is
+ * derived from is already being written in this exact transaction; a
+ * separate reactive trigger would just be a second, racier path to the
+ * same write.
+ */
+export async function applyLikeRefundIfEligible(
+  t: Transaction,
+  ownerUid: string,
+  videoRef: FirebaseFirestore.DocumentReference,
+  video: { likeCount: number; refundClaimed: boolean }
+): Promise<void> {
+  const ownerWallet = await readWallet(ownerUid, t);
+  const tier = tierOf(ownerWallet.tier);
+  const config = tier.likeRefund;
+  if (!config) return;
+
+  const result = config.cumulative
+    ? computeLikeRefund(config, {
+        cumulative: true,
+        accountedLikes: ownerWallet.cumulativeLikesAccountedFor,
+        newTotalLikes: ownerWallet.cumulativeLikesReceived + 1,
+      })
+    : computeLikeRefund(config, {
+        cumulative: false,
+        alreadyClaimed: video.refundClaimed,
+        newLikeCount: video.likeCount + 1,
+      });
+
+  // The true running total moves on every like, refund-eligible or not —
+  // only the *accounted-for* high-water mark is conditional on capacity.
+  if (config.cumulative) {
+    t.set(walletRef(ownerUid), { cumulativeLikesReceived: FieldValue.increment(1) }, { merge: true });
+  }
+  if (result.refundCents === 0) return;
+
+  const cappedCents = capRefundToCycle(result.refundCents, ownerWallet.likeRefundCentsThisCycle, config.cycleCapCents);
+
+  // A threshold was crossed even if the cycle cap leaves nothing to pay —
+  // record the crossing either way so it's never re-evaluated (and
+  // re-capped-to-zero) on every subsequent like this cycle.
+  if (config.cumulative) {
+    t.set(walletRef(ownerUid), { cumulativeLikesAccountedFor: result.newAccountedLikes }, { merge: true });
+  } else {
+    t.set(videoRef, { refundClaimed: true }, { merge: true });
+  }
+  if (cappedCents <= 0) return;
+
+  t.set(
+    walletRef(ownerUid),
+    {
+      creditBalanceCents: FieldValue.increment(cappedCents),
+      likeRefundCentsThisCycle: FieldValue.increment(cappedCents),
+      updatedAt: FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+  await writeLedgerRow(t, ownerUid, { type: "like_refund", amountCents: cappedCents, relatedVideoId: videoRef.id });
 }
 
 /** Caps an earned refund against what's left in the cycle's $20 allowance. */
