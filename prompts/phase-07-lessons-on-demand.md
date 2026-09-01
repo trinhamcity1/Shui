@@ -219,20 +219,22 @@ separate lifetime grant, entirely outside this ledger.
 | Downloadable | **no** | yes | yes | yes | yes |
 | Like-refund | — | — | — | $2 per video, first time it crosses 100 likes, **capped $20/cycle** | $2 per every cumulative 100 likes across all videos, **capped $20/cycle** |
 | Billing cadence | — | none | calendar month | calendar month | balance-triggered, capped at 30 days (below) |
-| AI tutor model | Haiku 4.5 | Haiku 4.5 | Sonnet 5 | Sonnet 5 | Sonnet 5 |
-| AI tutor cap | 20 msg/day | 20 msg/day *(mirrors Free — not separately specified; confirm)* | 20 msg/day **or** $3.00/cycle, whichever binds first | 40 msg/day **or** $7.00/cycle, whichever binds first | 100 msg/day **or** $20.00/cycle, whichever binds first |
+| AI tutor baseline model | Haiku 4.5 | Haiku 4.5 | Sonnet 5 | Sonnet 5 | Sonnet 5 |
+| AI tutor monthly cost cap | $2.00/cycle | $2.00/cycle | $3.00/cycle | $7.00/cycle | $20.00/cycle |
 
 **AI tutor tiering is specified in full in `prompts/phase-04-ai-tutor.md` §3** — this
 table only carries the per-tier numbers as part of the same `TIERS` source of truth
-(§4 below) that every other tier-gated feature reads from; Phase 4 owns how the caps
-are actually enforced in `aiTutorMessage.ts`. The daily cap and the monthly dollar cap
-are **both real limits, checked together** — the daily count is a burst guard, the
-dollar cap is the actual cost ceiling regardless of how usage is spread across the
-month (the numbers aren't arbitrary: each tier's daily cap times ~30 days times a
-realistic per-message cost lands close to that same tier's dollar cap, so they're two
-expressions of the same underlying budget, not two independent allowances). Free and
-Siltstone get no dollar cap — the daily count alone is their guardrail, since Haiku's
-per-message cost is small enough that a day-level cap is sufficient on its own.
+(§4 below) that every other tier-gated feature reads from; Phase 4 owns how the cap is
+actually enforced in `aiTutorMessage.ts`. **No daily message limit — chat is unlimited
+in count, gated only on real dollar spend**, tracked from actual token usage per call
+(including prompt-cache token categories) against the tier's monthly cap, with a
+built-in stretch: an Obsidian-and-above account that crosses 70% of its cap for the
+cycle is automatically switched to Haiku for the remainder of that cycle instead of
+being cut off, and returns to Sonnet the moment a new cycle starts at $0. Free and
+Siltstone have no lower model to fall back to (Haiku is already their floor), so they
+simply stop at 100% of their $2.00 cap for the rest of the cycle. On hitting the cap,
+the learner is told exactly when it clears — a live hours-and-minutes countdown to
+`resetAt`, not just a date.
 
 **Realized margin compresses as tiers rise** — worth showing the shareholder
 explicitly when pricing is finalized, since it's the opposite of typical value-based

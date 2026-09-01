@@ -88,60 +88,91 @@ Phase 1 SM-2 code path; do not invent a second scheduler.
 
 ### Guardrails
 
-**Superseded by the tier pivot** — this used to be one flat rate limit and one
-Function-config model for every user. It's now per-tier on both axes, sourced from the
-same `TIERS` constant Phase 7 defines (`functions/src/lib/tiers.ts`), so there is one
-place these numbers live, not a copy in each phase:
+**No daily message cap.** Chat is unlimited in count — the only real constraint is
+real dollar spend, tracked per user per billing cycle and enforced against a per-tier
+dollar ceiling. Every number here is sourced from the same `TIERS` constant Phase 7
+defines (`functions/src/lib/tiers.ts`), so there is one place these live, not a copy
+per phase:
 
-| Tier | Model | Daily message cap | Monthly cost cap |
+| Tier | Baseline model | Monthly cost cap | Downgrade at 70% spent |
 |---|---|---|---|
-| Free | Haiku 4.5 | 20/day | — |
-| Siltstone | Haiku 4.5 | 20/day | — |
-| Obsidian | Sonnet 5 | 20/day | $3.00/cycle |
-| Alabaster | Sonnet 5 | 40/day | $7.00/cycle |
-| Pyramidion | Sonnet 5 | 100/day | $20.00/cycle |
+| Free | Haiku 4.5 | $2.00/cycle | — (already the floor) |
+| Siltstone | Haiku 4.5 | $2.00/cycle | — (already the floor) |
+| Obsidian | Sonnet 5 | $3.00/cycle | → Haiku 4.5 for the rest of the cycle |
+| Alabaster | Sonnet 5 | $7.00/cycle | → Haiku 4.5 for the rest of the cycle |
+| Pyramidion | Sonnet 5 | $20.00/cycle | → Haiku 4.5 for the rest of the cycle |
 
-- **Model selection is tier-driven, not a single `AI_MODEL` config value.**
-  `AnthropicModelClient` now takes the model explicitly per call
-  (`new AnthropicModelClient(TIERS[tier].aiModel)`) instead of defaulting to
-  `aiModel.value()`. `AI_MODEL` Function config stays only as the eval harness's
-  override (`functions/src/ai/evals/run.ts` already reads `process.env.AI_MODEL`) —
-  the production path no longer has one global model.
-- **Daily message cap replaces the old flat 30/hour, 300/day pair with one per-tier
-  daily number** — the hourly sub-limit is dropped; each tier now specifies only a
-  daily cap, and the new monthly cost cap (below) is the second layer of protection the
-  old design didn't have. Still tracked in `users/{uid}/aiUsage/{yyyy-mm-dd}`, same
-  transactional check-and-increment `rateLimit.ts` already does — just read the cap
-  from `TIERS[tier].aiDailyMessageCap` instead of a hardcoded constant.
-- **Monthly cost cap (Obsidian and above) is a real dollar ceiling, not another message
-  count — "unlimited chat, but stop at $X" is the actual product promise, so it has to
-  be enforced against real spend.** This requires a genuine capability the code doesn't
-  have yet: `ModelClient.stream()` currently returns only the accumulated text and
-  silently discards the Anthropic response's `usage` (confirmed by direct
-  measurement — real per-message cost ranges from under a cent on Haiku to several
-  cents on Sonnet for a long-transcript context, so message count alone is a poor proxy
-  for real cost). Extend `StreamParams`/`ModelClient.stream()` to also return
-  `{ inputTokens, outputTokens }` from the API response, and give `FakeModelClient` a
-  deterministic stand-in (e.g. token count from `scriptedResponse.length / 4`) so evals
-  and unit tests keep working without a real key. Accumulate **exact integer token
-  totals** — not a pre-computed, repeatedly-rounded cents figure — in a new
-  `users/{uid}/aiUsage/{yyyy-mm}` doc (`inputTokensThisCycle`, `outputTokensThisCycle`),
-  and compute the real cost in cents from a small versioned pricing table
-  (`functions/src/ai/pricing.ts`, one row per model, updated when list prices change)
-  only at check time. This avoids compounding rounding error across hundreds of
-  sub-cent additions, the same reason Phase 7's credit ledger is cents-integer rather
-  than float dollars.
-- **Both caps are checked together, before the model call, in the same transaction as
-  the daily counter increment.** Whichever binds first refuses the message with a typed
-  error naming which cap and when it resets: the daily cap resets at the next UTC day
-  boundary; the monthly cost cap resets on that tier's billing-cycle boundary (Stripe's
-  `invoice.paid` for Obsidian/Alabaster; the balance-triggered-or-30-day recharge event
-  for Pyramidion, per `phase-07-lessons-on-demand.md`'s billing mechanics — one
-  cycle-reset event zeroes both the like-refund counter and this cost counter for
-  Pyramidion).
-- **Free and Siltstone get no cost cap** — Haiku's per-message cost is small enough
-  that the daily count alone is a sufficient guardrail; adding a dollar cap there would
-  be complexity with no real protection behind it.
+- **Model selection is tier-driven and spend-driven, not a single `AI_MODEL` config
+  value.** `AnthropicModelClient` now takes the model explicitly per call. Resolve it
+  fresh on every message: read the tier's `aiMonthlyCostCapCents` and the account's
+  `costCentsThisCycle` (computed below); if the tier's baseline model isn't already
+  Haiku and spend has crossed 70% of the cap, use Haiku for this call and every
+  subsequent one in the same cycle — automatically back to the baseline (Sonnet) the
+  moment a new cycle starts at $0 spent. Free/Siltstone have no lower model to fall
+  back to, so this step is a no-op for them; they ride at Haiku the whole cycle either
+  way. `AI_MODEL` Function config stays only as the eval harness's override
+  (`functions/src/ai/evals/run.ts` already reads `process.env.AI_MODEL`) — the
+  production path no longer has one global model.
+- **The dollar cap is a real ceiling, not a message count — "unlimited chat, but stop
+  at $X" is the actual product promise, so it has to be enforced against real spend.**
+  This requires a genuine capability the code doesn't have yet: `ModelClient.stream()`
+  currently returns only the accumulated text and silently discards the Anthropic
+  response's `usage` (confirmed by direct measurement — real per-message cost ranges
+  from under a cent on Haiku to several cents on Sonnet for a long-transcript context).
+  Extend `StreamParams`/`ModelClient.stream()` to also return
+  `{ inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens }` from
+  the API response (all four — prompt caching, below, means a call's real cost is not
+  just input+output), and give `FakeModelClient` a deterministic stand-in (e.g. input/
+  output from `text.length / 4`, cache fields zeroed) so evals and unit tests keep
+  working without a real key. Accumulate **exact integer token totals per category** —
+  not a pre-computed, repeatedly-rounded cents figure — in a new
+  `users/{uid}/aiUsage/{yyyy-mm}`-shaped doc (see cycle keying below), and compute the
+  real cost in cents from a small versioned pricing table (`functions/src/ai/pricing.ts`)
+  only at check time, one row per model with **four** rates — input, cache-write,
+  cache-read, output — not two:
+
+  | Model | Input | Cache write (5m) | Cache read | Output |
+  |---|---|---|---|---|
+  | Sonnet 5 | $2.00/MTok | $2.50/MTok (1.25×) | $0.20/MTok (0.1×) | $10.00/MTok |
+  | Haiku 4.5 | $1.00/MTok | $1.25/MTok (1.25×) | $0.10/MTok (0.1×) | $5.00/MTok |
+
+  This avoids compounding rounding error across hundreds of sub-cent additions, the
+  same reason Phase 7's credit ledger is cents-integer rather than float dollars.
+- **Cycle keying.** Free/Siltstone/Obsidian/Alabaster resolve to a `{yyyy-mm}`-style
+  doc automatically rolling over at a calendar boundary — for Obsidian/Alabaster that
+  boundary is their own Stripe `invoice.paid` event (their subscription anniversary,
+  not the 1st of the month), for Free/Siltstone (no Stripe event at all) reuse the
+  lazy-rollover pattern the original free-lesson cap already established: a stored
+  `cycleStart`/`cycleEnd`, advanced 30 days at a time, computed at check time with no
+  scheduled Function needed. Pyramidion's cycle is whatever `phase-07-lessons-on-demand.md`'s
+  balance-triggered-or-30-day-capped recharge event just defined — that single event
+  resets this cost counter and the like-refund counter together.
+- **On hitting the cap, tell the learner exactly when it clears.** The typed error
+  carries both the raw `resetAt` timestamp and a precomputed `{ hours, minutes }`
+  breakdown of `resetAt - now`, so the client shows "resets in 4h 12m" without doing
+  its own date math against a value that may already be stale by render time.
+- **Prompt caching — add it, it's real savings, not a config toggle.** The grounding
+  block (`buildSystemPrompt`'s output: transcript, quiz, topic, learner record) is
+  stable for nearly every turn of a session — only `learnerRecord` changes, and only
+  right after a retention assessment. `AnthropicModelClient` sends it as
+  `system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }]`
+  (one explicit breakpoint on the whole block — there's only one block, so this is the
+  simple case) plus the request's top-level automatic-caching field for the growing
+  `messages` history — the documented "robust combination for agent loops." Default to
+  the 5-minute TTL: a tutor session's turns are normally well under 5 minutes apart, so
+  every real turn refreshes the cache for free, and the 1-hour TTL's 2× write premium
+  buys nothing here.
+
+  **Be honest about where this actually pays off.** Haiku 4.5's minimum cacheable
+  prefix is 4,096 tokens; Sonnet 5's is 1,024. Measured real grounding-context sizes for
+  a typical lesson run 800–1,300 tokens, and even the 12,000-character transcript cap
+  produces only ~3,500–3,700 tokens on Haiku's tokenizer — **under Haiku's cache
+  floor**, meaning `cache_creation_input_tokens` will legitimately read 0 for most
+  Free/Siltstone traffic; no bug, just a prefix too short to cache on that model. Sonnet
+  traffic (Obsidian and above) sits right at or comfortably past its own 1,024-token
+  floor and is where the real savings land. Build it uniformly — it's still correct and
+  still helps as transcripts and thread history grow — but don't expect it to move the
+  Free/Siltstone cost number much.
 - **Cost ceiling on any single call**: cap context and output tokens; truncate
   transcripts to a token budget by keeping the segments most relevant to the learner's
   question.
@@ -226,15 +257,21 @@ An untested prompt is a guess. Build `functions/src/ai/evals/`:
    answer as correct.
 4. A conversationally missed concept moves that video's `dueDate` earlier in Firestore.
 5. Reopening the same video restores the thread.
-6. Exceeding the daily message cap shows the cap message with a reset time, using each
-   tier's own number (Free/Siltstone 20, Obsidian 20, Alabaster 40, Pyramidion 100).
-   A Free-tier account is served Haiku for every message; an Obsidian-and-above
-   account is served Sonnet. Simulating enough Sonnet usage in the emulator to cross
-   an Obsidian test account's $3.00 monthly cost cap (using `FakeModelClient`'s
-   deterministic token stand-in, not a real spend) refuses further messages with a
-   cap message naming the dollar cap and its cycle-end reset — verify this fires from
-   accumulated real token counts, not from a hardcoded message count standing in for
-   cost.
+6. A Free-tier account is served Haiku for every message with no message-count limit.
+   Simulating enough usage in the emulator (via `FakeModelClient`'s deterministic token
+   stand-in, not a real spend) to cross an Obsidian test account's $3.00 monthly cost
+   cap refuses further messages with a typed error naming the dollar cap and a reset
+   breakdown in whole hours and minutes, not just a raw timestamp — verify the {hours,
+   minutes} figures actually match `resetAt - now` at the moment of the call, not a
+   stale precomputed value. Separately, simulate an Obsidian account crossing 70% of
+   its cap: the very next message is served by Haiku instead of Sonnet, stays on Haiku
+   for the rest of that cycle even as spend keeps climbing, and reverts to Sonnet on
+   the first message of the next cycle at $0 spent. Confirm a real (or faked, in the
+   emulator) second identical-prefix request in the same session shows
+   `cache_read_input_tokens > 0` for a Sonnet-tier call — the standing check the
+   caching guide itself recommends, not a one-time look — and confirm a Haiku-tier
+   call with a typical-size context legitimately shows `cache_creation_input_tokens: 0`
+   (below Haiku's cache floor) rather than treating that as a bug.
 7. A video with no transcript still opens the tutor, with the honest degraded opener.
 8. Guest tapping AI gets the sign-in sheet.
 9. `git grep` finds no model API key anywhere in the iOS target.
