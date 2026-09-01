@@ -421,7 +421,10 @@ private struct LabeledField<Content: View>: View {
     }
 }
 
-private struct CreatorVideoRow: View {
+/// Shared with `MyLessonsView` (phase-07 §9 — "reuse the same feed-cell/list
+/// rendering code," no second video-list view) — `internal`, not `private`,
+/// for exactly that reuse.
+struct CreatorVideoRow: View {
     @Environment(\.theme) private var theme
     let video: Video
 
@@ -458,7 +461,7 @@ private struct CreatorVideoRow: View {
 /// One badge with the single most important thing about this row's state —
 /// a row that is both "processing" and "needs quiz" is really just
 /// "processing" until that finishes.
-private struct StatusBadge: View {
+struct StatusBadge: View {
     @Environment(\.theme) private var theme
     let video: Video
 
@@ -473,9 +476,17 @@ private struct StatusBadge: View {
         switch video.status {
         case .pending, .uploading:
             return ("Uploading", theme.info)
+        // An on-demand lesson (phase-07) mid-generation — Claude/GolpoAI
+        // still working, nothing to upload. Distinct copy from "Uploading"
+        // since My Lessons is the one place this case is actually reachable.
+        case .generating:
+            return ("Generating…", theme.info)
         case .failed:
-            return ("Upload failed", theme.error)
+            return (video.isOnDemandLesson ? "Failed" : "Upload failed", theme.error)
         case .ready:
+            if video.isOnDemandLesson {
+                return ("Ready", theme.success)
+            }
             if !video.hasQuiz { return ("Needs quiz", theme.warning) }
             return video.visibility == .public ? ("Ready", theme.success) : ("Private", theme.textTertiary)
         }

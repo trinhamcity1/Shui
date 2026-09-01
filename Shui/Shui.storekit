@@ -1,0 +1,93 @@
+{
+  "identifier" : "3B5F0A9C-6B77-4B7B-9B3A-9C2C5A6E0A11",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "5.00",
+      "familyShareable" : false,
+      "internalID" : "shui_topup_5",
+      "localizations" : [
+        {
+          "description" : "Adds $5.00 of Shui credit to your account.",
+          "displayName" : "Top Up $5",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.shui.app.topup.5",
+      "referenceName" : "Top Up $5",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA"
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21372742",
+      "localizations" : [],
+      "name" : "Shui Tiers",
+      "subscriptions" : [
+        {
+          "displayPrice" : "20.00",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "shui_obsidian_monthly",
+          "localizations" : [
+            {
+              "description" : "10% top-up bonus, 1-minute lessons.",
+              "displayName" : "Obsidian",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.shui.app.tier.obsidian.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Obsidian Monthly",
+          "subscriptionGroupID" : "21372742",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "displayPrice" : "50.00",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "shui_alabaster_monthly",
+          "localizations" : [
+            {
+              "description" : "15% top-up bonus, 2-minute lessons, no watermark, social like refunds.",
+              "displayName" : "Alabaster",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.shui.app.tier.alabaster.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Alabaster Monthly",
+          "subscriptionGroupID" : "21372742",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "displayPrice" : "200.00",
+          "familyShareable" : false,
+          "groupNumber" : 3,
+          "internalID" : "shui_pyramidion_monthly",
+          "localizations" : [
+            {
+              "description" : "20% top-up bonus, 2-minute lessons, no watermark, developer API access on the same wallet.",
+              "displayName" : "Pyramidion",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.shui.app.tier.pyramidion.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pyramidion Monthly",
+          "subscriptionGroupID" : "21372742",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

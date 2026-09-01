@@ -9,19 +9,24 @@ struct FeedView: View {
     @State private var scrollPositionID: String?
     @State private var showSignInSheet = false
     var onExploreRequested: (() -> Void)?
-    /// `true` only for the Learn tab's own mixed feed — every other mode
-    /// (`.topic`, `.videoList`) is something pushed on top of Explore or
-    /// Profile's own stack, which is what `isRoot` on
-    /// `ringSwipeNavigation` needs to know.
+    /// `true` for the Learn tab's old mixed feed, and now also for
+    /// `SocialFeedView`'s `.videoList` feed (phase-07 §6 — Social replaced
+    /// Learn as the tab this sits at the root of, but that's an `isTabRoot`
+    /// override the caller passes explicitly, not something `.videoList`
+    /// mode implies on its own) — every *other* `.topic`/`.videoList` use is
+    /// genuinely something pushed on top of Explore or Profile's own stack,
+    /// which is what `isRoot` on `ringSwipeNavigation` needs to know.
     private let isTabRoot: Bool
 
-    init(mode: FeedViewModel.Mode, environment: AppEnvironment, onExploreRequested: (() -> Void)? = nil) {
+    init(mode: FeedViewModel.Mode, environment: AppEnvironment, onExploreRequested: (() -> Void)? = nil, isTabRoot: Bool? = nil) {
         _viewModel = StateObject(wrappedValue: FeedViewModel(mode: mode, environment: environment))
         self.onExploreRequested = onExploreRequested
-        if case .mixed = mode {
-            isTabRoot = true
+        if let isTabRoot {
+            self.isTabRoot = isTabRoot
+        } else if case .mixed = mode {
+            self.isTabRoot = true
         } else {
-            isTabRoot = false
+            self.isTabRoot = false
         }
     }
 

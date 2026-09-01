@@ -29,6 +29,9 @@ protocol BillingRepository {
     /// can all change this while the screen is open.
     func observeWallet() -> AsyncThrowingStream<Wallet, Error>
     func wallet() async throws -> Wallet?
+    /// Newest first, capped — the billing screen's history list, not a full
+    /// export.
+    func transactions(limit: Int) async throws -> [CreditTransaction]
     /// `signedTransactionInfo` is the raw JWS from StoreKit 2's
     /// `VerificationResult` — never a client-computed amount or product id.
     /// The App Store Server Notifications webhook is the durable backstop
@@ -79,6 +82,15 @@ struct FirestoreBillingRepository: BillingRepository {
         return try await walletRef(uid: uid).getDocument().decodedIfExists()
     }
 
+    func transactions(limit: Int) async throws -> [CreditTransaction] {
+        guard let uid = auth.currentUser?.uid else { throw BillingError.notSignedIn }
+        let snapshot = try await db.collection("users").document(uid).collection("creditTransactions")
+            .order(by: "createdAt", descending: true)
+            .limit(to: limit)
+            .getDocuments()
+        return snapshot.decoded()
+    }
+
     func applyPurchase(signedTransactionInfo: String) async throws -> (applied: Bool, tier: String?) {
         do {
             let result = try await functions.httpsCallable("verifyAndApplyPurchase")
@@ -126,6 +138,12 @@ final class InMemoryBillingRepository: BillingRepository {
 
     func wallet() async throws -> Wallet? {
         walletValue
+    }
+
+    var transactionsValue: [CreditTransaction] = []
+
+    func transactions(limit: Int) async throws -> [CreditTransaction] {
+        Array(transactionsValue.prefix(limit))
     }
 
     func applyPurchase(signedTransactionInfo: String) async throws -> (applied: Bool, tier: String?) {

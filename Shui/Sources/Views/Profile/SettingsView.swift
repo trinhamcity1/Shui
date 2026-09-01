@@ -18,6 +18,16 @@ struct SettingsView: View {
                     comingSoonRow("Notifications", phase: 6)
                 }
                 Section {
+                    NavigationLink("Balance & plan") {
+                        BillingView(environment: environment)
+                    }
+                    // Self-serve, no tier gate (phase-07 §8) — every account
+                    // can mint a key, unlike the Creator section below.
+                    NavigationLink("Developer API") {
+                        DeveloperApiView(environment: environment)
+                    }
+                }
+                Section {
                     NavigationLink("About") {
                         AboutView()
                     }

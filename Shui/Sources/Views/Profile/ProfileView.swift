@@ -27,6 +27,8 @@ struct ProfileView: View {
     @State private var reviewFeed: VideoListDestination?
     @State private var showSignInSheet = false
     @State private var collectionsTab: CollectionsTab = .saved
+    @State private var showCreateLesson = false
+    @State private var wallet: Wallet?
 
     private enum CollectionsTab: String, CaseIterable, Identifiable {
         case saved = "Saved"
@@ -49,6 +51,7 @@ struct ProfileView: View {
                         VStack(alignment: .leading, spacing: 28) {
                             header
                             guestBanner
+                            lessonsSection
                             progressSection
                             collectionsSection
                             activitySection
@@ -72,6 +75,7 @@ struct ProfileView: View {
                 if viewModel.savedVideos.isEmpty && !viewModel.likedVideos.isEmpty {
                     collectionsTab = .liked
                 }
+                wallet = try? await environment.billing.wallet()
             }
             // Profile's own root — see the matching comment on
             // `ExploreView` for why this is `isRoot: true` while the
@@ -95,6 +99,9 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showSettings, onDismiss: { Task { await viewModel.load() } }) {
             SettingsView(environment: environment, isPresented: $showSettings)
+        }
+        .sheet(isPresented: $showCreateLesson, onDismiss: { Task { wallet = try? await environment.billing.wallet() } }) {
+            CreateLessonView(environment: environment)
         }
         .sheet(isPresented: $showEditProfile, onDismiss: { Task { await viewModel.load() } }) {
             EditProfileSheet(environment: environment, account: viewModel.account)
@@ -156,6 +163,43 @@ struct ProfileView: View {
                 .foregroundStyle(theme.accent)
         }
         .padding(.horizontal, 20)
+    }
+
+    /// Entry points for phase-07's on-demand lessons — "Create" is the
+    /// first-screen affordance the phase spec calls for (§9), "My Lessons"
+    /// and the balance/plan link sit right alongside it since they're the
+    /// natural next things a learner reaches for from here.
+    private var lessonsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Lessons")
+                .font(.title3.bold())
+                .foregroundStyle(theme.textPrimary)
+                .padding(.horizontal, 20)
+
+            VStack(spacing: 0) {
+                Button { showCreateLesson = true } label: {
+                    HStack {
+                        Label("Create a lesson", systemImage: "sparkles")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(theme.accent)
+                        Spacer()
+                    }
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+                Divider()
+                NavigationLink { MyLessonsView(environment: environment) } label: {
+                    activityRow("My Lessons", value: "", isLink: true)
+                }
+                .buttonStyle(.plain)
+                Divider()
+                NavigationLink { BillingView(environment: environment) } label: {
+                    activityRow("Balance & plan", value: wallet?.creditBalanceDisplay ?? "—", isLink: true)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+        }
     }
 
     @ViewBuilder

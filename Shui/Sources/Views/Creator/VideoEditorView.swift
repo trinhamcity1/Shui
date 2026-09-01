@@ -114,7 +114,7 @@ struct VideoEditorView: View {
             case .ready:
                 Label("Ready", systemImage: "checkmark.circle.fill")
                     .font(.caption).foregroundStyle(theme.success)
-            case .pending, .uploading:
+            case .pending, .uploading, .generating:
                 Label("Processing", systemImage: "clock").font(.caption).foregroundStyle(theme.info)
             case .failed:
                 Label(video.statusMessage ?? "Upload failed", systemImage: "xmark.circle.fill")

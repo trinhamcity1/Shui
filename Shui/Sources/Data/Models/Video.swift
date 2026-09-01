@@ -81,6 +81,11 @@ struct Video: Codable, Identifiable, Hashable {
     /// in cents — shown in My Lessons as a receipt, not recomputed
     /// client-side from `tiers.ts`'s pricing table.
     var costChargedCents: Int? = nil
+    /// The learner's own typed topic, before Claude's script/category
+    /// generation — `title` is a truncated-to-80-chars display copy of this
+    /// (`truncateTitle` server-side), so a failed lesson's "Try again"
+    /// action resubmits this, not `title`.
+    var rawTopic: String? = nil
 
     var isOnDemandLesson: Bool { generationSource == "on_demand" }
 }

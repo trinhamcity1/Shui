@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// The three-tab shell. Learn is the real video feed as of Phase 2; Explore
-/// and Profile are still placeholders until Phase 3.
+/// The three-tab shell. Social (phase-07 §6) is the primary scrolling feed —
+/// on-demand lessons ranked by reference — replacing the old composed
+/// Learn feed in that slot.
 struct RootTabView: View {
     @EnvironmentObject private var environment: AppEnvironment
     @EnvironmentObject private var appState: AppState
@@ -19,13 +20,13 @@ struct RootTabView: View {
     /// Explore/Profile, which local `@State` here never could be — synced
     /// both directions below so tapping a tab icon and swiping can never
     /// drift out of step with each other.
-    @State private var selection: RootTab = .learn
+    @State private var selection: RootTab = .social
 
     var body: some View {
         TabView(selection: $selection) {
-            FeedView(mode: .mixed, environment: environment, onExploreRequested: { selection = .explore })
-                .tabItem { Label(Strings.learnTab, systemImage: "play.rectangle.fill") }
-                .tag(RootTab.learn)
+            SocialFeedView(environment: environment)
+                .tabItem { Label(Strings.socialTab, systemImage: "sparkles.tv.fill") }
+                .tag(RootTab.social)
             ExploreView(environment: environment)
                 .tabItem { Label(Strings.exploreTab, systemImage: "square.grid.2x2.fill") }
                 .tag(RootTab.explore)

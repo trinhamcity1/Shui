@@ -25,6 +25,16 @@ protocol VideoRepository {
     /// index for the same result.
     func myLessons() async throws -> [Video]
 
+    // ---- Phase 7: Social tab -----------------------------------------------
+    /// General/fallback ranking pass — every Social-eligible on-demand
+    /// lesson (phase-07 §6), ordered by the Function-maintained
+    /// `socialScore`, regardless of category.
+    func socialFeed(limit: Int, after cursor: PageCursor?) async throws -> Page<Video>
+    /// The affinity-first pass (the learner's own `interests`) *and* a
+    /// single category chip filter share this one method — both are just
+    /// "match any of these category ids," a 1-element array for a chip.
+    func socialFeed(categoryIds: [String], limit: Int, after cursor: PageCursor?) async throws -> Page<Video>
+
     // ---- Creator mode (Phase 5) ------------------------------------------
     // The learner-facing `videos(inTopic:)` above filters to ready+public
     // because that's all a learner may see. The topic editor needs the
@@ -187,6 +197,39 @@ struct FirestoreVideoRepository: VideoRepository {
             .getDocuments()
         return snapshot.decoded()
     }
+
+    /// The shared prefix every Social query starts from — visibility,
+    /// on-demand-only, never API-originated (phase-07 §6).
+    private var socialBaseQuery: Query {
+        db.collection("videos")
+            .whereField("visibility", isEqualTo: Video.Visibility.public.rawValue)
+            .whereField("topicVisibility", isEqualTo: Video.Visibility.public.rawValue)
+            .whereField("isDeleted", isEqualTo: false)
+            .whereField("generationSource", isEqualTo: "on_demand")
+            .whereField("originatedFromApi", isEqualTo: false)
+    }
+
+    func socialFeed(limit: Int, after cursor: PageCursor?) async throws -> Page<Video> {
+        var query = socialBaseQuery.order(by: "socialScore", descending: true).limit(to: limit)
+        if let cursor {
+            query = query.start(afterDocument: cursor.snapshot)
+        }
+        let snapshot = try await query.getDocuments()
+        return Page(items: snapshot.decoded(), cursor: snapshot.documents.last.map(PageCursor.init))
+    }
+
+    func socialFeed(categoryIds: [String], limit: Int, after cursor: PageCursor?) async throws -> Page<Video> {
+        guard !categoryIds.isEmpty else { return Page(items: [], cursor: nil) }
+        var query = socialBaseQuery
+            .whereField("categoryId", in: Array(categoryIds.prefix(30)))
+            .order(by: "socialScore", descending: true)
+            .limit(to: limit)
+        if let cursor {
+            query = query.start(afterDocument: cursor.snapshot)
+        }
+        let snapshot = try await query.getDocuments()
+        return Page(items: snapshot.decoded(), cursor: snapshot.documents.last.map(PageCursor.init))
+    }
 }
 
 final class InMemoryVideoRepository: VideoRepository {
@@ -261,5 +304,18 @@ final class InMemoryVideoRepository: VideoRepository {
         videos
             .filter { $0.isOnDemandLesson && !$0.isDeleted }
             .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
+    }
+
+    private func isSocialEligible(_ video: Video) -> Bool {
+        video.isOnDemandLesson && isVisible(video) && video.originatedFromApi != true
+    }
+
+    func socialFeed(limit: Int, after cursor: PageCursor?) async throws -> Page<Video> {
+        Page(items: Array(videos.filter(isSocialEligible).prefix(limit)), cursor: nil)
+    }
+
+    func socialFeed(categoryIds: [String], limit: Int, after cursor: PageCursor?) async throws -> Page<Video> {
+        let matching = videos.filter { isSocialEligible($0) && categoryIds.contains($0.categoryId) }
+        return Page(items: Array(matching.prefix(limit)), cursor: nil)
     }
 }

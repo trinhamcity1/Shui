@@ -104,6 +104,7 @@ export async function runCreateOnDemandLesson(
     .doc(videoId)
     .set({
       ...baseOnDemandVideoShape({ uid, topicId, categoryId: generated.categoryId, title: truncateTitle(topic) }),
+      rawTopic: topic,
       status: "generating",
       transcript: generated.script,
       transcriptSource: "on_demand_script",

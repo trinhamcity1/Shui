@@ -8,7 +8,7 @@ import Foundation
 /// into a key-value table that shadows a localization system.
 enum Strings {
     // Tab bar
-    static let learnTab = "Learn"
+    static let socialTab = "Social"
     static let exploreTab = "Explore"
     static let profileTab = "Profile"
 
