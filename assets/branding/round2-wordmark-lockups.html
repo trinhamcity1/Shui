@@ -1,0 +1,321 @@
+<title>Shui Wordmark Lockups</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..700,0..100;1,9..144,300..700,0..100&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ink:#0f2830;
+    --ink-2:#132f38;
+    --current:#2e7a88;
+    --current-bright:#6fc2cd;
+    --foam:#eef4f1;
+    --foam-dim:#c7d6d1;
+    --stone:#8b9089;
+    --brass:#c79a5c;
+    --font-display:'Fraunces', 'Iowan Old Style', ui-serif, Georgia, serif;
+    --font-body:'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono:'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  *{box-sizing:border-box;}
+  html{color-scheme:dark;}
+  body{margin:0;background:var(--ink);color:var(--foam);font-family:var(--font-body);font-size:16px;line-height:1.6;}
+  ::selection{background:var(--current);color:var(--foam);}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 32px;}
+
+  .hero{padding:88px 0 56px;}
+  .eyebrow{
+    font-family:var(--font-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--current-bright);display:flex;align-items:center;gap:10px;margin:0 0 26px;
+  }
+  .eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--current-bright);box-shadow:0 0 0 4px rgba(111,194,205,.18);}
+  h1{
+    font-family:var(--font-display);font-optical-sizing:auto;font-weight:480;
+    font-variation-settings:"SOFT" 60;font-size:clamp(38px,5.6vw,66px);line-height:1.05;
+    letter-spacing:-.01em;margin:0 0 20px;max-width:18ch;text-wrap:balance;
+  }
+  .hero p.lede{font-size:18.5px;color:var(--foam-dim);max-width:56ch;margin:0;}
+
+  .section-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--stone);margin:0 0 18px;}
+
+  /* ---- wordmark type decision ---- */
+  .type-decision{padding:16px 0 72px;border-bottom:1px solid rgba(238,244,241,.1);}
+  .type-decision h2{font-family:var(--font-display);font-variation-settings:"SOFT" 50;font-weight:470;font-size:28px;margin:0 0 34px;max-width:26ch;}
+  .type-options{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .type-card{
+    background:var(--ink-2);border:1px solid rgba(238,244,241,.09);border-radius:14px;padding:34px 26px 24px;
+    position:relative;
+  }
+  .type-card.picked{border-color:var(--brass);}
+  .type-card .pick-tag{
+    position:absolute;top:16px;right:18px;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;
+    color:var(--brass);text-transform:uppercase;
+  }
+  .type-card .word{font-family:var(--font-display);font-size:50px;line-height:1;color:var(--foam);margin:0 0 18px;}
+  .word.regular{font-weight:420;font-variation-settings:"SOFT" 40;}
+  .word.italic{font-style:italic;font-weight:440;font-variation-settings:"SOFT" 75;}
+  .word.compact{font-weight:640;font-variation-settings:"SOFT" 10;letter-spacing:-.02em;text-transform:lowercase;}
+  .type-card p{font-size:13.5px;color:var(--foam-dim);margin:0;}
+
+  /* ---- lockups ---- */
+  .lockups{padding:72px 0;}
+  .lockups h2{font-family:var(--font-display);font-variation-settings:"SOFT" 50;font-weight:470;font-size:30px;margin:0 0 40px;max-width:24ch;text-wrap:balance;}
+  .lockup-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+  .lockup-card{background:var(--ink-2);border:1px solid rgba(238,244,241,.09);border-radius:16px;overflow:hidden;}
+  .lockup-card .stage{
+    padding:40px 28px;
+    background:radial-gradient(120% 140% at 25% 15%, rgba(111,194,205,.10), transparent 60%), var(--ink);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .lockup{display:flex;align-items:center;gap:14px;}
+  .lockup .icon{width:38px;height:38px;color:var(--current-bright);flex:none;}
+  .lockup .word{font-family:var(--font-display);font-style:italic;font-weight:440;font-variation-settings:"SOFT" 75;font-size:34px;color:var(--foam);white-space:nowrap;}
+  .lockup-card .meta{padding:16px 22px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .lockup-card .num{font-family:var(--font-mono);font-size:11px;color:var(--stone);letter-spacing:.06em;}
+  .lockup-card .name{font-size:13.5px;color:var(--foam-dim);}
+  .lockup-card .on-foam{background:var(--foam);}
+  .lockup-card .on-foam .word{color:var(--ink);}
+  .lockup-card .on-foam .icon{color:var(--ink);}
+
+  /* ---- deep dive on the two leads ---- */
+  .deepdive{padding:72px 0;border-top:1px solid rgba(238,244,241,.1);}
+  .deepdive h2{font-family:var(--font-display);font-variation-settings:"SOFT" 50;font-weight:470;font-size:30px;margin:0 0 8px;}
+  .deepdive .intro{color:var(--foam-dim);max-width:60ch;margin:0 0 44px;font-size:15.5px;}
+  .lead{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:22px;}
+  .lead-card{background:var(--ink-2);border:1px solid rgba(238,244,241,.09);border-radius:16px;padding:30px;}
+  .lead-card .label{font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;color:var(--brass);text-transform:uppercase;margin:0 0 22px;}
+  .variant-row{display:flex;gap:16px;flex-wrap:wrap;}
+  .variant{flex:1;min-width:150px;background:var(--ink);border-radius:10px;padding:22px 18px;display:flex;flex-direction:column;align-items:center;gap:10px;border:1px solid rgba(238,244,241,.08);}
+  .variant .lockup{flex-direction:row;}
+  .variant.stacked .lockup{flex-direction:column;gap:8px;}
+  .variant.stacked .word{font-size:24px;}
+  .variant.stacked .icon{width:30px;height:30px;}
+  .variant .cap{font-family:var(--font-mono);font-size:10.5px;color:var(--stone);text-transform:uppercase;letter-spacing:.06em;}
+  .variant.mono .icon{width:32px;height:32px;}
+
+  /* ---- watermark mockup ---- */
+  .watermark-demo{padding:72px 0 90px;border-top:1px solid rgba(238,244,241,.1);}
+  .watermark-demo h2{font-family:var(--font-display);font-variation-settings:"SOFT" 50;font-weight:470;font-size:28px;margin:0 0 10px;max-width:26ch;}
+  .watermark-demo p.note{color:var(--foam-dim);max-width:60ch;margin:0 0 36px;font-size:15px;}
+  .frame-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+  .video-frame{
+    aspect-ratio:9/16;max-height:420px;margin:0 auto;
+    border-radius:18px;position:relative;overflow:hidden;
+    background:
+      linear-gradient(160deg, #1c4652 0%, #0f2830 55%, #0a1d23 100%);
+    border:1px solid rgba(238,244,241,.12);
+  }
+  .video-frame::before{
+    content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(60% 40% at 70% 20%, rgba(111,194,205,.16), transparent 60%),
+      radial-gradient(50% 30% at 20% 80%, rgba(199,154,92,.10), transparent 60%);
+  }
+  .video-frame .caption-mock{
+    position:absolute;left:16px;right:16px;bottom:64px;
+    color:var(--foam-dim);font-size:12px;font-family:var(--font-body);
+    opacity:.55;line-height:1.5;
+  }
+  .video-frame .caption-mock strong{color:var(--foam);font-weight:600;}
+  .wm{
+    position:absolute;display:flex;align-items:center;gap:5px;
+    opacity:.82;
+  }
+  .wm .icon{width:16px;height:16px;color:var(--foam);flex:none;}
+  .wm .word{font-family:var(--font-display);font-style:italic;font-weight:460;font-variation-settings:"SOFT" 75;font-size:14px;color:var(--foam);text-shadow:0 1px 3px rgba(0,0,0,.4);}
+  .wm.tr{top:16px;right:16px;}
+  .wm.br{bottom:18px;right:16px;}
+  .frame-cap{text-align:center;font-family:var(--font-mono);font-size:11.5px;color:var(--stone);margin-top:14px;}
+
+  .verdict{padding:0 0 100px;}
+  .verdict .box{border-left:2px solid var(--brass);padding:6px 0 6px 26px;max-width:68ch;}
+  .verdict p{color:var(--foam-dim);font-size:16px;margin:0 0 16px;}
+  .verdict p:last-child{margin-bottom:0;}
+  .verdict strong{color:var(--foam);}
+
+  footer{padding:30px 0 60px;font-family:var(--font-mono);font-size:11.5px;color:var(--stone);border-top:1px solid rgba(238,244,241,.08);}
+
+  @media (max-width:920px){
+    .type-options{grid-template-columns:1fr;}
+    .lockup-grid{grid-template-columns:1fr 1fr;}
+    .lead{grid-template-columns:1fr;}
+    .frame-row{grid-template-columns:1fr;}
+  }
+  @media (max-width:620px){
+    .lockup-grid{grid-template-columns:1fr;}
+    .wrap{padding:0 20px;}
+    .hero{padding:60px 0 44px;}
+  }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="m-drop" viewBox="0 0 100 100">
+      <path fill="currentColor" d="M50 6 C 71 32 82 52 82 68 C 82 86 68 97 50 97 C 32 97 18 86 18 68 C 18 52 29 32 50 6 Z"/>
+      <polygon fill="var(--_bg,#0f2830)" points="43,58 43,86 68,72"/>
+    </symbol>
+    <symbol id="m-current" viewBox="0 0 100 100">
+      <path d="M22 76 C 34 76 34 52 50 52 C 66 52 66 24 78 24" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="m-ripple" viewBox="0 0 100 100">
+      <g fill="none" stroke="currentColor" stroke-linecap="round">
+        <circle cx="50" cy="54" r="16" stroke-width="7" stroke-dasharray="78 23" transform="rotate(-20 50 54)"/>
+        <circle cx="50" cy="54" r="28" stroke-width="6" stroke-dasharray="132 44" transform="rotate(40 50 54)" opacity=".82"/>
+        <circle cx="50" cy="54" r="40" stroke-width="5" stroke-dasharray="180 71" transform="rotate(160 50 54)" opacity=".6"/>
+      </g>
+    </symbol>
+    <symbol id="m-stone" viewBox="0 0 100 100">
+      <circle cx="50" cy="55" r="20" fill="currentColor" opacity=".92"/>
+      <path d="M92 40 C 88 40, 84 52, 80.8 69.4 A 34 34 0 0 1 19.2 69.4 C 16 52, 12 40, 8 40" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="m-tributary" viewBox="0 0 100 100">
+      <g fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round">
+        <path d="M18 14 C 34 34, 42 52, 50 68"/>
+        <path d="M82 14 C 66 34, 58 52, 50 68"/>
+        <path d="M50 68 C 50 76, 50 82, 50 92"/>
+      </g>
+    </symbol>
+    <symbol id="m-vessel" viewBox="0 0 100 100">
+      <path fill="currentColor" d="M15 38 C15 64, 26 88, 50 88 C74 88, 85 64, 85 38 C 76 32, 68 44, 50 38 C 32 32, 24 44, 15 38 Z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap hero">
+  <p class="eyebrow">Shui · Wordmark &amp; Lockups · Round 2</p>
+  <h1>Shui, written the way it moves.</h1>
+  <p class="lede">Round one was the mark alone. This round puts the name back on it — six lockups, a closer look at the two strongest, and how the mark actually sits in the corner of a video, since that's the other job it has to do every day.</p>
+</div>
+
+<div class="wrap type-decision">
+  <p class="section-label">First — how the word itself is drawn</p>
+  <h2>Three ways to set "Shui." One of them is doing the actual work of the brand.</h2>
+  <div class="type-options">
+    <div class="type-card">
+      <div class="word regular">Shui</div>
+      <p>Upright, generous, editorial. Reads calm and confident — but sitting still is the one thing this brand isn't supposed to do.</p>
+    </div>
+    <div class="type-card picked">
+      <span class="pick-tag">Recommended</span>
+      <div class="word italic">Shui</div>
+      <p>The same face, tilted into motion. It's the smallest possible move that still says "flowing" instead of "standing" — no extra ornament required.</p>
+    </div>
+    <div class="type-card">
+      <div class="word compact">shui</div>
+      <p>Tight, lowercase, product-y. Reads more like a settings-menu label than a name — useful for a footer credit, wrong for the logo itself.</p>
+    </div>
+  </div>
+</div>
+
+<div class="wrap lockups">
+  <p class="section-label">All six, now branded</p>
+  <h2>The italic lockup applied consistently across every direction from round one</h2>
+  <div class="lockup-grid">
+
+    <div class="lockup-card">
+      <div class="stage"><div class="lockup"><svg class="icon" viewBox="0 0 100 100"><use href="#m-drop" style="--_bg:var(--ink)"/></svg><span class="word">Shui</span></div></div>
+      <div class="meta"><span class="num">01</span><span class="name">The Drop</span></div>
+    </div>
+
+    <div class="lockup-card">
+      <div class="stage"><div class="lockup"><svg class="icon" viewBox="0 0 100 100"><use href="#m-current"/></svg><span class="word">Shui</span></div></div>
+      <div class="meta"><span class="num">02</span><span class="name">The Current</span></div>
+    </div>
+
+    <div class="lockup-card">
+      <div class="stage"><div class="lockup"><svg class="icon" viewBox="0 0 100 100"><use href="#m-ripple"/></svg><span class="word">Shui</span></div></div>
+      <div class="meta"><span class="num">03</span><span class="name">The Reach</span></div>
+    </div>
+
+    <div class="lockup-card">
+      <div class="stage"><div class="lockup"><svg class="icon" viewBox="0 0 100 100"><use href="#m-stone"/></svg><span class="word">Shui</span></div></div>
+      <div class="meta"><span class="num">04</span><span class="name">The Way Around</span></div>
+    </div>
+
+    <div class="lockup-card">
+      <div class="stage"><div class="lockup"><svg class="icon" viewBox="0 0 100 100"><use href="#m-tributary"/></svg><span class="word">Shui</span></div></div>
+      <div class="meta"><span class="num">05</span><span class="name">The Source</span></div>
+    </div>
+
+    <div class="lockup-card">
+      <div class="stage on-foam"><div class="lockup"><svg class="icon" viewBox="0 0 100 100"><use href="#m-vessel"/></svg><span class="word">Shui</span></div></div>
+      <div class="meta"><span class="num">06</span><span class="name">The Vessel — shown on Foam</span></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="wrap deepdive">
+  <p class="section-label">Going deeper on the two front-runners</p>
+  <h2>The Current &amp; The Vessel</h2>
+  <p class="intro">These were the two directions from round one that still held up at 40 pixels. Here's how each behaves across the lockup forms an app actually needs — horizontal for a splash screen, stacked for a narrow header, icon-only for everywhere else.</p>
+
+  <div class="lead">
+    <div class="lead-card">
+      <p class="label">02 — The Current</p>
+      <div class="variant-row">
+        <div class="variant">
+          <div class="lockup"><svg class="icon" viewBox="0 0 100 100"><use href="#m-current"/></svg><span class="word">Shui</span></div>
+          <span class="cap">Horizontal</span>
+        </div>
+        <div class="variant stacked">
+          <div class="lockup"><svg class="icon" viewBox="0 0 100 100"><use href="#m-current"/></svg><span class="word">Shui</span></div>
+          <span class="cap">Stacked</span>
+        </div>
+        <div class="variant mono">
+          <svg class="icon" viewBox="0 0 100 100" style="color:var(--current-bright)"><use href="#m-current"/></svg>
+          <span class="cap">Icon only</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="lead-card">
+      <p class="label">06 — The Vessel</p>
+      <div class="variant-row">
+        <div class="variant">
+          <div class="lockup"><svg class="icon" viewBox="0 0 100 100"><use href="#m-vessel"/></svg><span class="word">Shui</span></div>
+          <span class="cap">Horizontal</span>
+        </div>
+        <div class="variant stacked">
+          <div class="lockup"><svg class="icon" viewBox="0 0 100 100"><use href="#m-vessel"/></svg><span class="word">Shui</span></div>
+          <span class="cap">Stacked</span>
+        </div>
+        <div class="variant mono">
+          <svg class="icon" viewBox="0 0 100 100" style="color:var(--current-bright)"><use href="#m-vessel"/></svg>
+          <span class="cap">Icon only</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap watermark-demo">
+  <p class="section-label">The other job this mark has</p>
+  <h2>Sitting quietly in the corner of a generated lesson</h2>
+  <p class="note">Every lesson Shui generates carries a small watermark, on every tier — free through Pyramidion. It has to be legible at a glance and forgettable the rest of the time. Two corner placements, both at the actual scale a viewer would see them.</p>
+  <div class="frame-row">
+    <div>
+      <div class="video-frame">
+        <div class="wm tr"><svg class="icon" viewBox="0 0 100 100"><use href="#m-current"/></svg><span class="word">Shui</span></div>
+        <div class="caption-mock"><strong>Today's lesson:</strong> how compound interest actually compounds.</div>
+      </div>
+      <p class="frame-cap">The Current — top right</p>
+    </div>
+    <div>
+      <div class="video-frame">
+        <div class="wm br"><svg class="icon" viewBox="0 0 100 100"><use href="#m-vessel"/></svg><span class="word">Shui</span></div>
+        <div class="caption-mock"><strong>Today's lesson:</strong> how compound interest actually compounds.</div>
+      </div>
+      <p class="frame-cap">The Vessel — bottom right</p>
+    </div>
+  </div>
+</div>
+
+<div class="wrap verdict">
+  <p class="section-label">Where this leaves it</p>
+  <div class="box">
+    <p>The italic wordmark works everywhere it was tested, so that part's close to settled unless something about it feels wrong in hand. Between the two icons — <strong>The Current</strong> reads slightly stronger as a corner watermark specifically, because a thin curved stroke stays legible against a busy video frame better than a filled shape does at 16px. <strong>The Vessel</strong> is still the more emotionally specific mark and the better icon-only choice for the app itself; nothing says it has to be the same mark doing both jobs.</p>
+    <p>If that split — Current for the burned-in watermark, Vessel for the app icon — sounds right, say so and I'll take each all the way to production-ready: exact geometry, a real font license check on Fraunces for commercial use, and an SVG export set.</p>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">SHUI — WORDMARK &amp; LOCKUPS — SKETCH ROUND 2</div>
+</footer>

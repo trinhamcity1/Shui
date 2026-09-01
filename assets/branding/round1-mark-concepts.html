@@ -1,0 +1,463 @@
+<title>Water Mark Studies</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..700,0..100&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ink:#0f2830;
+    --ink-2:#132f38;
+    --current:#2e7a88;
+    --current-bright:#6fc2cd;
+    --foam:#eef4f1;
+    --foam-dim:#c7d6d1;
+    --stone:#8b9089;
+    --brass:#c79a5c;
+    --font-display:'Fraunces', 'Iowan Old Style', ui-serif, Georgia, serif;
+    --font-body:'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono:'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html{color-scheme:dark;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--foam);
+    font-family:var(--font-body);
+    font-size:16px;
+    line-height:1.6;
+  }
+
+  ::selection{background:var(--current);color:var(--foam);}
+
+  a{color:var(--current-bright);}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:0 32px;}
+
+  /* ---------- hero ---------- */
+  .hero{padding:96px 0 64px;}
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--current-bright);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin:0 0 28px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:7px;height:7px;border-radius:50%;
+    background:var(--current-bright);
+    box-shadow:0 0 0 4px rgba(111,194,205,.18);
+  }
+  h1{
+    font-family:var(--font-display);
+    font-optical-sizing:auto;
+    font-weight:480;
+    font-variation-settings:"SOFT" 60;
+    font-size:clamp(40px,6vw,74px);
+    line-height:1.04;
+    letter-spacing:-.01em;
+    margin:0 0 22px;
+    max-width:16ch;
+    text-wrap:balance;
+    color:var(--foam);
+  }
+  .hero p.lede{
+    font-size:19px;
+    color:var(--foam-dim);
+    max-width:52ch;
+    margin:0;
+  }
+
+  /* ---------- philosophy ---------- */
+  .philosophy{padding:8px 0 72px;border-bottom:1px solid rgba(238,244,241,.1);}
+  .philosophy .grid{
+    display:grid;
+    grid-template-columns:220px 1fr;
+    gap:48px;
+  }
+  .philosophy h2{
+    font-family:var(--font-display);
+    font-variation-settings:"SOFT" 40;
+    font-weight:460;
+    font-size:22px;
+    margin:0;
+    color:var(--current-bright);
+    position:sticky;
+    top:32px;
+    align-self:start;
+  }
+  .philosophy .copy{max-width:62ch;}
+  .philosophy p{margin:0 0 20px;color:var(--foam-dim);font-size:16.5px;}
+  .philosophy p:last-child{margin-bottom:0;}
+  .philosophy strong{color:var(--foam);font-weight:600;}
+
+  /* ---------- specimen strip ---------- */
+  .specimen{padding:64px 0;border-bottom:1px solid rgba(238,244,241,.1);}
+  .specimen .cols{display:grid;grid-template-columns:1.1fr 1fr;gap:56px;align-items:start;}
+  .section-label{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--stone);
+    margin:0 0 18px;
+  }
+  .swatches{display:flex;flex-wrap:wrap;gap:14px;}
+  .swatch{width:104px;}
+  .swatch .chip{
+    height:64px;border-radius:10px;
+    border:1px solid rgba(238,244,241,.12);
+  }
+  .swatch .name{font-size:13px;margin-top:8px;color:var(--foam);}
+  .swatch .hex{font-family:var(--font-mono);font-size:11px;color:var(--stone);}
+
+  .type-sample .word{
+    font-family:var(--font-display);
+    font-variation-settings:"SOFT" 70;
+    font-weight:440;
+    font-size:52px;
+    line-height:1;
+    margin:0 0 14px;
+    color:var(--foam);
+  }
+  .type-sample .body-line{font-size:15.5px;color:var(--foam-dim);margin:0 0 14px;max-width:44ch;}
+  .type-sample .mono-line{font-family:var(--font-mono);font-size:12.5px;color:var(--current-bright);}
+
+  /* ---------- concept grid ---------- */
+  .concepts{padding:72px 0;}
+  .concepts > .section-label{margin-bottom:6px;}
+  .concepts h2{
+    font-family:var(--font-display);
+    font-variation-settings:"SOFT" 50;
+    font-weight:470;
+    font-size:32px;
+    margin:0 0 44px;
+    max-width:22ch;
+    text-wrap:balance;
+  }
+  .grid-cards{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:28px;
+  }
+  .card{
+    background:var(--ink-2);
+    border:1px solid rgba(238,244,241,.09);
+    border-radius:16px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .card .stage{
+    aspect-ratio:4/3;
+    display:flex;align-items:center;justify-content:center;
+    background:
+      radial-gradient(120% 140% at 30% 20%, rgba(111,194,205,.10), transparent 60%),
+      var(--ink);
+    color:var(--current-bright);
+  }
+  .card .stage svg{width:46%;height:46%;}
+  .card .meta{padding:20px 22px 22px;}
+  .card .num{
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--stone);
+    letter-spacing:.08em;
+  }
+  .card h3{
+    font-family:var(--font-display);
+    font-variation-settings:"SOFT" 40;
+    font-weight:480;
+    font-size:21px;
+    margin:6px 0 8px;
+    color:var(--foam);
+  }
+  .card p{font-size:14.5px;color:var(--foam-dim);margin:0 0 18px;}
+  .chips{display:flex;gap:10px;}
+  .chip-swatch{
+    flex:1;
+    aspect-ratio:1;
+    border-radius:9px;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid rgba(238,244,241,.10);
+  }
+  .chip-swatch.on-foam{background:var(--foam);color:var(--ink);}
+  .chip-swatch.on-ink{background:var(--ink);color:var(--foam);}
+  .chip-swatch.on-current{background:var(--current);color:var(--foam);}
+  .chip-swatch svg{width:52%;height:52%;}
+
+  /* draw-in for stroke marks in hero stage only */
+  .stage .draw path{
+    stroke-dasharray:340;
+    stroke-dashoffset:340;
+    animation:draw 1.6s .3s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  @keyframes draw{to{stroke-dashoffset:0;}}
+  @media (prefers-reduced-motion: reduce){
+    .stage .draw path{animation:none;stroke-dashoffset:0;}
+  }
+
+  /* ---------- icon lineup ---------- */
+  .lineup{padding:64px 0 80px;border-top:1px solid rgba(238,244,241,.1);}
+  .lineup .strip{
+    margin-top:32px;
+    padding:40px 32px;
+    border-radius:20px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.02), transparent 40%),
+      var(--ink-2);
+    border:1px solid rgba(238,244,241,.08);
+    display:flex;
+    gap:22px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .app-icon{
+    width:84px;height:84px;
+    border-radius:20px;
+    background:var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--current-bright);
+    box-shadow:0 10px 24px -12px rgba(0,0,0,.5), inset 0 0 0 1px rgba(238,244,241,.08);
+  }
+  .app-icon svg{width:52%;height:52%;}
+  .lineup .caption{
+    font-family:var(--font-mono);
+    font-size:12px;
+    color:var(--stone);
+    text-align:center;
+    margin-top:14px;
+  }
+
+  /* ---------- verdict ---------- */
+  .verdict{padding:0 0 100px;}
+  .verdict .box{
+    border-left:2px solid var(--brass);
+    padding:6px 0 6px 26px;
+    max-width:68ch;
+  }
+  .verdict p{color:var(--foam-dim);font-size:16px;margin:0 0 16px;}
+  .verdict p:last-child{margin-bottom:0;}
+  .verdict strong{color:var(--foam);}
+
+  footer{
+    padding:30px 0 60px;
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    color:var(--stone);
+    border-top:1px solid rgba(238,244,241,.08);
+  }
+
+  @media (max-width:920px){
+    .philosophy .grid{grid-template-columns:1fr;}
+    .philosophy h2{position:static;}
+    .specimen .cols{grid-template-columns:1fr;}
+    .grid-cards{grid-template-columns:1fr 1fr;}
+  }
+  @media (max-width:620px){
+    .grid-cards{grid-template-columns:1fr;}
+    .wrap{padding:0 20px;}
+    .hero{padding:64px 0 48px;}
+  }
+</style>
+
+<!-- mark sprite sheet -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="m-drop" viewBox="0 0 100 100">
+      <path fill="currentColor" d="M50 6 C 71 32 82 52 82 68 C 82 86 68 97 50 97 C 32 97 18 86 18 68 C 18 52 29 32 50 6 Z"/>
+      <polygon fill="var(--_bg,#0f2830)" points="43,58 43,86 68,72"/>
+    </symbol>
+
+    <symbol id="m-current" viewBox="0 0 100 100">
+      <path class="draw-path" d="M22 76 C 34 76 34 52 50 52 C 66 52 66 24 78 24" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="m-ripple" viewBox="0 0 100 100">
+      <g fill="none" stroke="currentColor" stroke-linecap="round">
+        <circle cx="50" cy="54" r="16" stroke-width="7" stroke-dasharray="78 23" transform="rotate(-20 50 54)"/>
+        <circle cx="50" cy="54" r="28" stroke-width="6" stroke-dasharray="132 44" transform="rotate(40 50 54)" opacity=".82"/>
+        <circle cx="50" cy="54" r="40" stroke-width="5" stroke-dasharray="180 71" transform="rotate(160 50 54)" opacity=".6"/>
+      </g>
+    </symbol>
+
+    <symbol id="m-stone" viewBox="0 0 100 100">
+      <circle cx="50" cy="55" r="20" fill="currentColor" opacity=".92"/>
+      <path d="M92 40 C 88 40, 84 52, 80.8 69.4 A 34 34 0 0 1 19.2 69.4 C 16 52, 12 40, 8 40" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+    </symbol>
+
+    <symbol id="m-tributary" viewBox="0 0 100 100">
+      <g fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round">
+        <path class="draw-path" d="M18 14 C 34 34, 42 52, 50 68"/>
+        <path d="M82 14 C 66 34, 58 52, 50 68"/>
+        <path d="M50 68 C 50 76, 50 82, 50 92"/>
+      </g>
+    </symbol>
+
+    <symbol id="m-vessel" viewBox="0 0 100 100">
+      <path fill="currentColor" d="M15 38 C15 64, 26 88, 50 88 C74 88, 85 64, 85 38 C 76 32, 68 44, 50 38 C 32 32, 24 44, 15 38 Z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap hero">
+  <p class="eyebrow">Shui · 水 · Brand Mark Exploration</p>
+  <h1>Water doesn't fight the rock. It finds the way through.</h1>
+  <p class="lede">Six directions for the mark, each pulling on a different piece of what the name already means — sketches to react to, not finished files.</p>
+</div>
+
+<div class="wrap philosophy">
+  <div class="grid">
+    <h2>Why water</h2>
+    <div class="copy">
+      <p><em>Shui</em> (水) is the Chinese word for water. Water doesn't fight the rock in its path — it slows, splits, adapts, and keeps moving until it's on the other side. Given long enough, there's nowhere it can't reach.</p>
+      <p>That's the posture the mark should carry: not force, not a straight line punched through an obstacle, but <strong>persistence that looks calm from the outside</strong>. A learner staring down a hard lesson is doing exactly what water does to stone — finding the way through, one small yield at a time.</p>
+      <p>None of the six directions below try to draw the character 水 itself. They try to draw what it's describing.</p>
+    </div>
+  </div>
+</div>
+
+<div class="wrap specimen">
+  <div class="cols">
+    <div>
+      <p class="section-label">Palette</p>
+      <div class="swatches">
+        <div class="swatch"><div class="chip" style="background:var(--ink)"></div><div class="name">Ink</div><div class="hex">#0F2830</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--current)"></div><div class="name">Current</div><div class="hex">#2E7A88</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--current-bright)"></div><div class="name">Current Bright</div><div class="hex">#6FC2CD</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--foam)"></div><div class="name">Foam</div><div class="hex">#EEF4F1</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--stone)"></div><div class="name">Stone</div><div class="hex">#8B9089</div></div>
+        <div class="swatch"><div class="chip" style="background:var(--brass)"></div><div class="name">Brass</div><div class="hex">#C79A5C</div></div>
+      </div>
+    </div>
+    <div class="type-sample">
+      <p class="section-label">Type</p>
+      <div class="word">Shui</div>
+      <p class="body-line">Fraunces carries the headlines and mark names — soft, a little wet at the edges, never brittle. Work Sans holds the reading text underneath it.</p>
+      <p class="mono-line">JETBRAINS MONO — SPECS, HEX, LABELS</p>
+    </div>
+  </div>
+</div>
+
+<div class="wrap concepts">
+  <p class="section-label">Six directions</p>
+  <h2>Each shown at full size, on light, on dark, and at app-icon scale</h2>
+
+  <div class="grid-cards">
+
+    <div class="card">
+      <div class="stage" style="color:var(--current-bright)"><svg viewBox="0 0 100 100"><use href="#m-drop" style="--_bg:var(--ink)"/></svg></div>
+      <div class="meta">
+        <div class="num">01 / THE DROP</div>
+        <h3>The Drop</h3>
+        <p>One drop, and inside it, the shape of watching — water and video content share a single mark.</p>
+        <div class="chips">
+          <div class="chip-swatch on-foam"><svg viewBox="0 0 100 100"><use href="#m-drop" style="--_bg:var(--foam)"/></svg></div>
+          <div class="chip-swatch on-ink"><svg viewBox="0 0 100 100"><use href="#m-drop" style="--_bg:var(--ink)"/></svg></div>
+          <div class="chip-swatch on-current"><svg viewBox="0 0 100 100"><use href="#m-drop" style="--_bg:var(--current)"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stage draw" style="color:var(--current-bright)"><svg viewBox="0 0 100 100"><use href="#m-current" class="draw-path"/></svg></div>
+      <div class="meta">
+        <div class="num">02 / THE CURRENT</div>
+        <h3>The Current</h3>
+        <p>A single stroke, thinner where it lands than where it starts — Shui's own initial, drawn like it's still moving.</p>
+        <div class="chips">
+          <div class="chip-swatch on-foam"><svg viewBox="0 0 100 100"><use href="#m-current"/></svg></div>
+          <div class="chip-swatch on-ink"><svg viewBox="0 0 100 100"><use href="#m-current"/></svg></div>
+          <div class="chip-swatch on-current"><svg viewBox="0 0 100 100"><use href="#m-current"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stage" style="color:var(--current-bright)"><svg viewBox="0 0 100 100"><use href="#m-ripple"/></svg></div>
+      <div class="meta">
+        <div class="num">03 / THE REACH</div>
+        <h3>The Reach</h3>
+        <p>Open rings, not closed circles — water doesn't announce a boundary, it keeps extending past where you'd expect it to stop.</p>
+        <div class="chips">
+          <div class="chip-swatch on-foam"><svg viewBox="0 0 100 100"><use href="#m-ripple"/></svg></div>
+          <div class="chip-swatch on-ink"><svg viewBox="0 0 100 100"><use href="#m-ripple"/></svg></div>
+          <div class="chip-swatch on-current"><svg viewBox="0 0 100 100"><use href="#m-ripple"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stage" style="color:var(--current-bright)"><svg viewBox="0 0 100 100"><use href="#m-stone"/></svg></div>
+      <div class="meta">
+        <div class="num">04 / THE WAY AROUND</div>
+        <h3>The Way Around</h3>
+        <p>An obstacle sits at the center. The line never touches it — it just keeps going, on the other side, like nothing was ever in the way.</p>
+        <div class="chips">
+          <div class="chip-swatch on-foam"><svg viewBox="0 0 100 100"><use href="#m-stone"/></svg></div>
+          <div class="chip-swatch on-ink"><svg viewBox="0 0 100 100"><use href="#m-stone"/></svg></div>
+          <div class="chip-swatch on-current"><svg viewBox="0 0 100 100"><use href="#m-stone"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stage draw" style="color:var(--current-bright)"><svg viewBox="0 0 100 100"><use href="#m-tributary" class="draw-path"/></svg></div>
+      <div class="meta">
+        <div class="num">05 / THE SOURCE</div>
+        <h3>The Source</h3>
+        <p>Two lines becoming one — echoing 水's own structure without ever spelling it out, built the way a river is actually built.</p>
+        <div class="chips">
+          <div class="chip-swatch on-foam"><svg viewBox="0 0 100 100"><use href="#m-tributary"/></svg></div>
+          <div class="chip-swatch on-ink"><svg viewBox="0 0 100 100"><use href="#m-tributary"/></svg></div>
+          <div class="chip-swatch on-current"><svg viewBox="0 0 100 100"><use href="#m-tributary"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stage" style="color:var(--current-bright)"><svg viewBox="0 0 100 100"><use href="#m-vessel"/></svg></div>
+      <div class="meta">
+        <div class="num">06 / THE VESSEL</div>
+        <h3>The Vessel</h3>
+        <p>A container with no fixed rim. Water always takes the shape it's poured into — so does a learner who stops fighting the lesson and adapts to it instead.</p>
+        <div class="chips">
+          <div class="chip-swatch on-foam"><svg viewBox="0 0 100 100"><use href="#m-vessel"/></svg></div>
+          <div class="chip-swatch on-ink"><svg viewBox="0 0 100 100"><use href="#m-vessel"/></svg></div>
+          <div class="chip-swatch on-current"><svg viewBox="0 0 100 100"><use href="#m-vessel"/></svg></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="wrap lineup">
+  <p class="section-label">At app-icon scale</p>
+  <h2 style="font-family:var(--font-display);font-variation-settings:'SOFT' 50;font-weight:470;font-size:26px;margin:0;max-width:30ch;">The test that actually matters — a thumb-sized square on a home screen</h2>
+  <div class="strip">
+    <div class="app-icon"><svg viewBox="0 0 100 100"><use href="#m-drop" style="--_bg:var(--ink)"/></svg></div>
+    <div class="app-icon"><svg viewBox="0 0 100 100"><use href="#m-current"/></svg></div>
+    <div class="app-icon"><svg viewBox="0 0 100 100"><use href="#m-ripple"/></svg></div>
+    <div class="app-icon"><svg viewBox="0 0 100 100"><use href="#m-stone"/></svg></div>
+    <div class="app-icon"><svg viewBox="0 0 100 100"><use href="#m-tributary"/></svg></div>
+    <div class="app-icon"><svg viewBox="0 0 100 100"><use href="#m-vessel"/></svg></div>
+  </div>
+  <p class="caption">Drop · Current · Reach · Way Around · Source · Vessel</p>
+</div>
+
+<div class="wrap verdict">
+  <p class="section-label">A starting opinion</p>
+  <div class="box">
+    <p><strong>The Current</strong> and <strong>The Vessel</strong> are the two that survive being shrunk to 40 pixels without losing the idea — that's the real test for an app icon, not how they look at this size. The Current reads instantly as motion and could double as a stroke inside the wordmark; the Vessel is the more emotionally specific of the two, closer to the actual sentence this all started from.</p>
+    <p><strong>The Drop</strong> is the safest, most literal option if the instinct is "something a user recognizes in one glance, no explanation needed." <strong>The Reach</strong> and <strong>The Way Around</strong> are the most conceptually rich of the six and the hardest to defend at a glance — better suited to a splash screen or a loading state than a 40px icon.</p>
+    <p>Tell me which ones earn a second pass and I'll take them further — tighter geometry, a wordmark lockup, color variants for watermark use on generated video.</p>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">SHUI — MARK EXPLORATION — SKETCH ROUND 1</div>
+</footer>
