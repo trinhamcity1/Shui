@@ -161,8 +161,13 @@ export async function debitForLesson(
   });
 }
 
-/** Reverses debitForLesson's charge when GolpoAI reports a terminal failure. Never refunds the free lesson (nothing was charged). */
-export async function refundLesson(uid: string, debitedCents: number, videoId: string): Promise<void> {
+/**
+ * Reverses debitForLesson's charge — on a GolpoAI terminal failure (videoId
+ * set), or on a Claude refusal that happened before any video doc existed
+ * (videoId null). Never refunds the free lesson (nothing was charged, so
+ * debitedCents is already 0 and this is a no-op).
+ */
+export async function refundLesson(uid: string, debitedCents: number, videoId: string | null): Promise<void> {
   if (debitedCents <= 0) return;
   await db.runTransaction(async (t) => {
     t.set(
@@ -170,7 +175,7 @@ export async function refundLesson(uid: string, debitedCents: number, videoId: s
       { creditBalanceCents: FieldValue.increment(debitedCents), updatedAt: FieldValue.serverTimestamp() },
       { merge: true }
     );
-    await writeLedgerRow(t, uid, { type: "lesson_refund", amountCents: debitedCents, relatedVideoId: videoId });
+    await writeLedgerRow(t, uid, { type: "lesson_refund", amountCents: debitedCents, relatedVideoId: videoId ?? undefined });
   });
 }
 

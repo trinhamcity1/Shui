@@ -21,6 +21,9 @@ export { reorderTopicVideos, updateVideoMetadata } from "./callables/creatorVide
 export { createTopicCoverUpload } from "./callables/createTopicCoverUpload";
 export { actionReport, saveCategory } from "./callables/adminModeration";
 export { suggestQuizQuestions } from "./callables/suggestQuizQuestions";
+export { createOnDemandLesson } from "./callables/createOnDemandLesson";
+export { checkOnDemandLessonStatus } from "./callables/checkOnDemandLessonStatus";
+export { shareLessonToSocial } from "./callables/shareLessonToSocial";
 
 export { onCommentWritten } from "./triggers/onCommentWritten";
 export { onTopicWritten } from "./triggers/onTopicWritten";

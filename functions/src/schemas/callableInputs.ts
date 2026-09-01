@@ -184,3 +184,20 @@ export const AiTutorMessageInputSchema = z
     }
   });
 export type AiTutorMessageInput = z.infer<typeof AiTutorMessageInputSchema>;
+
+// ---- Phase 7: lessons on demand ------------------------------------------
+
+export const CreateOnDemandLessonInputSchema = z.object({
+  topic: z.string().min(1).max(300),
+});
+export type CreateOnDemandLessonInput = z.infer<typeof CreateOnDemandLessonInputSchema>;
+
+export const CheckOnDemandLessonStatusInputSchema = z.object({
+  videoId: z.string().min(1),
+});
+export type CheckOnDemandLessonStatusInput = z.infer<typeof CheckOnDemandLessonStatusInputSchema>;
+
+export const ShareLessonToSocialInputSchema = z.object({
+  videoId: z.string().min(1),
+});
+export type ShareLessonToSocialInput = z.infer<typeof ShareLessonToSocialInputSchema>;

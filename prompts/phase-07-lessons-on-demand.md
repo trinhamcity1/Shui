@@ -417,7 +417,13 @@ analytics event named around it).
    "personal-{uid}"`, `visibility/topicVisibility: "private"`, `generationSource:
    "on_demand"`, `originatedFromApi: false`, `categoryId` from Claude's classification,
    `transcript`/`transcriptSource: "on_demand_script"`, `tierAtGeneration`,
-   `costChargedCents`.
+   `costChargedCents`, **and write the quiz adapter (§3) right here** — `quiz/current`
+   + `quiz/answers`, `hasQuiz: true`. The quiz is a pure function of the script Claude
+   already returned; it does not depend on GolpoAI's render finishing at all, so there
+   is no reason to make it wait. (An earlier draft of this section put the quiz write in
+   `checkOnDemandLessonStatus` instead — moved here on implementation, since splitting
+   "write what Claude returned" across two callables bought nothing and only made a
+   failed render's quiz existence depend on timing that doesn't matter.)
 7. Call GolpoAI `POST /api/v2/videos/generate` with `custom_script`, store the
    returned `job_id` as `golpoJobId`. **Do not block on the render** — return
    `{ videoId }` immediately; the client polls.
@@ -427,10 +433,11 @@ analytics event named around it).
 status.
 - Polls GolpoAI `GET /api/v2/videos/status/{job_id}`.
 - `failed` → `status: "failed"`, refund the debited credit (§4), return the message.
-- `completed` → write the quiz adapter (§3), run the watermark post-process (§4)
-  writing both `playbackURL`/`watermarkedPlaybackURL`, write to `lessonCache` if this
-  was the first generation of this normalized topic, set `status: "ready"`, `hasQuiz:
-  true`, `publishedAt`.
+- `completed` → run the watermark post-process (§4) writing both
+  `playbackURL`/`watermarkedPlaybackURL`, write to `lessonCache` if this was the first
+  generation of this normalized topic, set `status: "ready"`, `publishedAt`. The quiz
+  and `hasQuiz` are already in place from step 6 above — nothing quiz-related happens
+  here.
 - Client polls every ~3s; no scheduled Function or push model needed for a single
   status transition per lesson.
 
