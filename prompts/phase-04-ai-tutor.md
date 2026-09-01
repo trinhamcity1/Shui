@@ -68,13 +68,17 @@ Input: `{ videoId, mode: "discuss" | "quizMe", text?, isSessionStart: boolean }`
 
 Flow:
 1. Verify the learner may read this video.
-2. Assemble the context above from Firestore.
-3. Build the prompt (see §4) and call the model.
-4. **Stream the response.** Use an HTTPS Function with SSE (or Firestore-document
+2. Look up the caller's tier (`users/{uid}.tier`, defined in
+   `prompts/phase-07-lessons-on-demand.md` §4) and resolve it to a model and a pair of
+   caps via the shared `TIERS` constant — see Guardrails below. This replaces a single
+   Function-config model choice with a per-tier one.
+3. Assemble the context above from Firestore.
+4. Build the prompt (see §4) and call the model.
+5. **Stream the response.** Use an HTTPS Function with SSE (or Firestore-document
    streaming if that proves simpler on iOS) so text appears token by token. A tutor that
    pauses for six seconds then dumps a paragraph feels broken.
-5. Persist both the user message and the assistant message; update thread metadata.
-6. Return, alongside the text, structured hints the UI can act on:
+6. Persist both the user message and the assistant message; update thread metadata.
+7. Return, alongside the text, structured hints the UI can act on:
    `{ suggestedReplies: string[], retentionAssessment?: { questionIds: string[], verdict: "solid" | "shaky" | "missed" } }`.
 
 When `retentionAssessment` reports `missed` or `shaky` for a question, update that
@@ -84,18 +88,68 @@ Phase 1 SM-2 code path; do not invent a second scheduler.
 
 ### Guardrails
 
-- **Rate limit** per user: e.g. 30 messages/hour, 300/day, tracked in
-  `users/{uid}/aiUsage/{yyyy-mm-dd}`. Exceeding it returns a typed error the UI renders
-  as a friendly cap message with the reset time.
-- **Cost ceiling**: cap context and output tokens; truncate transcripts to a token
-  budget by keeping the segments most relevant to the learner's question.
+**Superseded by the tier pivot** — this used to be one flat rate limit and one
+Function-config model for every user. It's now per-tier on both axes, sourced from the
+same `TIERS` constant Phase 7 defines (`functions/src/lib/tiers.ts`), so there is one
+place these numbers live, not a copy in each phase:
+
+| Tier | Model | Daily message cap | Monthly cost cap |
+|---|---|---|---|
+| Free | Haiku 4.5 | 20/day | — |
+| Siltstone | Haiku 4.5 | 20/day | — |
+| Obsidian | Sonnet 5 | 20/day | $3.00/cycle |
+| Alabaster | Sonnet 5 | 40/day | $7.00/cycle |
+| Pyramidion | Sonnet 5 | 100/day | $20.00/cycle |
+
+- **Model selection is tier-driven, not a single `AI_MODEL` config value.**
+  `AnthropicModelClient` now takes the model explicitly per call
+  (`new AnthropicModelClient(TIERS[tier].aiModel)`) instead of defaulting to
+  `aiModel.value()`. `AI_MODEL` Function config stays only as the eval harness's
+  override (`functions/src/ai/evals/run.ts` already reads `process.env.AI_MODEL`) —
+  the production path no longer has one global model.
+- **Daily message cap replaces the old flat 30/hour, 300/day pair with one per-tier
+  daily number** — the hourly sub-limit is dropped; each tier now specifies only a
+  daily cap, and the new monthly cost cap (below) is the second layer of protection the
+  old design didn't have. Still tracked in `users/{uid}/aiUsage/{yyyy-mm-dd}`, same
+  transactional check-and-increment `rateLimit.ts` already does — just read the cap
+  from `TIERS[tier].aiDailyMessageCap` instead of a hardcoded constant.
+- **Monthly cost cap (Obsidian and above) is a real dollar ceiling, not another message
+  count — "unlimited chat, but stop at $X" is the actual product promise, so it has to
+  be enforced against real spend.** This requires a genuine capability the code doesn't
+  have yet: `ModelClient.stream()` currently returns only the accumulated text and
+  silently discards the Anthropic response's `usage` (confirmed by direct
+  measurement — real per-message cost ranges from under a cent on Haiku to several
+  cents on Sonnet for a long-transcript context, so message count alone is a poor proxy
+  for real cost). Extend `StreamParams`/`ModelClient.stream()` to also return
+  `{ inputTokens, outputTokens }` from the API response, and give `FakeModelClient` a
+  deterministic stand-in (e.g. token count from `scriptedResponse.length / 4`) so evals
+  and unit tests keep working without a real key. Accumulate **exact integer token
+  totals** — not a pre-computed, repeatedly-rounded cents figure — in a new
+  `users/{uid}/aiUsage/{yyyy-mm}` doc (`inputTokensThisCycle`, `outputTokensThisCycle`),
+  and compute the real cost in cents from a small versioned pricing table
+  (`functions/src/ai/pricing.ts`, one row per model, updated when list prices change)
+  only at check time. This avoids compounding rounding error across hundreds of
+  sub-cent additions, the same reason Phase 7's credit ledger is cents-integer rather
+  than float dollars.
+- **Both caps are checked together, before the model call, in the same transaction as
+  the daily counter increment.** Whichever binds first refuses the message with a typed
+  error naming which cap and when it resets: the daily cap resets at the next UTC day
+  boundary; the monthly cost cap resets on that tier's billing-cycle boundary (Stripe's
+  `invoice.paid` for Obsidian/Alabaster; the balance-triggered-or-30-day recharge event
+  for Pyramidion, per `phase-07-lessons-on-demand.md`'s billing mechanics — one
+  cycle-reset event zeroes both the like-refund counter and this cost counter for
+  Pyramidion).
+- **Free and Siltstone get no cost cap** — Haiku's per-message cost is small enough
+  that the daily count alone is a sufficient guardrail; adding a dollar cap there would
+  be complexity with no real protection behind it.
+- **Cost ceiling on any single call**: cap context and output tokens; truncate
+  transcripts to a token budget by keeping the segments most relevant to the learner's
+  question.
 - **Abuse**: reject inputs over 2000 characters. If a learner steers the conversation
   far off the lesson, the tutor redirects once, then declines and offers to answer
   something about the lesson instead.
 - **Secrets**: model API key in Function secrets (`AI_API_KEY`). Log token counts, never
   message contents, to your metrics.
-- **Model choice** lives in Function config (`AI_MODEL`), not in code, so it can be
-  changed without a deploy of the app.
 
 ## 4. Prompting
 
@@ -172,7 +226,15 @@ An untested prompt is a guess. Build `functions/src/ai/evals/`:
    answer as correct.
 4. A conversationally missed concept moves that video's `dueDate` earlier in Firestore.
 5. Reopening the same video restores the thread.
-6. Exceeding the rate limit shows the cap message with a reset time.
+6. Exceeding the daily message cap shows the cap message with a reset time, using each
+   tier's own number (Free/Siltstone 20, Obsidian 20, Alabaster 40, Pyramidion 100).
+   A Free-tier account is served Haiku for every message; an Obsidian-and-above
+   account is served Sonnet. Simulating enough Sonnet usage in the emulator to cross
+   an Obsidian test account's $3.00 monthly cost cap (using `FakeModelClient`'s
+   deterministic token stand-in, not a real spend) refuses further messages with a
+   cap message naming the dollar cap and its cycle-end reset — verify this fires from
+   accumulated real token counts, not from a hardcoded message count standing in for
+   cost.
 7. A video with no transcript still opens the tutor, with the honest degraded opener.
 8. Guest tapping AI gets the sign-in sheet.
 9. `git grep` finds no model API key anywhere in the iOS target.

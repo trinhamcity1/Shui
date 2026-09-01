@@ -218,7 +218,21 @@ separate lifetime grant, entirely outside this ledger.
 | Watermark on serve | yes | yes | yes | **no — clean master** | **no — clean master** |
 | Downloadable | **no** | yes | yes | yes | yes |
 | Like-refund | — | — | — | $2 per video, first time it crosses 100 likes, **capped $20/cycle** | $2 per every cumulative 100 likes across all videos, **capped $20/cycle** |
-| Billing cadence | — | none | calendar month | calendar month | balance-triggered (below) |
+| Billing cadence | — | none | calendar month | calendar month | balance-triggered, capped at 30 days (below) |
+| AI tutor model | Haiku 4.5 | Haiku 4.5 | Sonnet 5 | Sonnet 5 | Sonnet 5 |
+| AI tutor cap | 20 msg/day | 20 msg/day *(mirrors Free — not separately specified; confirm)* | 20 msg/day **or** $3.00/cycle, whichever binds first | 40 msg/day **or** $7.00/cycle, whichever binds first | 100 msg/day **or** $20.00/cycle, whichever binds first |
+
+**AI tutor tiering is specified in full in `prompts/phase-04-ai-tutor.md` §3** — this
+table only carries the per-tier numbers as part of the same `TIERS` source of truth
+(§4 below) that every other tier-gated feature reads from; Phase 4 owns how the caps
+are actually enforced in `aiTutorMessage.ts`. The daily cap and the monthly dollar cap
+are **both real limits, checked together** — the daily count is a burst guard, the
+dollar cap is the actual cost ceiling regardless of how usage is spread across the
+month (the numbers aren't arbitrary: each tier's daily cap times ~30 days times a
+realistic per-message cost lands close to that same tier's dollar cap, so they're two
+expressions of the same underlying budget, not two independent allowances). Free and
+Siltstone get no dollar cap — the daily count alone is their guardrail, since Haiku's
+per-message cost is small enough that a day-level cap is sufficient on its own.
 
 **Realized margin compresses as tiers rise** — worth showing the shareholder
 explicitly when pricing is finalized, since it's the opposite of typical value-based
@@ -255,19 +269,25 @@ limits — implementer's call, but don't discover the limit in production.
   balance simply grows every month they don't spend it — flag this to the shareholder
   as a real accumulating liability worth watching, not a bug) and reset
   `likeRefundCentsThisCycle` to 0 for Alabaster.
-- **Pyramidion does not use a calendar Stripe subscription at all.** Per the confirmed
-  design: track `creditBalanceCents` in Firestore; a scheduled sweep (every 15
-  minutes, `onSchedule`, same precedent as Phase 1's `flushViewCounts`/
-  `cleanupOrphanedUploads`) finds any Pyramidion account whose balance has dipped below
-  $240.00 (24000 cents) and fires an off-session Stripe charge of $200 against the
-  stored default payment method, then **adds** 24000 cents on success (never resets —
-  a $239 balance becomes $479, matching the confirmed example) and resets
-  `likeRefundCentsThisCycle`. Guard with a `pyramidionRechargeInProgress: boolean`
-  lock cleared after the charge resolves, so a sweep overlap or a fast double-dip can't
-  double-charge. A scheduled sweep is preferable to a live `onDocumentUpdated` trigger
-  here — reacting to every write on a hot balance field is noisier and harder to reason
-  about than a 15-minute-cadence check for a billing concern with a monthly-scale
-  cadence anyway.
+- **Pyramidion does not use a calendar Stripe subscription at all, and the delay is
+  capped at 30 days — not indefinite.** Track `creditBalanceCents` and `lastChargedAt`
+  in Firestore. A scheduled sweep (every 15 minutes, `onSchedule`, same precedent as
+  Phase 1's `flushViewCounts`/`cleanupOrphanedUploads`) fires an off-session Stripe
+  charge of $200 for any Pyramidion account where **either** condition holds:
+  balance has dipped below $240.00 (24000 cents), **or** 30 days have elapsed since
+  `lastChargedAt`. A high balance delays the charge, same as before, but only up to 30
+  days from the last charge — at that point the charge fires regardless of balance,
+  `lastChargedAt` resets, and a fresh 30-day delay-eligibility window begins. This is
+  the "repeat the process" behavior: delayed up to a month, then forced, then eligible
+  to delay again. On a successful charge, **add** 24000 cents (never reset — a $239
+  balance becomes $479, matching the original confirmed example) and reset
+  `likeRefundCentsThisCycle` **and** the AI-tutor monthly cost-cap counter (§ Phase 4
+  §3) — one cycle-reset event for every per-cycle counter Pyramidion carries. Guard
+  with a `pyramidionRechargeInProgress: boolean` lock cleared after the charge
+  resolves, so a sweep overlap or a fast double-dip can't double-charge. A scheduled
+  sweep is preferable to a live `onDocumentUpdated` trigger here — reacting to every
+  write on a hot balance field is noisier and harder to reason about than a
+  15-minute-cadence check for a billing concern with a monthly-scale cadence anyway.
 - **Debit before render, refund on failure.** `createOnDemandLesson` debits
   `creditBalanceCents` transactionally (balance-check + decrement in one transaction,
   same discipline `rateLimit.ts`'s counter already uses) *before* calling GolpoAI, so
@@ -487,7 +507,11 @@ for cost savings.
    run the sweep, confirm an off-session charge fires, balance is credited
    **additively** (matches the $239→$479 example), the recharge-in-progress lock
    prevents a double-fire, and cumulative-100-like refunds (not one-time-per-video)
-   respect the same $20 cap.
+   respect the same $20 cap. Separately: hold a test account's balance at or above
+   24000¢ (never dipping) and advance `lastChargedAt` past 30 days — confirm the sweep
+   still forces a charge, `lastChargedAt` resets, and `likeRefundCentsThisCycle` and
+   the AI-tutor monthly cost counter both reset; confirm a balance that dips at day 10
+   charges then, not at day 30.
 6. A GolpoAI `failed` status refunds the exact amount debited, with a matching
    `lesson_refund` ledger row.
 7. Requesting the same normalized topic twice from two different accounts: the second
