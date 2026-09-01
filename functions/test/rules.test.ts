@@ -623,6 +623,82 @@ describe("viewEvents", () => {
   });
 });
 
+// ---- users/{uid}/private/wallet --------------------------------------------
+
+describe("wallet", () => {
+  const wallet = { tier: "siltstone", creditBalanceCents: 500, hasUsedFreeLesson: true };
+
+  test("owner can read their own wallet", async () => {
+    await seedDoc("users/alice/private/wallet", wallet);
+    await assertSucceeds(getDoc(doc(learner("alice").firestore(), "users/alice/private/wallet")));
+  });
+
+  test("a different user cannot read someone else's wallet (negative)", async () => {
+    await seedDoc("users/alice/private/wallet", wallet);
+    await assertFails(getDoc(doc(learner("mallory").firestore(), "users/alice/private/wallet")));
+  });
+
+  test("client writes are denied, even for the owner (negative)", async () => {
+    await assertFails(
+      setDoc(doc(learner("alice").firestore(), "users/alice/private/wallet"), { creditBalanceCents: 999999 })
+    );
+  });
+
+  test("an anonymous guest cannot read anyone's wallet (negative)", async () => {
+    await seedDoc("users/alice/private/wallet", wallet);
+    await assertFails(getDoc(doc(guest("g1").firestore(), "users/alice/private/wallet")));
+  });
+});
+
+// ---- users/{uid}/creditTransactions/{transactionId} ------------------------
+
+describe("creditTransactions", () => {
+  const row = { type: "topup", amountCents: 550, createdAt: Timestamp.now() };
+
+  test("owner can read their own ledger", async () => {
+    await seedDoc("users/alice/creditTransactions/t1", row);
+    await assertSucceeds(getDoc(doc(learner("alice").firestore(), "users/alice/creditTransactions/t1")));
+  });
+
+  test("a different user cannot read someone else's ledger (negative)", async () => {
+    await seedDoc("users/alice/creditTransactions/t1", row);
+    await assertFails(getDoc(doc(learner("mallory").firestore(), "users/alice/creditTransactions/t1")));
+  });
+
+  test("client writes are denied, even for the owner (negative)", async () => {
+    await assertFails(setDoc(doc(learner("alice").firestore(), "users/alice/creditTransactions/t1"), row));
+  });
+});
+
+// ---- lessonCache/{cacheKey} -------------------------------------------------
+
+describe("lessonCache", () => {
+  test("no client can read it, signed in or not (negative)", async () => {
+    await seedDoc("lessonCache/abc123", { canonicalTopic: "photosynthesis", sourceVideoId: "v1" });
+    await assertFails(getDoc(doc(learner("alice").firestore(), "lessonCache/abc123")));
+    await assertFails(getDoc(doc(anon().firestore(), "lessonCache/abc123")));
+  });
+
+  test("no client can write it, including admin (negative)", async () => {
+    await assertFails(
+      setDoc(doc(admin("a1").firestore(), "lessonCache/abc123"), { canonicalTopic: "photosynthesis" })
+    );
+  });
+});
+
+// ---- apiKeys/{keyId} ---------------------------------------------------------
+
+describe("apiKeys", () => {
+  test("no client can read a key doc, not even its own owner (negative)", async () => {
+    await seedDoc("apiKeys/k1", { uid: "alice", keyHash: "deadbeef", revoked: false });
+    await assertFails(getDoc(doc(learner("alice").firestore(), "apiKeys/k1")));
+  });
+
+  test("no client can write a key doc (negative)", async () => {
+    await assertFails(setDoc(doc(learner("alice").firestore(), "apiKeys/k1"), { uid: "alice" }));
+  });
+});
+
 // ---- catch-all --------------------------------------------------------------
 
 describe("everything else", () => {

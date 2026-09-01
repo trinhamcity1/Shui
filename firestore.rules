@@ -268,6 +268,26 @@ service cloud.firestore {
         allow read: if isOwner(uid);
         allow write: if false;
       }
+
+      // ---- users/{uid}/private/wallet ---------------------------------
+      // Tier, credit balance, Stripe linkage, and like-refund cycle state
+      // (phase-07-lessons-on-demand.md §4). Deliberately kept in its own
+      // owner-only-read subcollection rather than as fields on users/{uid}
+      // itself — that document is publicly readable by design (display
+      // name, handle, streaks), and money must never ride along on a
+      // profile read any signed-in or anonymous client can already make.
+      match /private/wallet {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+
+      // ---- users/{uid}/creditTransactions/{transactionId} -------------
+      // Append-only ledger — every credit grant, debit, and refund. Owner
+      // can read their own history; only Functions ever write a row.
+      match /creditTransactions/{transactionId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
     }
 
     // ---- handles/{handle} ----------------------------------------------
@@ -298,6 +318,25 @@ service cloud.firestore {
         && request.resource.data.reporterUid == request.auth.uid
         && request.resource.data.status == 'open';
       allow update, delete: if false; // admin actions go through the dashboard's Function
+    }
+
+    // ---- lessonCache/{cacheKey} ------------------------------------------
+    // Popular-topic reuse for on-demand generation (phase-07 §5) — a pure
+    // cost optimization, not a user-facing collection. No legitimate client
+    // read or write; createOnDemandLesson consults and writes it via the
+    // Admin SDK.
+    match /lessonCache/{cacheKey} {
+      allow read, write: if false;
+    }
+
+    // ---- apiKeys/{keyId} ---------------------------------------------------
+    // Developer-API credentials (phase-07 §8). Never client-readable —
+    // keyHash must never reach a client, and rules can't redact individual
+    // fields on a read, so the whole document stays Function-only. A
+    // listApiKeys callable returns the safe projection (label, createdAt,
+    // lastUsedAt, revoked, requestCount — never keyHash).
+    match /apiKeys/{keyId} {
+      allow read, write: if false;
     }
   }
 }

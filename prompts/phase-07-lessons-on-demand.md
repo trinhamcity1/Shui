@@ -207,6 +207,16 @@ Every tier charges lessons at a flat **$4 per rendered minute**, debited from
 `creditBalanceCents` (integer cents — never floats for money). The free lesson is a
 separate lifetime grant, entirely outside this ledger.
 
+**`creditBalanceCents`, `tier`, `hasUsedFreeLesson`, and every Stripe/billing field live
+in `users/{uid}/private/wallet`, not on `users/{uid}` itself.** That document is
+publicly readable by design (Phase 3's judgment call — display name, handle, streaks
+are meant to be public, and Firestore rules can't redact individual fields on a read).
+Money has to live somewhere Firestore rules can make owner-only without touching that
+existing, already-public-by-design doc — a new subcollection, not a bolt-on field, is
+the only way to do that without a rules regression. `users/{uid}/creditTransactions/{id}`
+(the ledger — `type`, signed `amountCents`, `relatedVideoId`/`relatedStripeChargeId`,
+`createdAt`) is owner-read, Function-write, same shape.
+
 | | Free | Siltstone | Obsidian | Alabaster | Pyramidion |
 |---|---|---|---|---|---|
 | Cost | — | pay-as-you-go | $20/mo | $50/mo | $200/mo |
@@ -533,8 +543,8 @@ for cost savings.
     would; a revoked or malformed key is rejected; exceeding the per-key rate limit is
     refused; an API-generated video never appears in Social, Explore, or any other
     account's view, but *is* eligible for the shared cache.
-11. `firestore.rules` denies a client writing `creditBalanceCents`, `apiKeys/*`, or
-    another user's `creditTransactions` directly — Functions only, verified by a
+11. `firestore.rules` denies a client writing `users/{uid}/private/wallet`, `apiKeys/*`,
+    or another user's `creditTransactions` directly — Functions only, verified by a
     failing-path test per path.
 12. `git grep` finds exactly one quiz-writing path, one grading path, one
     like-counting path (`toggleLike`), and no duplicated Claude-prompt or GolpoAI-call
