@@ -23,6 +23,10 @@ targets:
       - path: Shui/App
       - path: Shui/Sources
       - path: Shui/Resources
+      # StoreKit Testing config (phase-07 IAP) — a project reference only,
+      # wired into the Run scheme below, not compiled or bundled.
+      - path: Shui/Shui.storekit
+        buildPhase: none
     dependencies:
       # No FirebaseStorage — video lives in Cloudflare R2.
       - package: Firebase
@@ -74,3 +78,4 @@ schemes:
         - ShuiTests
     run:
       config: Debug
+      storeKitConfiguration: Shui/Shui.storekit

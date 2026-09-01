@@ -30,9 +30,8 @@ screen phase-07 §9 calls for. Backend is verified the same way every
 phase since 1 has been (`tsc`, the full unit suite, the rules suite
 against the real Firestore emulator). The iOS half is checked by hand
 only, same limitation as every Swift phase before it (see Phase 6's own
-note on this) — plus one new wrinkle specific to how much landed in one
-push: see "Slice 7" below for the Xcode project sync this needs before
-any of it builds.
+note on this) — same standing next step as every phase, too: `git pull`,
+`xcodegen generate`.
 
 ## Phase status
 
@@ -45,7 +44,7 @@ any of it builds.
 | 4 | AI tutor: grounded chat + proactive retention checks | ✅ Done — backend verified (`tsc`, unit tests, eval harness smoke-tested — no live model credentials in this sandbox, so no real eval scores); live-tested on a real device, including a real paging regression found and fixed |
 | 5 | In-app creator console: topics, uploads, quiz builder, publish controls | ✅ Done — backend verified (`tsc`, rules emulator, composite indexes declared up front); live-tested extensively on a real device across many rounds (topic editor, upload flow, quiz builder, publish gates, admin surface, role claims), each round's real bugs found and fixed. Substantial enhancement work built on top after the phase itself closed out — see that section below for the full list |
 | 6 | Browser dashboard for bulk authoring | ⏸️ Paused — scaffold done (6.1); shareholder redirected focus to Phase 7 before auth/role gating and the real screens were built |
-| 7 | Lessons on demand: GolpoAI backend, four-tier credit economy, Social tab replacing Learn, self-serve developer API | ✅ Backend and iOS both built — backend verified (`tsc`, unit + rules-emulator suites); iOS checked by hand only, and needs an Xcode project sync before it builds (see below). Not yet live-tested: no real GolpoAI/Anthropic/Apple sandbox credentials in this sandbox |
+| 7 | Lessons on demand: GolpoAI backend, four-tier credit economy, Social tab replacing Learn, self-serve developer API | ✅ Backend and iOS both built — backend verified (`tsc`, unit + rules-emulator suites); iOS checked by hand only, needs `xcodegen generate` (see below). Not yet live-tested: no real GolpoAI/Anthropic/Apple sandbox credentials in this sandbox |
 
 ---
 
@@ -1687,18 +1686,18 @@ but not the real-generation branch, so `checkOnDemandLessonStatus`'s
 a fresh generation — the shared lesson cache (§5) was silently dead code since Slice 2
 shipped. Both fixes verified against the full backend suite afterward.
 
-**What this sandbox found but didn't fix**: `Shui.xcodeproj/project.pbxproj` only
-registers a small early-phase subset of what's actually in `Shui/Sources` on disk —
-this predates Phase 7 and isn't specific to it (every phase's Swift half has only
-ever been hand-verified in this sandbox, same note as Phase 6 above), but Phase 7
-landed enough new files at once that it's worth calling out explicitly here: open the
-project in Xcode and use "Add Files to Shui…" (or drag `Shui/Sources` and
-`ShuiTests` in) to sync the project with what's on disk before any of Phase 7's
-screens — or, per the same gap, several phases' worth of prior work — will actually
-build. Hand-editing the `.pbxproj` from this sandbox, with no `xcodebuild` available
-to validate the result, risks trading "some files aren't registered yet" for "the
-project file won't open at all" — a strictly worse failure mode for a fix that's a
-five-minute native Xcode operation.
+**Next step for the user, same as every phase before this one:** `git pull`,
+`xcodegen generate` (this sandbox has no Swift toolchain to run it here, same
+"no Xcode" limitation noted at the top of Phase 6 above — so `project.pbxproj`, as
+committed, still only reflects an early-phase snapshot of `Shui/Sources` until it's
+regenerated). `project.yml`'s `sources: - path: Shui/Sources` already globs
+everything Phase 7 added recursively, no `project.yml` changes needed for the new
+Swift files themselves. The one thing this phase's new `Shui.storekit` file did need
+— it sits outside every existing `sources:` path — is already handled: added to
+`sources` with `buildPhase: none` (a project reference only, not compiled/bundled)
+and wired into the `Shui` scheme's `run.storeKitConfiguration`, so a fresh
+`xcodegen generate` also gets local StoreKit purchase testing working, not just a
+build that compiles.
 
 **What still needs the user's own action**: a real GolpoAI API subscription, Apple
 Developer Program enrollment with the 4 IAP products
