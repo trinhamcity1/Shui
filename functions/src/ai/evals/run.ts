@@ -49,7 +49,7 @@ async function runCase(evalCase: EvalCase, context: GroundingContext, model: Mod
     : evalCase.userText ?? "";
 
   try {
-    const raw = await model.stream({
+    const { text: raw } = await model.stream({
       system,
       messages: [...context.recentMessages, { role: "user", content: userTurn }],
       maxTokens: 500,

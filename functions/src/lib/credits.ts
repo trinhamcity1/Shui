@@ -25,6 +25,26 @@ export interface Wallet {
   appleOriginalTransactionId: string | null;
   appleSubscriptionProductId: string | null;
   likeRefundCentsThisCycle: number;
+  /**
+   * The AI tutor's spend-tracking cycle (phase-04-ai-tutor.md §3). For
+   * Obsidian/Alabaster/Pyramidion this is reset by applySubscriptionGrant on
+   * every real Apple renewal — aiCycleEnd there is an estimate for display
+   * only (30 days out), since the actual reset trigger is the next renewal
+   * event, not a timer. For Free/Siltstone, which have no external renewal
+   * event at all, aiCycleEnd IS authoritative: resolveModelForMessage lazily
+   * rolls the cycle over the moment `now` passes it, the same discipline the
+   * original free-lesson cap used before tiers existed.
+   */
+  aiCycleStart: FirebaseFirestore.Timestamp | null;
+  aiCycleEnd: FirebaseFirestore.Timestamp | null;
+  /**
+   * Nanodollars (1e-9 USD) — exact integer arithmetic for money that would
+   * otherwise be a fraction of a cent per call. Already priced with
+   * whichever model actually served each call before being added here, so
+   * a mid-cycle Sonnet->Haiku downgrade never mixes two models' rates in
+   * one pool — see functions/src/ai/pricing.ts.
+   */
+  aiSpentNanodollarsThisCycle: number;
 }
 
 /**
@@ -39,6 +59,9 @@ export const DEFAULT_WALLET: Omit<Wallet, "appAccountToken"> = {
   appleOriginalTransactionId: null,
   appleSubscriptionProductId: null,
   likeRefundCentsThisCycle: 0,
+  aiCycleStart: null,
+  aiCycleEnd: null,
+  aiSpentNanodollarsThisCycle: 0,
 };
 
 export function walletRef(uid: string) {
@@ -260,6 +283,8 @@ export async function applyTopUp(uid: string, paidCents: number, appleTransactio
  */
 export async function applySubscriptionGrant(uid: string, tierId: TierId, appleOriginalTransactionId: string): Promise<void> {
   const tier = tierOf(tierId);
+  const now = new Date();
+  const cycleEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   await db.runTransaction(async (t) => {
     t.set(
       walletRef(uid),
@@ -268,6 +293,13 @@ export async function applySubscriptionGrant(uid: string, tierId: TierId, appleO
         creditBalanceCents: FieldValue.increment(tier.subscriptionCreditCents),
         appleOriginalTransactionId,
         likeRefundCentsThisCycle: 0,
+        // One cycle-reset event for every per-cycle counter this tier
+        // carries — the AI-tutor cost cap resets here too, not on its own
+        // independent timer, since a real Apple renewal is the actual
+        // cycle boundary for a subscribed tier.
+        aiCycleStart: now,
+        aiCycleEnd: cycleEnd,
+        aiSpentNanodollarsThisCycle: 0,
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true }

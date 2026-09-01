@@ -7,7 +7,8 @@ import { AiTutorMessageInput, AiTutorMessageInputSchema } from "../schemas/calla
 import { assembleGroundingContext } from "../ai/grounding";
 import { buildSystemPrompt, extractVisibleText, parseModelOutput, PROMPT_VERSION, RetentionAssessment } from "../ai/prompts";
 import { AI_SECRETS, AnthropicModelClient, ModelClient, ModelMessage } from "../ai/modelClient";
-import { checkAndRecordUsage } from "../ai/rateLimit";
+import { AiModel } from "../ai/pricing";
+import { recordAiUsage, resolveModelForMessage } from "../ai/tutorGuardrails";
 import { DEFAULT_EASE_FACTOR, newReviewState, ReviewState, schedule } from "../lib/sm2";
 
 // A short-turn tutor, not an essay generator — the prompt already
@@ -32,12 +33,17 @@ function canReadVideo(video: FirebaseFirestore.DocumentData, uid: string): boole
  * The real work, factored out from the `onCall` wrapper below so evals and
  * unit tests can call it directly with a `FakeModelClient` — no HTTP layer,
  * no auth emulation, and no real API key needed to exercise grounding,
- * prompting, and response-parsing logic.
+ * prompting, and response-parsing logic. `modelClientFactory` rather than a
+ * fixed client because the model itself is resolved per-tier, per-message
+ * now (phase-04-ai-tutor.md §3) — production passes a factory that
+ * constructs a real `AnthropicModelClient` for whichever model
+ * `resolveModelForMessage` picks; tests pass one that always returns the
+ * same `FakeModelClient` regardless of which model was asked for.
  */
 export async function runAiTutorMessage(
   uid: string,
   input: AiTutorMessageInput,
-  modelClient: ModelClient
+  modelClientFactory: (model: AiModel) => ModelClient
 ): Promise<AiTutorMessageResult> {
   const videoRef = db.collection("videos").doc(input.videoId);
   const videoSnap = await videoRef.get();
@@ -48,12 +54,12 @@ export async function runAiTutorMessage(
     throw new HttpsError("permission-denied", "You cannot access this video.");
   }
 
-  const usage = await checkAndRecordUsage(uid);
-  if (!usage.allowed) {
-    throw new HttpsError("resource-exhausted", "You've reached the AI tutor's usage limit for now.", {
-      resetAt: usage.resetAt.toISOString(),
-    });
-  }
+  // No daily message cap — resolves which model this call gets (the tier's
+  // baseline, or Haiku if an Obsidian-and-above account has crossed 70% of
+  // its cycle's spend) and throws resource-exhausted with an hours+minutes
+  // countdown if the cycle's dollar cap is already spent.
+  const { model } = await resolveModelForMessage(uid);
+  const modelClient = modelClientFactory(model);
 
   const context = await assembleGroundingContext({ uid, videoId: input.videoId });
   if (!context) {
@@ -77,6 +83,7 @@ export async function runAiTutorMessage(
     suggestedReplies: [],
     retentionAssessment: null,
     promptVersion: PROMPT_VERSION,
+    model,
     createdAt: serverNow,
     updatedAt: serverNow,
   });
@@ -96,7 +103,7 @@ export async function runAiTutorMessage(
   let accumulated = "";
   let lastFlushAt = 0;
   let lastFlushedVisible = "";
-  const rawResult = await modelClient.stream({
+  const streamResult = await modelClient.stream({
     system: systemPrompt,
     messages: modelMessages,
     maxTokens: MAX_OUTPUT_TOKENS,
@@ -112,7 +119,11 @@ export async function runAiTutorMessage(
     },
   });
 
-  const { visibleText, suggestedReplies, retentionAssessment } = parseModelOutput(rawResult);
+  // Recorded regardless of what the message actually did — a real call was
+  // made and real tokens were billed even if parsing fails below.
+  await recordAiUsage(uid, model, streamResult.usage);
+
+  const { visibleText, suggestedReplies, retentionAssessment } = parseModelOutput(streamResult.text);
   await applyRetentionAssessment(uid, input.videoId, retentionAssessment);
 
   await assistantRef.update({
@@ -172,5 +183,5 @@ async function applyRetentionAssessment(
 export const aiTutorMessage = onCall({ secrets: AI_SECRETS, timeoutSeconds: 120 }, async (request) => {
   const uid = requireNotGuest(request);
   const input = parseInput(AiTutorMessageInputSchema, request.data);
-  return runAiTutorMessage(uid, input, new AnthropicModelClient());
+  return runAiTutorMessage(uid, input, (model) => new AnthropicModelClient(model));
 });

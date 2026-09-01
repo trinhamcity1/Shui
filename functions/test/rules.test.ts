@@ -387,7 +387,6 @@ describe("users", () => {
     "videoProgress/v1",
     "likes/v1",
     "savedVideos/v1",
-    "aiUsage/2026-07-30",
     "commentLikes/c1",
   ]) {
     describe(`users/{uid}/${sub.split("/")[0]}`, () => {

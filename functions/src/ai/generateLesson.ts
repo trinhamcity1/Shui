@@ -117,7 +117,7 @@ export async function runGenerateLesson(
   timing: GolpoTiming,
   modelClient: ModelClient
 ): Promise<GeneratedLesson | RefusedLesson> {
-  const raw = await modelClient.stream({
+  const { text: raw } = await modelClient.stream({
     system: buildPrompt(topic, timing),
     messages: [{ role: "user", content: `Write the lesson for: ${topic}` }],
     maxTokens: MAX_OUTPUT_TOKENS,

@@ -116,7 +116,7 @@ export async function runSuggestQuizQuestions(
     .filter(Boolean)
     .join("\n\n");
 
-  const raw = await modelClient.stream({
+  const { text: raw } = await modelClient.stream({
     system: buildPrompt(input.count),
     messages: [{ role: "user", content: lesson }],
     maxTokens: MAX_OUTPUT_TOKENS,
