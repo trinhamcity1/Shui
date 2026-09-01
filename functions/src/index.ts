@@ -24,6 +24,8 @@ export { suggestQuizQuestions } from "./callables/suggestQuizQuestions";
 export { createOnDemandLesson } from "./callables/createOnDemandLesson";
 export { checkOnDemandLessonStatus } from "./callables/checkOnDemandLessonStatus";
 export { shareLessonToSocial } from "./callables/shareLessonToSocial";
+export { verifyAndApplyPurchase } from "./callables/verifyAndApplyPurchase";
+export { appStoreServerNotifications } from "./webhooks/appStoreServerNotifications";
 
 export { onCommentWritten } from "./triggers/onCommentWritten";
 export { onTopicWritten } from "./triggers/onTopicWritten";

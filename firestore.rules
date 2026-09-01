@@ -297,6 +297,15 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ---- appAccountTokens/{token} ---------------------------------------
+    // Reverse lookup from a StoreKit appAccountToken back to a uid, written
+    // once by onUserCreated. Only the App Store Server Notifications webhook
+    // (Admin SDK) ever reads this — no legitimate client read or write, same
+    // as handles above.
+    match /appAccountTokens/{token} {
+      allow read, write: if false;
+    }
+
     // ---- viewEvents/{eventId} -------------------------------------------
     // Fire-and-forget view pings. Clients only ever create one per view;
     // only the flushViewCounts scheduled Function reads and drains them into

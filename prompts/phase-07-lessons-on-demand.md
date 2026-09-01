@@ -207,15 +207,21 @@ Every tier charges lessons at a flat **$4 per rendered minute**, debited from
 `creditBalanceCents` (integer cents — never floats for money). The free lesson is a
 separate lifetime grant, entirely outside this ledger.
 
-**`creditBalanceCents`, `tier`, `hasUsedFreeLesson`, and every Stripe/billing field live
-in `users/{uid}/private/wallet`, not on `users/{uid}` itself.** That document is
+**`creditBalanceCents`, `tier`, `hasUsedFreeLesson`, and every Apple-IAP-linkage field
+live in `users/{uid}/private/wallet`, not on `users/{uid}` itself.** That document is
 publicly readable by design (Phase 3's judgment call — display name, handle, streaks
 are meant to be public, and Firestore rules can't redact individual fields on a read).
 Money has to live somewhere Firestore rules can make owner-only without touching that
 existing, already-public-by-design doc — a new subcollection, not a bolt-on field, is
 the only way to do that without a rules regression. `users/{uid}/creditTransactions/{id}`
-(the ledger — `type`, signed `amountCents`, `relatedVideoId`/`relatedStripeChargeId`,
+(the ledger — `type`, signed `amountCents`, `relatedVideoId`/`relatedAppleTransactionId`,
 `createdAt`) is owner-read, Function-write, same shape.
+
+**Every user-facing purchase runs through Apple In-App Purchase (StoreKit 2), not
+Stripe.** Digital credit/subscription purchases made from inside an iOS app fall under
+App Store Review Guideline 3.1.1 and must use IAP — this was almost built on Stripe
+directly, which would have risked App Store rejection. See "Billing mechanics" below
+for the real architecture. Stripe does not appear anywhere in this phase.
 
 | | Free | Siltstone | Obsidian | Alabaster | Pyramidion |
 |---|---|---|---|---|---|
@@ -228,9 +234,21 @@ the only way to do that without a rules regression. `users/{uid}/creditTransacti
 | Watermark on serve | yes | yes | yes | **no — clean master** | **no — clean master** |
 | Downloadable | **no** | yes | yes | yes | yes |
 | Like-refund | — | — | — | $2 per video, first time it crosses 100 likes, **capped $20/cycle** | $2 per every cumulative 100 likes across all videos, **capped $20/cycle** |
-| Billing cadence | — | none | calendar month | calendar month | balance-triggered, capped at 30 days (below) |
+| Billing cadence | — | none | calendar month, always charges | calendar month, always charges | calendar month, always charges |
+| Developer API access | — | yes (the natural entry point for testing) | — | — | **yes — a named perk of this tier** |
 | AI tutor baseline model | Haiku 4.5 | Haiku 4.5 | Sonnet 5 | Sonnet 5 | Sonnet 5 |
-| AI tutor monthly cost cap | $2.00/cycle | $2.00/cycle | $3.00/cycle | $7.00/cycle | $20.00/cycle |
+| AI tutor monthly cost cap | $2.00/cycle | $2.00/cycle | $3.00/cycle | $7.00/cycle | $30.00/cycle |
+
+**Pyramidion is a plain auto-renewing subscription, exactly like Obsidian/Alabaster —
+the balance-triggered delayed-billing mechanic from an earlier draft of this phase is
+gone.** Apple IAP has no mechanism for a client-observed account condition (a high
+credit balance) to skip or delay a scheduled subscription renewal — Apple's server
+renews on its own schedule regardless of anything Shui's backend knows. Pyramidion now
+always charges $200 on its renewal date no matter what the credit balance is, the same
+mechanic as every other subscribed tier, just a bigger number. What distinguishes
+Pyramidion now: developer API access, drawing from the **same wallet** as in-app
+generation — a Pyramidion subscriber can create lessons from the app UI and from the
+API, both spending down the one balance.
 
 **AI tutor tiering is specified in full in `prompts/phase-04-ai-tutor.md` §3** — this
 table only carries the per-tier numbers as part of the same `TIERS` source of truth
@@ -250,10 +268,15 @@ the learner is told exactly when it clears — a live hours-and-minutes countdow
 explicitly when pricing is finalized, since it's the opposite of typical value-based
 tiering: Siltstone nets ~$2.00/min (50%), Obsidian ~$1.64/min (45%), Alabaster
 ~$1.48/min (43%) *before* like-refunds, Pyramidion ~$1.33/min (40%) *before*
-like-refunds. Stripe's ~2.9%+$0.30 per charge erodes this further and isn't yet
-reflected in any of these numbers. This isn't necessarily wrong — higher tiers may pay
-for themselves in usage volume, retention, and Social content supply — but it should be
-a deliberate, visible tradeoff, not an accident of the bonus math.
+like-refunds. **Apple's IAP commission — 30%, or 15% if Shui qualifies for the Small
+Business Program (under $1M in annual App Store revenue) — erodes this far more than
+a card processor would have**, and applies to every top-up and every subscription
+renewal, not just an initial charge. Model both cases for the shareholder: at 30%,
+Siltstone's margin drops from ~50% to roughly 20% before like-refunds; at the 15%
+small-business rate it's closer to 35%. This isn't a rounding error like the old
+2.9%-card-processor assumption was — it's the single biggest number in this whole cost
+model, and it should drive the actual tier prices the shareholder sets, not be
+discovered after they're already announced.
 
 ### Watermarking, concretely
 
@@ -273,33 +296,56 @@ already exist), not baked per-owner at generation time. Run this as a Cloud Run 
 rather than a Cloud Function if 2-minute clips push against Function execution/memory
 limits — implementer's call, but don't discover the limit in production.
 
-### Billing mechanics
+### Billing mechanics — Apple In-App Purchase, not Stripe
 
-- **Stripe** is the processor. Top-ups are one-off `PaymentIntent`s; Obsidian/Alabaster
-  are standard Stripe `Subscription`s billed monthly. On `invoice.paid`, grant that
-  tier's credit **additively** on top of whatever remains (a low-usage subscriber's
-  balance simply grows every month they don't spend it — flag this to the shareholder
-  as a real accumulating liability worth watching, not a bug) and reset
-  `likeRefundCentsThisCycle` to 0 for Alabaster.
-- **Pyramidion does not use a calendar Stripe subscription at all, and the delay is
-  capped at 30 days — not indefinite.** Track `creditBalanceCents` and `lastChargedAt`
-  in Firestore. A scheduled sweep (every 15 minutes, `onSchedule`, same precedent as
-  Phase 1's `flushViewCounts`/`cleanupOrphanedUploads`) fires an off-session Stripe
-  charge of $200 for any Pyramidion account where **either** condition holds:
-  balance has dipped below $240.00 (24000 cents), **or** 30 days have elapsed since
-  `lastChargedAt`. A high balance delays the charge, same as before, but only up to 30
-  days from the last charge — at that point the charge fires regardless of balance,
-  `lastChargedAt` resets, and a fresh 30-day delay-eligibility window begins. This is
-  the "repeat the process" behavior: delayed up to a month, then forced, then eligible
-  to delay again. On a successful charge, **add** 24000 cents (never reset — a $239
-  balance becomes $479, matching the original confirmed example) and reset
-  `likeRefundCentsThisCycle` **and** the AI-tutor monthly cost-cap counter (§ Phase 4
-  §3) — one cycle-reset event for every per-cycle counter Pyramidion carries. Guard
-  with a `pyramidionRechargeInProgress: boolean` lock cleared after the charge
-  resolves, so a sweep overlap or a fast double-dip can't double-charge. A scheduled
-  sweep is preferable to a live `onDocumentUpdated` trigger here — reacting to every
-  write on a hot balance field is noisier and harder to reason about than a
-  15-minute-cadence check for a billing concern with a monthly-scale cadence anyway.
+Every user-facing purchase — a $5+ top-up, an Obsidian/Alabaster/Pyramidion
+subscription — is an Apple IAP product, bought through StoreKit 2 on the iOS client.
+Apple, not Shui, owns the actual charge; Shui's job is verifying what Apple says
+happened and crediting the wallet accordingly. **Never trust a client-reported
+purchase amount or product** — every grant is driven by a server-side verification of
+the real transaction.
+
+**IAP products** (configured in App Store Connect, referenced here by ID scheme):
+- `com.shui.app.topup.5` — a **consumable**, $5, buyable repeatedly. (Apple requires a
+  fixed price per product; the $5 minimum from the tier table is exactly this
+  product's price, not a client-enforced minimum on an arbitrary amount.)
+- `com.shui.app.tier.obsidian.monthly`, `...alabaster.monthly`, `...pyramidion.monthly`
+  — **auto-renewable subscriptions**, one per paid tier above Siltstone. Siltstone
+  itself has no subscription product — it's reached purely by buying at least one
+  top-up while on Free.
+
+**Two paths credit the wallet, both idempotent on Apple's transaction id — a purchase
+must never be credited twice even if both paths fire for the same transaction:**
+
+1. **`verifyAndApplyPurchase` callable** — the fast path. Right after
+   `Product.purchase()` succeeds on the client, it calls this with the signed
+   transaction JWS. The Function verifies the signature and contents using Apple's
+   official server library (`@apple/app-store-server-library` — use it, don't hand-roll
+   JWS verification against Apple's public keys), maps the verified `productId` to an
+   action (`applyTopUp` for the consumable, `applySubscriptionGrant` for a
+   subscription), and applies it — but only if `relatedAppleTransactionId` doesn't
+   already exist in `creditTransactions` for this user, which is the dedupe check.
+2. **App Store Server Notifications V2 webhook** (`onRequest`, verified the same way)
+   — the durable path, catching renewals, cancellations, refunds, and any purchase the
+   fast path missed (app killed mid-purchase, network drop after `Product.purchase()`
+   returned). `DID_RENEW` → `applySubscriptionGrant`; `EXPIRED`/`DID_FAIL_TO_RENEW` →
+   set `tier` back to `siltstone` (a lapsed subscriber keeps any unspent credit, same
+   "never expires" rule as everyone else — they just stop *earning* more until they
+   resubscribe); `REFUND`/`REVOKE` → reverse the original grant if the credit from it
+   hasn't already been spent (if it has, this is a real, accepted loss — never claw
+   back into a negative balance).
+
+**Subscriptions always charge their full price on renewal, including Pyramidion —**
+Apple's renewal schedule is entirely Apple-side; nothing server-side can delay or skip
+a renewal based on account state, so the credit **grows unboundedly for a low-usage
+subscriber month over month** exactly as the flat-Stripe-subscription design already
+accepted for Obsidian/Alabaster, now true for Pyramidion too. Flag this to the
+shareholder as a real, growing liability line, not a bug.
+
+**Refund/chargeback handling is not optional** — Apple can revoke entitlement after
+the fact, and the webhook path is the only place that ever hears about it. An account
+with a revoked purchase and an already-spent credit is accepted risk, not something to
+chase.
 - **Debit before render, refund on failure.** `createOnDemandLesson` debits
   `creditBalanceCents` transactionally (balance-check + decrement in one transaction,
   same discipline `rateLimit.ts`'s counter already uses) *before* calling GolpoAI, so
@@ -452,12 +498,15 @@ why this needs no rules change.
 
 Self-serve (confirmed): any account can mint a key from account settings and generate
 lessons programmatically against their **own** credit balance and **own** current
-tier's `timing`/watermark rules — Tier 1/Siltstone is the natural entry point for
-someone testing the product, not a hard technical gate; a Pyramidion account's key
-still works, still charged and rendered per their own tier. Output never touches Social
-or another user's view (§6) — it's a developer integration surface, isolated from the
-consumer app's social graph, though it **does** participate in the shared cache (§5)
-for cost savings.
+tier's `timing`/watermark rules — not a hard technical gate on any one tier. **Pyramidion
+is the tier the API is actually sold as a named perk of** — the $200/mo subscription
+buys both in-app generation and API access against one shared wallet, so a Pyramidion
+subscriber's usage is fungible between the app UI and their own code, whichever they
+happen to be building against that day. Siltstone remains open too, as the natural
+low-friction entry point for someone testing the product before committing to
+Pyramidion. Output never touches Social or another user's view (§6) — it's a developer
+integration surface, isolated from the consumer app's social graph, though it **does**
+participate in the shared cache (§5) for cost savings.
 
 - `apiKeys/{keyId}`: `{ uid, keyHash (SHA-256, never store the raw key), label,
   createdAt, lastUsedAt, revoked, requestCount }`. Raw key (`shui_live_...`) shown once
@@ -515,22 +564,23 @@ for cost savings.
 2. Siltstone: deposit $5 → balance 500¢; generate a `timing:"1"` lesson → balance
    400¢, `costChargedCents` recorded, a `lesson_debit` ledger row exists, video is
    watermarked-served and downloadable.
-3. Obsidian/Alabaster: subscribing grants the bonus-adjusted credit exactly (test-mode
-   Stripe), a top-up applies the correct tier bonus, canceling stops future grants
-   without retroactively removing already-granted balance.
+3. Obsidian/Alabaster: subscribing (Apple's sandbox/StoreKit Testing environment)
+   grants the bonus-adjusted credit exactly, a top-up applies the correct tier bonus,
+   an `EXPIRED` notification drops `tier` back to Siltstone without retroactively
+   removing already-granted balance, and replaying the identical signed transaction
+   through `verifyAndApplyPurchase` a second time grants nothing further (the
+   `relatedAppleTransactionId` dedupe check holds).
 4. Alabaster: a video crossing 100 likes (set directly in the emulator) posts exactly
    one $2 refund; crossing again on the same video posts nothing further; refunds
    across several videos in one cycle stop at the $20 cap; the served master has no
    watermark and is downloadable.
-5. Pyramidion: manually drop a test account's balance below 24000¢ in the emulator,
-   run the sweep, confirm an off-session charge fires, balance is credited
-   **additively** (matches the $239→$479 example), the recharge-in-progress lock
-   prevents a double-fire, and cumulative-100-like refunds (not one-time-per-video)
-   respect the same $20 cap. Separately: hold a test account's balance at or above
-   24000¢ (never dipping) and advance `lastChargedAt` past 30 days — confirm the sweep
-   still forces a charge, `lastChargedAt` resets, and `likeRefundCentsThisCycle` and
-   the AI-tutor monthly cost counter both reset; confirm a balance that dips at day 10
-   charges then, not at day 30.
+5. Pyramidion: a renewal notification grants $240 credit **additively** regardless of
+   the balance at the time (a $239 balance becomes $479; a $500 balance becomes
+   $740 — it always charges, there is no skip condition to test), and resets
+   `likeRefundCentsThisCycle`; cumulative-100-like refunds (not one-time-per-video)
+   respect the $20 cap; a Pyramidion API key (§8) debits the same wallet a UI-created
+   lesson would, verified by generating one lesson each way back to back and checking
+   both `lesson_debit` rows against the one balance.
 6. A GolpoAI `failed` status refunds the exact amount debited, with a matching
    `lesson_refund` ledger row.
 7. Requesting the same normalized topic twice from two different accounts: the second

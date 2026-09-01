@@ -119,7 +119,7 @@ export const TIERS: Record<TierId, TierConfig> = {
     downloadable: true,
     likeRefund: { thresholdLikes: 100, refundCents: 200, cycleCapCents: 2000, cumulative: true },
     aiBaselineModel: "claude-sonnet-5",
-    aiMonthlyCostCapCents: 2000,
+    aiMonthlyCostCapCents: 3000, // $30 — bumped from $20
     aiDowngradeThresholdPercent: 70,
   },
 };
@@ -140,10 +140,8 @@ export function lessonCostCents(timing: GolpoTiming): number {
 
 export const MIN_TOPUP_CENTS = 500; // $5
 
-/** Pyramidion's balance-triggered billing (phase-07-lessons-on-demand.md §4). */
-export const PYRAMIDION_RECHARGE_THRESHOLD_CENTS = 24000; // $240 credit floor
-export const PYRAMIDION_RECHARGE_CHARGE_CENTS = 20000; // $200 charged on recharge
-export const PYRAMIDION_MAX_DELAY_DAYS = 30;
-
-/** Alabaster/Pyramidion like-refund cycle cap, shared constant for clarity at call sites. */
+/**
+ * Alabaster/Pyramidion like-refund cycle cap, shared constant for clarity at
+ * call sites.
+ */
 export const LIKE_REFUND_CYCLE_CAP_CENTS = 2000; // $20

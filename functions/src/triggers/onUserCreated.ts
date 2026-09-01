@@ -1,6 +1,7 @@
+import { randomUUID } from "crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
-import { auth } from "../lib/admin";
+import { auth, db } from "../lib/admin";
 import { DEFAULT_WALLET, walletRef } from "../lib/credits";
 
 /**
@@ -11,9 +12,12 @@ import { DEFAULT_WALLET, walletRef } from "../lib/credits";
  *
  * Also seeds users/{uid}/private/wallet (phase-07-lessons-on-demand.md §4) —
  * kept in its own owner-only-read subcollection rather than on this public
- * profile doc, since creditBalanceCents/tier/stripeCustomerId must never
- * ride along on a read any signed-in or anonymous client can already make
- * against users/{uid}.
+ * profile doc, since creditBalanceCents/tier/appleOriginalTransactionId must
+ * never ride along on a read any signed-in or anonymous client can already
+ * make against users/{uid}. The wallet also gets a fresh `appAccountToken`
+ * (a UUID) here, plus its reverse-lookup doc in `appAccountTokens/{token}` —
+ * this is the only way an Apple Server Notification, which carries the
+ * token but never a Firebase uid, gets mapped back to an account.
  */
 export const onUserCreated = onDocumentCreated("users/{uid}", async (event) => {
   const uid = event.params.uid;
@@ -21,5 +25,11 @@ export const onUserCreated = onDocumentCreated("users/{uid}", async (event) => {
   if (!userRecord.customClaims?.role) {
     await auth.setCustomUserClaims(uid, { ...userRecord.customClaims, role: "learner" });
   }
-  await walletRef(uid).set({ ...DEFAULT_WALLET, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+
+  const appAccountToken = randomUUID();
+  await walletRef(uid).set(
+    { ...DEFAULT_WALLET, appAccountToken, updatedAt: FieldValue.serverTimestamp() },
+    { merge: true }
+  );
+  await db.collection("appAccountTokens").doc(appAccountToken).set({ uid, createdAt: FieldValue.serverTimestamp() });
 });

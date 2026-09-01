@@ -201,3 +201,9 @@ export const ShareLessonToSocialInputSchema = z.object({
   videoId: z.string().min(1),
 });
 export type ShareLessonToSocialInput = z.infer<typeof ShareLessonToSocialInputSchema>;
+
+/** The raw signed JWS from StoreKit 2's `VerificationResult` — never a client-reported amount or product. */
+export const VerifyAndApplyPurchaseInputSchema = z.object({
+  signedTransactionInfo: z.string().min(1),
+});
+export type VerifyAndApplyPurchaseInput = z.infer<typeof VerifyAndApplyPurchaseInputSchema>;

@@ -699,6 +699,19 @@ describe("apiKeys", () => {
   });
 });
 
+// ---- appAccountTokens/{token} -----------------------------------------------
+
+describe("appAccountTokens", () => {
+  test("no client can read a token doc, not even the uid it points to (negative)", async () => {
+    await seedDoc("appAccountTokens/tok1", { uid: "alice" });
+    await assertFails(getDoc(doc(learner("alice").firestore(), "appAccountTokens/tok1")));
+  });
+
+  test("no client can write a token doc (negative)", async () => {
+    await assertFails(setDoc(doc(learner("alice").firestore(), "appAccountTokens/tok1"), { uid: "alice" }));
+  });
+});
+
 // ---- catch-all --------------------------------------------------------------
 
 describe("everything else", () => {
