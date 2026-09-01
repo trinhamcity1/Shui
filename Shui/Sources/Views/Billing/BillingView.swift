@@ -84,7 +84,7 @@ final class BillingViewModel: ObservableObject {
     private func listenForTransactionUpdates() {
         transactionListener?.cancel()
         transactionListener = Task { [weak self] in
-            for await update in Transaction.updates {
+            for await update in StoreKit.Transaction.updates {
                 await self?.apply(update)
             }
         }
@@ -119,7 +119,7 @@ final class BillingViewModel: ObservableObject {
         }
     }
 
-    private func apply(_ verification: VerificationResult<Transaction>) async {
+    private func apply(_ verification: VerificationResult<StoreKit.Transaction>) async {
         guard case .verified(let transaction) = verification else {
             errorMessage = BillingScreenError.verificationFailed.localizedDescription
             return

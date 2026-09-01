@@ -49,7 +49,11 @@ final class FeedPageViewModel: ObservableObject, Identifiable {
     var hasRecordedView = false
     var hasMarkedCompleted = false
 
-    var id: String { video.id ?? video.playbackURL ?? video.title }
+    // `nonisolated` — `Identifiable` is a nonisolated protocol requirement,
+    // and this class is `@MainActor`; without this, the conformance itself
+    // is flagged as crossing an actor boundary. Safe: `video` is a `let`
+    // set once at init and never mutated afterward.
+    nonisolated var id: String { video.id ?? video.playbackURL ?? video.title }
 
     init(video: Video, source: FeedSource) {
         self.video = video

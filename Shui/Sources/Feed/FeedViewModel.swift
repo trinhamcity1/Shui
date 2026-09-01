@@ -53,10 +53,17 @@ final class FeedViewModel: ObservableObject {
     private var hasMoreEverythingElse = true
     private var hasLoadedInitialBuckets = false
 
-    init(mode: Mode, environment: AppEnvironment, persistence: PersistenceController = .shared) {
+    // `persistence` defaults to `nil` rather than `= .shared` directly — a
+    // default *parameter value* expression isn't guaranteed by Swift's
+    // isolation checker to run with this MainActor-isolated init's own
+    // isolation, so referencing another MainActor-isolated static property
+    // there triggers a cross-actor warning. Resolving it in the init body
+    // instead is genuinely MainActor-isolated (the whole init is), so this
+    // is a real fix, not a suppression.
+    init(mode: Mode, environment: AppEnvironment, persistence: PersistenceController? = nil) {
         self.mode = mode
         self.environment = environment
-        self.persistence = persistence
+        self.persistence = persistence ?? .shared
         playerPool.onEnded = { [weak self] index in
             self?.handlePlayerEnded(at: index)
         }
