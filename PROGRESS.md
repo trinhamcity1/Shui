@@ -1840,3 +1840,80 @@ Backend verified the same way as everything else this phase: `tsc`, unit suite
 (139/139, 18 suites), rules-emulator suite (94/94, including new negative tests
 for `featureTaps`'s deny-all posture). iOS checked by hand only, same limitation
 noted above.
+
+## Phase 9 — AI Art Wisdom, provider budget monitoring
+
+Triggered by the shareholder subscribing to GolpoAI's API-only tier ($200 credit)
+and asking to use its full capability surface (multiple render engines, styles,
+voices, music) instead of the bare `custom_script` call the pipeline had used since
+Phase 7. Researched GolpoAI's real v2 API in full (video.golpoai.com/api-docs,
+2026-09) rather than guessing: two engines (Canvas: 10 base styles x compact/
+expanded profile; Sketch: 9 styles), a Canvas-only "Pen in Hand" cursor modifier (3
+styles), 4 voices, 7 background-music tracks — every count matches what the
+shareholder read off their own dashboard. Golpo's own docs describe what each style
+looks like but never *when* to use one for a given kind of content — that curated
+mapping doesn't exist anywhere and had to be written from scratch
+(`functions/src/lib/golpoCapabilities.ts`).
+
+**AI Art Wisdom** (`functions/src/lib/artWisdom.ts`) is the piece that connects
+topic -> teaching methodology -> Golpo capability into what `generateLesson.ts`'s
+prompt actually asks Claude for. The methodology half is adapted, with attribution,
+from the sibling `Shui-Whiteboard-Generator` repo's `src/schema/methodology.ts` —
+that project's own validated nine-technique teaching/retention rules, originally
+written for a scene-graph JSON planner. Shui's on-demand pipeline hands GolpoAI a
+plain script instead (GolpoAI does its own scene-splitting), so the techniques are
+reframed as script-wording and `visualInstructions`-choice rules rather than
+scene-graph field rules — same wisdom, different lever, since there's no scene tree
+to apply "emphasis" fields to on this engine. Confirmed via that repo's own README:
+Shui WG is a separate, not-yet-connected, future self-hosted rendering pipeline
+(cheaper than Golpo at scale) — nothing about today's work depends on it or touches
+it; only its methodology document was worth borrowing today.
+
+`generateLesson.ts` now asks for `golpoSettings` (engine, style, pacing, voice,
+music, visual/narration instructions) alongside the script/quiz/category in the
+same call, validated against a Zod schema built from the capability catalog, with a
+safe generic fallback if the model's pick is malformed — a bad style choice now
+degrades a lesson's look, never blocks it. `golpo.ts`/`createOnDemandLesson.ts`
+actually send these to the real API instead of always taking Golpo's defaults.
+
+**Provider budget monitoring** (`functions/src/lib/providerBudgets.ts`): neither
+GolpoAI nor Anthropic exposes a live "remaining balance" API (confirmed against
+GolpoAI's own docs), so Shui self-tracks spend against an admin-recorded top-up
+figure per provider, records real spend the instant it happens (Golpo: priced at
+its real $2/min rate, recorded at generate-call time since that's when Golpo's own
+usage-based billing actually deducts; Anthropic: priced from real per-call token
+usage, recorded from both the AI tutor and now lesson generation too), and alerts
+once a provider crosses a $50 default threshold — once per crossing, not once per
+subsequent spend. `createOnDemandLesson` now runs a circuit-breaker check before
+spending anything: a genuinely exhausted provider throws a distinct error the app
+renders as a dedicated "we're offline" screen, checked *before* the learner's
+wallet is ever touched. The existing wallet-insufficient error (unrelated to any of
+this — it's the learner's own balance, already correctly computed since Phase 7)
+now gets its own "Top up" button in the UI instead of a generic retry, since it
+turned out the repository layer already distinguished the error case correctly and
+only the view needed to catch up.
+
+No email provider is configured yet — nothing in this codebase sends email today,
+so the low-balance alert surfaces in the admin console (a new "Provider budgets"
+screen, admin-only) only for now. The code has one clearly-marked swap-in point
+(`providerBudgets.ts`'s `sendAdminEmailAlert`) for wiring a real provider later.
+
+Also fixed, while in the app-icon-adjacent territory: `Assets.xcassets/AppIcon.
+appiconset` had no actual image in it (an empty slot since Phase 0) — wired in the
+1024x1024 square crop generated for the marketing media kit as a stopgap, so a
+build at least has a real icon instead of a blank one.
+
+Verified: `tsc`, 156/156 unit tests (20 suites, 4 new — golpoCapabilities,
+providerBudgets, plus new generateLesson coverage), 98/98 rules-emulator tests (4
+new negative-test blocks — providerBudgets, adminAlerts). iOS checked by hand only,
+same limitation as every Swift phase.
+
+**Not done, flagged for the user rather than guessed at:** a real email/push
+channel for the low-balance alert (needs a provider chosen); a genuine end-to-end
+test against Golpo's real API (no key existed yet as of this phase — the
+capability catalog is built from documentation, not a live call, and Golpo's own
+docs disagreed with themselves on the exact voice identifier strings in one place,
+noted directly in `golpoCapabilities.ts`); and the full whole-app UX/backend audit
+the shareholder asked for separately, which is deliberately out of scope for this
+phase's own commit (see the chat response for the punch list instead of a blind
+pass over the entire app under launch-day time pressure).
