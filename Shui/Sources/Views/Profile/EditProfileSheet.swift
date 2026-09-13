@@ -83,7 +83,7 @@ struct EditProfileSheet: View {
             await environment.refreshCurrentUser()
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = UserFacingError.describe(error)
         }
     }
 }

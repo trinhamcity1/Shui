@@ -6,7 +6,6 @@ struct SettingsView: View {
     /// threaded down to `AccountView` so a sign-out or account deletion can
     /// close the whole sheet in one step, not just pop its own nav push.
     @Binding var isPresented: Bool
-    @Environment(\.theme) private var theme
 
     var body: some View {
         NavigationStack {
@@ -15,7 +14,6 @@ struct SettingsView: View {
                     NavigationLink("Account") {
                         AccountView(environment: environment, isPresented: $isPresented)
                     }
-                    comingSoonRow("Notifications")
                 }
                 Section {
                     NavigationLink("Balance & plan") {
@@ -56,16 +54,6 @@ struct SettingsView: View {
                     Button(Strings.done) { isPresented = false }
                 }
             }
-        }
-    }
-
-    private func comingSoonRow(_ title: String) -> some View {
-        HStack {
-            Text(title).foregroundStyle(theme.textTertiary)
-            Spacer()
-            Text("Coming soon")
-                .font(.caption)
-                .foregroundStyle(theme.textTertiary)
         }
     }
 }

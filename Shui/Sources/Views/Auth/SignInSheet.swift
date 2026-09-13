@@ -20,6 +20,10 @@ struct SignInSheet: View {
     @State private var password = ""
     @State private var isBusy = false
     @State private var errorMessage: String?
+    /// Success feedback (currently only the password-reset confirmation) —
+    /// kept separate from `errorMessage` so it never renders in the same red
+    /// error styling as an actual failure.
+    @State private var infoMessage: String?
     @State private var showMergeNotice = false
     @State private var namePromptSuggestion: NamePromptSuggestion?
 
@@ -44,6 +48,11 @@ struct SignInSheet: View {
                     Text(errorMessage)
                         .font(.footnote)
                         .foregroundStyle(theme.error)
+                        .multilineTextAlignment(.center)
+                } else if let infoMessage {
+                    Text(infoMessage)
+                        .font(.footnote)
+                        .foregroundStyle(theme.success)
                         .multilineTextAlignment(.center)
                 }
 
@@ -151,6 +160,7 @@ struct SignInSheet: View {
         isBusy = true
         defer { isBusy = false }
         errorMessage = nil
+        infoMessage = nil
         do {
             let result = try await environment.auth.continueWithEmail(email: email, password: password)
             await handleUpgrade(result, method: "email")
@@ -162,9 +172,11 @@ struct SignInSheet: View {
     private func sendReset() async {
         isBusy = true
         defer { isBusy = false }
+        errorMessage = nil
+        infoMessage = nil
         do {
             try await environment.auth.sendPasswordReset(email: email)
-            errorMessage = "Password reset email sent."
+            infoMessage = "Password reset email sent."
         } catch {
             errorMessage = error.localizedDescription
         }

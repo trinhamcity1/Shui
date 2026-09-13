@@ -94,7 +94,7 @@ struct AccountView: View {
             await environment.bootstrapSession()
             isPresented = false
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = UserFacingError.describe(error)
         }
     }
 
@@ -106,7 +106,7 @@ struct AccountView: View {
             await environment.bootstrapSession()
             isPresented = false
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = UserFacingError.describe(error)
         }
     }
 }

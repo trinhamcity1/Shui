@@ -102,6 +102,7 @@ private extension LessonEndState {
 /// quizzes ship), and it can supply a page plus an advance action without
 /// standing up the entire feed.
 struct QuizAnsweringCard: View {
+    @Environment(\.theme) private var theme
     @ObservedObject var page: FeedPageViewModel
     let question: QuizQuestion
     let onAdvance: () -> Void
@@ -112,17 +113,18 @@ struct QuizAnsweringCard: View {
                 if let number = page.questionNumber() {
                     Text("Question \(number.current) of \(number.total)")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(theme.textSecondary)
                 }
 
                 Text(question.prompt)
                     .font(.title3.weight(.bold))
+                    .foregroundStyle(theme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if question.requiredCorrectCount > 1 {
                     Text("Choose \(question.requiredCorrectCount)")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(theme.textSecondary)
                 }
 
                 VStack(spacing: 12) {
@@ -162,7 +164,7 @@ private struct OptionRow: View {
                 Text(text)
                     .font(.body)
                     .multilineTextAlignment(.leading)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(theme.textPrimary)
                 Spacer(minLength: 8)
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
@@ -173,7 +175,7 @@ private struct OptionRow: View {
             .frame(minHeight: 44)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isSelected ? theme.accent.opacity(0.15) : Color.primary.opacity(0.06))
+                    .fill(isSelected ? theme.accent.opacity(0.15) : theme.surfaceSubtle)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -187,6 +189,7 @@ private struct OptionRow: View {
 // MARK: - Submission failure
 
 private struct QuizSubmissionFailedCard: View {
+    @Environment(\.theme) private var theme
     let message: String?
     let onRetry: () -> Void
 
@@ -194,12 +197,13 @@ private struct QuizSubmissionFailedCard: View {
         VStack(spacing: 16) {
             Image(systemName: message == nil ? "wifi.slash" : "exclamationmark.triangle")
                 .font(.system(size: 32))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.textSecondary)
             Text("Couldn't submit your answers")
                 .font(.headline)
+                .foregroundStyle(theme.textPrimary)
             Text(message ?? "Your answers are saved. We'll try again automatically, or you can retry now.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.textSecondary)
                 .multilineTextAlignment(.center)
             Button("Retry", action: onRetry)
                 .buttonStyle(.shuiPill)
@@ -250,7 +254,7 @@ private struct QuizAllResultsCard: View {
 
                         Text(item.result.explanation)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(theme.textSecondary)
                     }
 
                     if index < items.count - 1 {
@@ -286,7 +290,7 @@ private struct RevealOptionRow: View {
     private var tint: Color {
         if isCorrect { return theme.success }
         if isSelected { return theme.error }
-        return .primary.opacity(0.06)
+        return theme.surfaceSubtle
     }
 
     var body: some View {
@@ -294,7 +298,7 @@ private struct RevealOptionRow: View {
             Text(text)
                 .font(.body)
                 .multilineTextAlignment(.leading)
-                .foregroundStyle(.primary)
+                .foregroundStyle(theme.textPrimary)
             Spacer(minLength: 8)
             if isCorrect {
                 Image(systemName: "checkmark.circle.fill").foregroundStyle(theme.success)
@@ -306,7 +310,7 @@ private struct RevealOptionRow: View {
         .frame(minHeight: 44)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill((isCorrect || isSelected) ? tint.opacity(0.18) : Color.primary.opacity(0.06))
+                .fill((isCorrect || isSelected) ? tint.opacity(0.18) : theme.surfaceSubtle)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -343,15 +347,16 @@ private struct QuizResultCard: View {
 
             Text((page.quizResult?.passed ?? false) ? "Passed" : "Keep practicing")
                 .font(.title3.weight(.bold))
+                .foregroundStyle(theme.textPrimary)
 
             Text("\(scorePercent)% correct")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.textSecondary)
 
             if let delta = page.masteryDelta, delta != 0 {
                 Text("Topic mastery \(delta > 0 ? "+" : "")\(delta)%")
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(delta > 0 ? theme.success : .secondary)
+                    .foregroundStyle(delta > 0 ? theme.success : theme.textSecondary)
             }
 
             VStack(spacing: 10) {

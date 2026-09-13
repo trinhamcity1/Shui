@@ -147,14 +147,22 @@ struct CreateLessonView: View {
                 .navigationTitle("New lesson")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
+                    // "Close", not "Cancel", once generation has started —
+                    // the render (and its credit charge) keeps going in the
+                    // background regardless, exactly as this screen's own
+                    // copy says; a "Cancel" label here would wrongly imply
+                    // tapping it stops the charge.
                     ToolbarItem(placement: .cancellationAction) {
-                        Button(Strings.cancel) {
+                        Button(viewModel.stage.isBusy ? Strings.close : Strings.cancel) {
                             viewModel.cancelPolling()
                             dismiss()
                         }
                     }
                 }
-                .interactiveDismissDisabled(viewModel.stage.isBusy)
+                // Not disabled while generating — the screen's own copy
+                // already tells the learner it's safe to leave (the render
+                // continues server-side), so swipe-to-dismiss should behave
+                // the same as the toolbar's "Close" button, not fight it.
                 .task { await viewModel.loadWallet() }
                 .shuiShellBackground()
         }

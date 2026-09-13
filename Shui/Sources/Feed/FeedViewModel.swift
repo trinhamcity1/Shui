@@ -139,7 +139,7 @@ final class FeedViewModel: ObservableObject {
                 currentIndex = idx
             }
         } catch {
-            loadError = error.localizedDescription
+            loadError = UserFacingError.describe(error)
         }
     }
 
@@ -196,7 +196,7 @@ final class FeedViewModel: ObservableObject {
                 await prefetchQuiz(for: page)
             }
         } catch {
-            loadError = error.localizedDescription
+            loadError = UserFacingError.describe(error)
         }
     }
 

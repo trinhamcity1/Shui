@@ -303,7 +303,7 @@ final class TopicPageViewModel: ObservableObject {
             }
             videoProgressByID = progressByID
         } catch {
-            loadError = error.localizedDescription
+            loadError = UserFacingError.describe(error)
         }
     }
 

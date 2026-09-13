@@ -97,6 +97,6 @@ private struct DismissButton: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        Button(Strings.cancel) { dismiss() }
+        Button(Strings.done) { dismiss() }
     }
 }

@@ -14,6 +14,7 @@ struct CommentsSheet: View {
     @State private var showSignInSheet = false
     @State private var reportTarget: Comment?
     @State private var blockCandidate: Comment?
+    @State private var reportOutcome: ReportOutcome?
     @FocusState private var composerFocused: Bool
 
     /// `initialCommentCount` is the video's own denormalized `commentCount`
@@ -48,8 +49,19 @@ struct CommentsSheet: View {
         .sheet(isPresented: $showSignInSheet) { SignInSheet() }
         .sheet(item: $reportTarget) { comment in
             ReportSheet(onSubmit: { reason, note in
-                Task { await viewModel.report(comment, reason: reason, note: note) }
+                Task {
+                    let sent = await viewModel.report(comment, reason: reason, note: note)
+                    reportOutcome = sent ? .sent : .failed
+                }
             })
+        }
+        .alert(
+            reportOutcome?.title ?? "",
+            isPresented: Binding(get: { reportOutcome != nil }, set: { if !$0 { reportOutcome = nil } })
+        ) {
+            Button(Strings.done, role: .cancel) {}
+        } message: {
+            Text(reportOutcome?.message ?? "")
         }
         .confirmationDialog(
             "Block this user?", isPresented: Binding(get: { blockCandidate != nil }, set: { if !$0 { blockCandidate = nil } }),
@@ -234,5 +246,24 @@ private struct CommentThread: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+    }
+}
+
+private enum ReportOutcome {
+    case sent
+    case failed
+
+    var title: String {
+        switch self {
+        case .sent: return "Report sent"
+        case .failed: return "Couldn't send report"
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .sent: return "Thanks — we'll take a look."
+        case .failed: return "Please check your connection and try again."
+        }
     }
 }

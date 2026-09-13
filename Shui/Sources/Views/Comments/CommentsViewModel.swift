@@ -69,7 +69,7 @@ final class CommentsViewModel: ObservableObject {
             cursor = page.cursor
             hasMore = page.items.count == pageSize
         } catch {
-            loadError = error.localizedDescription
+            loadError = UserFacingError.describe(error)
         }
     }
 
@@ -194,14 +194,24 @@ final class CommentsViewModel: ObservableObject {
         mutate(commentId: commentId) { $0.isDeleted = true }
     }
 
-    func report(_ comment: Comment, reason: String, note: String?) async {
-        guard let commentId = comment.id else { return }
-        try? await environment.social.report(
-            targetType: "comment",
-            targetPath: "videos/\(videoId)/comments/\(commentId)",
-            reason: reason,
-            note: note
-        )
+    /// Returns whether the report was actually recorded — the caller shows
+    /// a confirmation either way, but a real failure gets an apology
+    /// instead of a false "sent" that leaves the reporter thinking a
+    /// harassment report went through when it didn't.
+    @discardableResult
+    func report(_ comment: Comment, reason: String, note: String?) async -> Bool {
+        guard let commentId = comment.id else { return false }
+        do {
+            try await environment.social.report(
+                targetType: "comment",
+                targetPath: "videos/\(videoId)/comments/\(commentId)",
+                reason: reason,
+                note: note
+            )
+            return true
+        } catch {
+            return false
+        }
     }
 
     // MARK: - Likes

@@ -18,6 +18,7 @@ struct ExploreView: View {
     @State private var searchText = ""
     @State private var searchResults: [Topic] = []
     @State private var isSearching = false
+    @State private var searchFailed = false
     /// Debounces search-as-you-type: without it, every keystroke fired its
     /// own Firestore query, wasting reads and — since network responses can
     /// arrive out of order — occasionally letting a stale result for an
@@ -124,6 +125,19 @@ struct ExploreView: View {
     private var searchResultsList: some View {
         if isSearching {
             ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if searchFailed {
+            VStack(spacing: 8) {
+                Image(systemName: "wifi.slash")
+                    .font(.title2)
+                    .foregroundStyle(theme.textSecondary)
+                Text("Couldn't search right now")
+                    .font(.headline)
+                    .foregroundStyle(theme.textPrimary)
+                Text("Check your connection and try again.")
+                    .font(.subheadline)
+                    .foregroundStyle(theme.textSecondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if searchResults.isEmpty {
             VStack(spacing: 8) {
                 Text("No topics found")
@@ -194,9 +208,11 @@ struct ExploreView: View {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else {
             searchResults = []
+            searchFailed = false
             return
         }
         isSearching = true
+        searchFailed = false
         defer { isSearching = false }
 
         // Three sources merged: a cheap local prefix check over what's
@@ -213,7 +229,31 @@ struct ExploreView: View {
         }
         async let prefixTask = environment.topics.searchByTitlePrefix(trimmed, limit: 20)
         async let keywordTask = environment.topics.searchByKeywords(trimmed, limit: 20)
-        let (prefixMatches, keywordMatches) = await ((try? prefixTask) ?? [], (try? keywordTask) ?? [])
+
+        var prefixMatches: [Topic] = []
+        var prefixThrew = false
+        do {
+            prefixMatches = try await prefixTask
+        } catch {
+            prefixThrew = true
+        }
+
+        var keywordMatches: [Topic] = []
+        var keywordThrew = false
+        do {
+            keywordMatches = try await keywordTask
+        } catch {
+            keywordThrew = true
+        }
+
+        // Only a *complete* failure (both network sources threw, and the
+        // local cache had nothing either) counts as "search failed" — a
+        // query resolved entirely from the cache, or from just one of the
+        // two sources, is a real "no matches" if it comes up empty, not an
+        // error.
+        if prefixThrew, keywordThrew, cachedMatches.isEmpty {
+            searchFailed = true
+        }
 
         var seen = Set<String>()
         var combined: [Topic] = []

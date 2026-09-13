@@ -144,7 +144,9 @@ struct SocialFeedView: View {
             HStack(spacing: 10) {
                 Button { withAnimation(.snappy) { showSearchField.toggle() } } label: {
                     Image(systemName: showSearchField ? "xmark.circle.fill" : "magnifyingglass")
+                        .frame(minWidth: 44, minHeight: 44)
                 }
+                .accessibilityLabel(showSearchField ? "Close search" : "Search lessons")
                 if showSearchField {
                     TextField("Search lessons", text: $viewModel.searchText)
                         .textFieldStyle(.plain)

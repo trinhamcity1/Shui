@@ -25,6 +25,11 @@ enum BillingScreenError: LocalizedError {
 final class BillingViewModel: ObservableObject {
     @Published private(set) var wallet: Wallet?
     @Published private(set) var products: [Product] = []
+    // Starts true, not false — `products` is also empty before the first
+    // load even begins, and defaulting this to false would flash the
+    // "Plans are unavailable" error banner for that split second instead of
+    // a loading state.
+    @Published private(set) var isLoadingProducts = true
     @Published private(set) var transactions: [CreditTransaction] = []
     @Published var errorMessage: String?
     @Published private(set) var purchasingProductId: String?
@@ -80,7 +85,9 @@ final class BillingViewModel: ObservableObject {
         }
     }
 
-    private func loadProducts() async {
+    func loadProducts() async {
+        isLoadingProducts = true
+        defer { isLoadingProducts = false }
         let ids = TierInfo.all.compactMap(\.productId) + [TierInfo.topUpProductId]
         products = (try? await Product.products(for: ids)) ?? []
     }
@@ -161,6 +168,9 @@ struct BillingView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 balanceCard
+                if viewModel.products.isEmpty {
+                    productsUnavailableBanner
+                }
                 topUpSection
                 plansSection
                 historySection
@@ -173,6 +183,7 @@ struct BillingView: View {
             AppAnalytics.logFeatureTap(.openBilling)
             await viewModel.start()
         }
+        .refreshable { await viewModel.loadProducts() }
         .onDisappear { viewModel.stop() }
         .shuiShellBackground()
         .alert("Something went wrong", isPresented: Binding(get: { viewModel.errorMessage != nil }, set: { if !$0 { viewModel.errorMessage = nil } })) {
@@ -194,6 +205,40 @@ struct BillingView: View {
             Text("credit balance")
                 .font(.caption)
                 .foregroundStyle(theme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .shuiCard()
+        .padding(.horizontal, 20)
+    }
+
+    /// StoreKit's product list can legitimately come back empty — a brand
+    /// new App Store Connect setup still propagating, a sandbox hiccup, a
+    /// real network drop — and without this, `topUpSection`/`plansSection`
+    /// would just quietly render nothing, which reads as "this app has no
+    /// way to pay" rather than "try again."
+    @ViewBuilder
+    private var productsUnavailableBanner: some View {
+        HStack(spacing: 12) {
+            if viewModel.isLoadingProducts {
+                ProgressView()
+                Text("Loading plans…")
+                    .font(.subheadline)
+                    .foregroundStyle(theme.textSecondary)
+            } else {
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundStyle(theme.warning)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Plans are unavailable right now")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(theme.textPrimary)
+                    Text("Pull to refresh, or try again in a moment.")
+                        .font(.caption)
+                        .foregroundStyle(theme.textSecondary)
+                }
+                Spacer()
+                Button("Retry") { Task { await viewModel.loadProducts() } }
+                    .font(.caption.weight(.semibold))
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .shuiCard()

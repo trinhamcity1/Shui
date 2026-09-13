@@ -70,6 +70,12 @@ struct DeveloperApiView: View {
     var body: some View {
         List {
             Section {
+                Text("An API key lets your own code request Shui lessons programmatically, outside the app.")
+                    .font(.subheadline)
+                    .foregroundStyle(theme.textSecondary)
+            }
+
+            Section {
                 TextField("Key label (e.g. \"My script\")", text: $viewModel.newKeyLabel)
                 Button("Create key") { Task { await viewModel.createKey() } }
                     .disabled(!viewModel.canCreate)

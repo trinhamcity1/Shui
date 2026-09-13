@@ -6,6 +6,7 @@ struct CategoryPageView: View {
     let category: Category
     let environment: AppEnvironment
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.theme) private var theme
     @StateObject private var viewModel: CategoryPageViewModel
 
     init(category: Category, environment: AppEnvironment) {
@@ -49,7 +50,7 @@ struct CategoryPageView: View {
             if !category.description.isEmpty {
                 Text(category.description)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.textSecondary)
             }
             Picker("Sort", selection: $viewModel.sort) {
                 Text("Newest").tag(TopicSort.newest)

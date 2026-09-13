@@ -17,4 +17,5 @@ enum Strings {
     static let retry = "Retry"
     static let done = "Done"
     static let save = "Save"
+    static let close = "Close"
 }

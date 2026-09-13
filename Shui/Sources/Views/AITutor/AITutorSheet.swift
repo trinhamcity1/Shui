@@ -214,11 +214,12 @@ private struct AIMessageBubble: View {
 }
 
 private struct StreamingCursor: View {
+    @Environment(\.theme) private var theme
     @State private var visible = true
 
     var body: some View {
         Rectangle()
-            .fill(.secondary)
+            .fill(theme.textSecondary)
             .frame(width: 2, height: 14)
             .opacity(visible ? 1 : 0)
             .onAppear {
@@ -230,13 +231,14 @@ private struct StreamingCursor: View {
 }
 
 private struct TypingDotsView: View {
+    @Environment(\.theme) private var theme
     @State private var animate = false
 
     var body: some View {
         HStack(spacing: 4) {
             ForEach(0..<3, id: \.self) { i in
                 Circle()
-                    .fill(.secondary)
+                    .fill(theme.textSecondary)
                     .frame(width: 6, height: 6)
                     .scaleEffect(animate ? 1 : 0.5)
                     .animation(
