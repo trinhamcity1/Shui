@@ -14,7 +14,7 @@ import { AnthropicModelClient, ModelClient, AI_SECRETS, aiModel } from "../ai/mo
 import { AiModel, callCostNanodollars, nanodollarsToCents } from "../ai/pricing";
 import { GolpoClient, GolpoRestClient, GOLPO_SECRETS } from "../lib/golpo";
 import { baseOnDemandVideoShape, ensurePersonalTopic, truncateTitle } from "../lib/onDemandVideo";
-import { checkProvidersAvailable, recordProviderSpend } from "../lib/providerBudgets";
+import { ALERT_SECRETS, checkProvidersAvailable, recordProviderSpend } from "../lib/providerBudgets";
 
 /** Shown to the learner when Shui's own Golpo/Anthropic account is genuinely out of tracked credit — a distinct HttpsError code ("unavailable") so the app can show a dedicated "tools offline" screen instead of the generic failed-with-retry UI. */
 export const PROVIDERS_UNAVAILABLE_MESSAGE = "Lesson creation is temporarily offline for maintenance. Please check back soon.";
@@ -168,7 +168,7 @@ async function copyQuizFrom(sourceVideoId: string, targetVideoId: string): Promi
   ]);
 }
 
-export const createOnDemandLesson = onCall({ secrets: [...AI_SECRETS, ...GOLPO_SECRETS] }, async (request) => {
+export const createOnDemandLesson = onCall({ secrets: [...AI_SECRETS, ...GOLPO_SECRETS, ...ALERT_SECRETS] }, async (request) => {
   const uid = requireNotGuest(request);
   const input = parseInput(CreateOnDemandLessonInputSchema, request.data);
   return runCreateOnDemandLesson(uid, input.topic, {

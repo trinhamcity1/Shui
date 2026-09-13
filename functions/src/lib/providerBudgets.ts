@@ -1,5 +1,22 @@
 import { FieldValue, Transaction } from "firebase-admin/firestore";
+import { defineSecret, defineString } from "firebase-functions/params";
 import { db } from "./admin";
+
+/**
+ * Resend (resend.com) — a plain HTTPS POST, no SDK needed, matching this
+ * codebase's existing convention for third-party APIs (GolpoRestClient).
+ * Requires the shareholder to: sign up, verify `shuillc.com` as a sending
+ * domain (a couple of DNS records, the same DNS panel used for the site's
+ * own A record), create an API key, and set it as this secret. Until then
+ * `sendAdminEmailAlert` safely no-ops and logs instead of throwing — a
+ * missing email provider must never break lesson generation.
+ */
+export const resendApiKey = defineSecret("RESEND_API_KEY");
+const alertEmailTo = defineString("ALERT_EMAIL_TO", { default: "uyennguyen@shuillc.com" });
+const alertEmailFrom = defineString("ALERT_EMAIL_FROM", { default: "Shui Alerts <alerts@shuillc.com>" });
+
+/** Every function that can trigger a low-balance alert needs this in its own `secrets: [...]` list — see createOnDemandLesson.ts and aiTutorMessage.ts. */
+export const ALERT_SECRETS = [resendApiKey];
 
 /**
  * Self-tracked spend against Shui's own GolpoAI and Anthropic accounts —
@@ -64,24 +81,55 @@ export function isBelowThreshold(budget: ProviderBudget): boolean {
 }
 
 /**
- * Not a real email/push send yet — no transactional email provider is
- * configured (checked: nothing in this codebase sends email today). Logs so
- * the alert is never silently lost, and the Firestore adminAlerts doc
- * (written by the caller alongside this) is what actually surfaces the
- * alert today, in the admin console. Wiring a real provider later is a
- * change to this one function only — every call site stays the same.
+ * Real send via Resend, best-effort — never throws, since a failed alert
+ * email must never break lesson generation or an AI tutor reply (both call
+ * this indirectly through recordProviderSpend). The Firestore adminAlerts
+ * doc (written by the caller alongside this) is the durable record either
+ * way; this is a convenience on top of it. `provider` never appears in the
+ * email body — Shui never names its render/model vendors to anyone,
+ * including in an admin-only alert, so a support person forwarding this
+ * email doesn't leak them either.
  */
-function sendAdminEmailAlert(provider: ProviderId, remaining: number, thresholdCents: number): void {
-  console.warn(
-    `[providerBudgets] ${provider} balance low: $${(remaining / 100).toFixed(2)} remaining ` +
-      `(threshold $${(thresholdCents / 100).toFixed(2)}). No email provider configured — ` +
-      `surfaced in the admin console only. See providerBudgets.ts's sendAdminEmailAlert.`
-  );
+async function sendAdminEmailAlert(provider: ProviderId, remaining: number, thresholdCents: number): Promise<void> {
+  const apiKey = resendApiKey.value();
+  const label = provider === "golpo" ? "Video generation" : "AI tutor";
+  const subject = remaining <= 0 ? `[Shui] ${label} budget is exhausted` : `[Shui] ${label} budget is low`;
+  const body =
+    `${label} budget: $${(remaining / 100).toFixed(2)} remaining ` +
+    `(alert threshold $${(thresholdCents / 100).toFixed(2)}).\n\n` +
+    `Top up on the provider's own dashboard, then record it in Shui's admin console ` +
+    `(Creator -> Admin -> Provider budgets) so tracking stays accurate.`;
+
+  if (!apiKey) {
+    console.warn(`[providerBudgets] ${subject} — no RESEND_API_KEY configured, email not sent. ${body}`);
+    return;
+  }
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({ from: alertEmailFrom.value(), to: [alertEmailTo.value()], subject, text: body }),
+    });
+    if (!res.ok) {
+      console.error(`[providerBudgets] Resend send failed: ${res.status} ${await res.text()}`);
+    }
+  } catch (err) {
+    console.error("[providerBudgets] Resend send threw", err);
+  }
 }
 
-async function writeAlertIfNeeded(t: Transaction, before: ProviderBudget, after: ProviderBudget): Promise<void> {
-  const nowBelow = isBelowThreshold(after);
-  if (nowBelow && !before.alertActive) {
+/**
+ * Only writes the durable Firestore alert doc — called from inside a
+ * transaction, so it must never do a network call itself (a Firestore
+ * transaction can silently retry its whole callback on contention, which
+ * would risk sending the same alert email more than once). The actual email
+ * send happens once, after the transaction has actually committed — see
+ * both callers below.
+ */
+function writeAlertIfNeeded(t: Transaction, before: ProviderBudget, after: ProviderBudget): boolean {
+  const shouldAlert = isBelowThreshold(after) && !before.alertActive;
+  if (shouldAlert) {
     const ref = db.collection("adminAlerts").doc();
     t.set(ref, {
       type: isExhausted(after) ? "provider_budget_exhausted" : "provider_budget_low",
@@ -91,8 +139,8 @@ async function writeAlertIfNeeded(t: Transaction, before: ProviderBudget, after:
       createdAt: FieldValue.serverTimestamp(),
       acknowledged: false,
     });
-    sendAdminEmailAlert(after.provider, remainingCents(after), after.lowBalanceThresholdCents);
   }
+  return shouldAlert;
 }
 
 /**
@@ -104,9 +152,11 @@ async function writeAlertIfNeeded(t: Transaction, before: ProviderBudget, after:
  */
 export async function recordProviderSpend(provider: ProviderId, costCents: number): Promise<void> {
   if (costCents <= 0) return;
+  let shouldAlert = false;
+  let after: ProviderBudget | undefined;
   await db.runTransaction(async (t) => {
     const before = await readProviderBudget(provider, t);
-    const after: ProviderBudget = {
+    after = {
       ...before,
       spentCentsAllTime: before.spentCentsAllTime + costCents,
       alertActive: before.alertActive || isBelowThreshold({ ...before, spentCentsAllTime: before.spentCentsAllTime + costCents }),
@@ -116,8 +166,11 @@ export async function recordProviderSpend(provider: ProviderId, costCents: numbe
       { spentCentsAllTime: FieldValue.increment(costCents), alertActive: after.alertActive, updatedAt: FieldValue.serverTimestamp() },
       { merge: true }
     );
-    await writeAlertIfNeeded(t, before, after);
+    shouldAlert = writeAlertIfNeeded(t, before, after);
   });
+  if (shouldAlert && after) {
+    await sendAdminEmailAlert(after.provider, remainingCents(after), after.lowBalanceThresholdCents);
+  }
 }
 
 /**

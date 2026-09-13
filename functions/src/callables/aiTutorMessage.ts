@@ -9,6 +9,7 @@ import { buildSystemPrompt, extractVisibleText, parseModelOutput, PROMPT_VERSION
 import { AI_SECRETS, AnthropicModelClient, ModelClient, ModelMessage } from "../ai/modelClient";
 import { AiModel } from "../ai/pricing";
 import { recordAiUsage, resolveModelForMessage } from "../ai/tutorGuardrails";
+import { ALERT_SECRETS } from "../lib/providerBudgets";
 import { DEFAULT_EASE_FACTOR, newReviewState, ReviewState, schedule } from "../lib/sm2";
 
 // A short-turn tutor, not an essay generator — the prompt already
@@ -180,7 +181,7 @@ async function applyRetentionAssessment(
   });
 }
 
-export const aiTutorMessage = onCall({ secrets: AI_SECRETS, timeoutSeconds: 120 }, async (request) => {
+export const aiTutorMessage = onCall({ secrets: [...AI_SECRETS, ...ALERT_SECRETS], timeoutSeconds: 120 }, async (request) => {
   const uid = requireNotGuest(request);
   const input = parseInput(AiTutorMessageInputSchema, request.data);
   return runAiTutorMessage(uid, input, (model) => new AnthropicModelClient(model));

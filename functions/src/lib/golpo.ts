@@ -90,8 +90,15 @@ export class GolpoRestClient implements GolpoClient {
       }
       return { status: "completed", videoUrl: data.video_url };
     }
+    // Never forward the render backend's own error text to the caller —
+    // that text is third-party, unpredictable, and could name the vendor
+    // (checked into git or not, this app never shows a learner "Golpo" or
+    // "Anthropic"; see checkOnDemandLessonStatus.ts, which is what actually
+    // returns this to the client). The real text still reaches Cloud
+    // Functions logs, which is where debugging a real failure belongs.
     if (data.status === "failed") {
-      return { status: "failed", message: data.error ?? "GolpoAI reported a render failure with no message." };
+      if (data.error) console.error(`GolpoAI render failed for job ${jobId}: ${data.error}`);
+      return { status: "failed", message: "Something went wrong while creating this video." };
     }
     return { status: data.status === "generating" ? "generating" : "queued" };
   }
