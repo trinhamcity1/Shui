@@ -52,6 +52,43 @@ struct DailyUsageStatsPage {
     var history: [DailyUsageStats]
 }
 
+/// Shui's own self-tracked GolpoAI/Anthropic spend (see
+/// `functions/src/lib/providerBudgets.ts` for why this is self-tracked
+/// rather than read live from either provider).
+struct ProviderBudgetInfo: Codable, Identifiable, Hashable {
+    var provider: String
+    var toppedUpCentsAllTime: Int
+    var spentCentsAllTime: Int
+    var lowBalanceThresholdCents: Int
+    var alertActive: Bool
+    var remainingCents: Int
+    var updatedAt: Date?
+    var id: String { provider }
+
+    var displayName: String {
+        switch provider {
+        case "golpo": return "GolpoAI"
+        case "anthropic": return "Anthropic"
+        default: return provider.capitalized
+        }
+    }
+}
+
+struct AdminAlertInfo: Codable, Identifiable, Hashable {
+    var alertId: String
+    var type: String
+    var provider: String
+    var remainingCents: Int
+    var thresholdCents: Int
+    var createdAt: Date?
+    var id: String { alertId }
+}
+
+struct ProviderBudgetsPage {
+    var budgets: [ProviderBudgetInfo]
+    var openAlerts: [AdminAlertInfo]
+}
+
 /// Admin-only operations. Every method here is additionally gated server-side
 /// (`requireRole(["admin"])` or an `isAdmin()` rule) — hiding the screens is
 /// a UX decision, never the security boundary.
@@ -71,6 +108,9 @@ protocol AdminRepository {
         isActive: Bool
     ) async throws -> String
     func usageStats() async throws -> DailyUsageStatsPage
+    func providerBudgets() async throws -> ProviderBudgetsPage
+    func recordProviderTopUp(provider: String, amountCents: Int) async throws
+    func acknowledgeAlert(alertId: String) async throws
 }
 
 struct FirebaseAdminRepository: AdminRepository {
@@ -174,6 +214,32 @@ struct FirebaseAdminRepository: AdminRepository {
         return DailyUsageStatsPage(today: response.today, history: response.history)
     }
 
+    func providerBudgets() async throws -> ProviderBudgetsPage {
+        let result = try await functions.httpsCallable("adminGetProviderBudgets").call([:])
+        guard let data = result.data as? [String: Any], JSONSerialization.isValidJSONObject(data) else {
+            throw RepositoryError.malformedResponse
+        }
+        let payload = try JSONSerialization.data(withJSONObject: data)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let string = try container.decode(String.self)
+            if let date = Self.iso8601WithFractionalSeconds.date(from: string) { return date }
+            if let date = Self.iso8601.date(from: string) { return date }
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid ISO 8601 date: \(string)")
+        }
+        let response = try decoder.decode(ProviderBudgetsResponse.self, from: payload)
+        return ProviderBudgetsPage(budgets: response.budgets, openAlerts: response.openAlerts)
+    }
+
+    func recordProviderTopUp(provider: String, amountCents: Int) async throws {
+        _ = try await functions.httpsCallable("adminRecordProviderTopUp").call(["provider": provider, "amountCents": amountCents])
+    }
+
+    func acknowledgeAlert(alertId: String) async throws {
+        _ = try await functions.httpsCallable("adminAcknowledgeAlert").call(["alertId": alertId])
+    }
+
     private static let iso8601WithFractionalSeconds: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions.insert(.withFractionalSeconds)
@@ -185,6 +251,11 @@ struct FirebaseAdminRepository: AdminRepository {
 private struct AdminGetUsageStatsResponse: Decodable {
     let today: DailyUsageStats
     let history: [DailyUsageStats]
+}
+
+private struct ProviderBudgetsResponse: Decodable {
+    let budgets: [ProviderBudgetInfo]
+    let openAlerts: [AdminAlertInfo]
 }
 
 final class InMemoryAdminRepository: AdminRepository {
@@ -271,5 +342,27 @@ final class InMemoryAdminRepository: AdminRepository {
 
     func usageStats() async throws -> DailyUsageStatsPage {
         stats
+    }
+
+    var providerBudgetsPage = ProviderBudgetsPage(
+        budgets: [
+            ProviderBudgetInfo(provider: "golpo", toppedUpCentsAllTime: 20000, spentCentsAllTime: 1400, lowBalanceThresholdCents: 5000, alertActive: false, remainingCents: 18600, updatedAt: Date()),
+            ProviderBudgetInfo(provider: "anthropic", toppedUpCentsAllTime: 10000, spentCentsAllTime: 2200, lowBalanceThresholdCents: 5000, alertActive: false, remainingCents: 7800, updatedAt: Date()),
+        ],
+        openAlerts: []
+    )
+
+    func providerBudgets() async throws -> ProviderBudgetsPage {
+        providerBudgetsPage
+    }
+
+    func recordProviderTopUp(provider: String, amountCents: Int) async throws {
+        guard let index = providerBudgetsPage.budgets.firstIndex(where: { $0.provider == provider }) else { return }
+        providerBudgetsPage.budgets[index].toppedUpCentsAllTime += amountCents
+        providerBudgetsPage.budgets[index].remainingCents += amountCents
+    }
+
+    func acknowledgeAlert(alertId: String) async throws {
+        providerBudgetsPage.openAlerts.removeAll { $0.alertId == alertId }
     }
 }

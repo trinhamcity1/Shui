@@ -9,6 +9,14 @@ enum LessonCreationStage: Equatable {
     case generating
     case ready(videoId: String)
     case failed(message: String, canRetry: Bool)
+    /// The learner's own wallet can't cover this lesson — distinct from
+    /// `.failed` so the UI can offer a "Top up" button instead of "Retry"
+    /// (retrying an unaffordable lesson just fails again the same way).
+    case insufficientCredit(message: String)
+    /// Shui's own Golpo/Anthropic account is out of tracked credit — a
+    /// platform-wide outage, not something retrying or topping up the
+    /// learner's own wallet fixes.
+    case platformOffline(message: String)
 
     var isBusy: Bool {
         self == .generating
@@ -63,6 +71,15 @@ final class CreateLessonViewModel: ObservableObject {
                 } else {
                     startPolling(videoId: videoId)
                 }
+            } catch let error as OnDemandLessonError {
+                switch error {
+                case .insufficientCredit(let message):
+                    stage = .insufficientCredit(message: message)
+                case .platformUnavailable(let message):
+                    stage = .platformOffline(message: message)
+                default:
+                    stage = .failed(message: error.localizedDescription, canRetry: true)
+                }
             } catch {
                 stage = .failed(message: error.localizedDescription, canRetry: true)
             }
@@ -116,6 +133,7 @@ struct CreateLessonView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: CreateLessonViewModel
     @State private var readyVideo: Video?
+    @State private var showBilling = false
     @FocusState private var topicFieldFocused: Bool
 
     init(environment: AppEnvironment, initialTopic: String = "") {
@@ -143,6 +161,16 @@ struct CreateLessonView: View {
         .fullScreenCover(item: $readyVideo) { video in
             FeedView(mode: .videoList(videos: [video]), environment: environment)
         }
+        .sheet(isPresented: $showBilling) {
+            NavigationStack {
+                BillingView(environment: environment)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(Strings.done) { showBilling = false }
+                        }
+                    }
+            }
+        }
     }
 
     @ViewBuilder
@@ -156,6 +184,10 @@ struct CreateLessonView: View {
             readyView(videoId: videoId)
         case .failed(let message, let canRetry):
             failedView(message: message, canRetry: canRetry)
+        case .insufficientCredit(let message):
+            insufficientCreditView(message: message)
+        case .platformOffline(let message):
+            platformOfflineView(message: message)
         }
     }
 
@@ -256,6 +288,49 @@ struct CreateLessonView: View {
                     .buttonStyle(.shuiPill)
                     .padding(.horizontal, 24)
             }
+            Button(Strings.cancel, role: .cancel) { dismiss() }
+                .buttonStyle(.shuiPillOutline)
+                .padding(.horizontal, 24)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func insufficientCreditView(message: String) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "creditcard.trianglebadge.exclamationmark")
+                .font(.system(size: 36))
+                .foregroundStyle(theme.warning)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(theme.textPrimary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            Button("Top up") { showBilling = true }
+                .buttonStyle(.shuiPill)
+                .padding(.horizontal, 24)
+            Button(Strings.cancel, role: .cancel) { dismiss() }
+                .buttonStyle(.shuiPillOutline)
+                .padding(.horizontal, 24)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func platformOfflineView(message: String) -> some View {
+        VStack(spacing: 16) {
+            Image(systemName: "wrench.and.screwdriver.fill")
+                .font(.system(size: 36))
+                .foregroundStyle(theme.textSecondary)
+            Text("We're offline for a moment")
+                .font(.headline)
+                .foregroundStyle(theme.textPrimary)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(theme.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            Button(Strings.retry) { viewModel.retry() }
+                .buttonStyle(.shuiPillOutline)
+                .padding(.horizontal, 24)
             Button(Strings.cancel, role: .cancel) { dismiss() }
                 .buttonStyle(.shuiPillOutline)
                 .padding(.horizontal, 24)

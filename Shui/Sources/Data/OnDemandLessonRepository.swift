@@ -10,6 +10,12 @@ enum OnDemandLessonError: LocalizedError {
     case notSignedIn
     case insufficientCredit(message: String)
     case invalidTopic(message: String)
+    /// Shui's own Golpo/Anthropic account is out of tracked credit (the
+    /// circuit breaker in createOnDemandLesson.ts) — distinct from `.network`
+    /// so the UI can show a dedicated "we're offline" screen instead of a
+    /// generic retry, and distinct from `.insufficientCredit` since a top-up
+    /// button pointed at *the learner's own* balance wouldn't fix this.
+    case platformUnavailable(message: String)
     case network
     case unknown(String)
 
@@ -17,7 +23,7 @@ enum OnDemandLessonError: LocalizedError {
         switch self {
         case .notSignedIn:
             return "Sign in to create a lesson."
-        case .insufficientCredit(let message), .invalidTopic(let message):
+        case .insufficientCredit(let message), .invalidTopic(let message), .platformUnavailable(let message):
             return message
         case .network:
             return "Couldn't reach Shui. Check your connection and try again."
@@ -97,7 +103,9 @@ struct FirestoreOnDemandLessonRepository: OnDemandLessonRepository {
             return .insufficientCredit(message: error.localizedDescription)
         case .invalidArgument:
             return .invalidTopic(message: error.localizedDescription)
-        case .unavailable, .deadlineExceeded:
+        case .unavailable:
+            return .platformUnavailable(message: error.localizedDescription)
+        case .deadlineExceeded:
             return .network
         default:
             return .unknown(error.localizedDescription)

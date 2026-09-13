@@ -16,6 +16,11 @@ struct AdminHomeView: View {
                     Label("Analytics", systemImage: "chart.xyaxis.line")
                 }
                 NavigationLink {
+                    AdminProviderBudgetsView(environment: environment)
+                } label: {
+                    Label("Provider budgets", systemImage: "creditcard")
+                }
+                NavigationLink {
                     ReportsQueueView(environment: environment)
                 } label: {
                     Label("Reports queue", systemImage: "flag")
