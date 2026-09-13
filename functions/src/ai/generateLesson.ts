@@ -2,8 +2,11 @@ import { HttpsError } from "firebase-functions/v2/https";
 import { CATEGORY_SLUGS, CategorySlug, isCategorySlug } from "../lib/categories";
 import { GolpoTiming } from "../lib/tiers";
 import { scriptCharBudget } from "../lib/golpo";
+import { DEFAULT_GOLPO_SETTINGS, GolpoSettings, GolpoSettingsSchema } from "../lib/golpoCapabilities";
+import { buildArtWisdomPromptSection } from "../lib/artWisdom";
 import { QuizInputSchema, QuizQuestionInput } from "../schemas/quiz";
 import { ModelClient } from "./modelClient";
+import { CallUsage } from "./pricing";
 
 const MAX_OUTPUT_TOKENS = 3000;
 
@@ -12,6 +15,7 @@ export interface GeneratedLesson {
   categoryId: CategorySlug;
   script: string;
   questions: QuizQuestionInput[];
+  golpoSettings: GolpoSettings;
 }
 
 export interface RefusedLesson {
@@ -29,8 +33,8 @@ export interface RefusedLesson {
  */
 function buildPrompt(topic: string, timing: GolpoTiming): string {
   const charBudget = scriptCharBudget(timing);
-  return `You write a short educational lesson script and a comprehension quiz for a
-short-form vertical video app.
+  return `You write a short educational lesson script, a comprehension quiz, and the
+GolpoAI render settings for a short-form vertical video app.
 
 Topic requested: "${topic}"
 Target length: ${timing} minute(s) of narration — the script MUST be under ${charBudget}
@@ -47,6 +51,8 @@ Otherwise write 1-5 quiz questions that test whether someone understood THIS SCR
 actual content — not trivia, not wording recall. Each question needs 2-6 options,
 exactly one correct, and an explanation that teaches the person who got it wrong.
 Never invent facts the script doesn't state.
+
+${buildArtWisdomPromptSection()}
 
 Respond with JSON only — no prose, no markdown fence — matching exactly:
 {
@@ -65,6 +71,17 @@ Respond with JSON only — no prose, no markdown fence — matching exactly:
         "orderIndex": 0
       }
     ]
+  },
+  "golpoSettings": {
+    "engine": "golpo_canvas | golpo_sketch",
+    "canvasStyleVariant": "<required if engine is golpo_canvas, one value from the Canvas list above>",
+    "sketchStyleVariant": "<required if engine is golpo_sketch, one value from the Sketch list above>",
+    "penAnimationStyle": "<optional, Canvas only>",
+    "scenePacing": "normal | fast",
+    "voice": "<one value from the voices list above>",
+    "musicTrack": "<optional, one value from the music list above, omit for narration-only>",
+    "visualInstructions": "<optional but strongly encouraged — what Golpo should actually draw for this script's core claim>",
+    "narrationInstructions": "<optional>"
   }
 }`;
 }
@@ -109,19 +126,28 @@ export function parseGeneratedLesson(raw: string, timing: GolpoTiming): Generate
     throw new HttpsError("internal", "The lesson's quiz came back malformed. Try again.");
   }
 
-  return { refused: false, categoryId, script, questions: quizResult.data.questions };
+  // Golpo settings get the gentlest possible failure mode: a malformed or
+  // missing style pick falls back to DEFAULT_GOLPO_SETTINGS rather than
+  // failing the whole generation — the video still renders, just with the
+  // safe generic look instead of one tailored to this topic.
+  const golpoSettingsResult = GolpoSettingsSchema.safeParse(obj.golpoSettings);
+  const golpoSettings = golpoSettingsResult.success ? golpoSettingsResult.data : DEFAULT_GOLPO_SETTINGS;
+
+  return { refused: false, categoryId, script, questions: quizResult.data.questions, golpoSettings };
 }
 
-export async function runGenerateLesson(
-  topic: string,
-  timing: GolpoTiming,
-  modelClient: ModelClient
-): Promise<GeneratedLesson | RefusedLesson> {
-  const { text: raw } = await modelClient.stream({
+export interface RunGenerateLessonResult {
+  result: GeneratedLesson | RefusedLesson;
+  /** The real token usage for this call — callers bill it against the Anthropic provider budget (providerBudgets.ts), refused or not: a refusal still spends tokens. */
+  usage: CallUsage;
+}
+
+export async function runGenerateLesson(topic: string, timing: GolpoTiming, modelClient: ModelClient): Promise<RunGenerateLessonResult> {
+  const { text: raw, usage } = await modelClient.stream({
     system: buildPrompt(topic, timing),
     messages: [{ role: "user", content: `Write the lesson for: ${topic}` }],
     maxTokens: MAX_OUTPUT_TOKENS,
     onToken: () => {},
   });
-  return parseGeneratedLesson(raw, timing);
+  return { result: parseGeneratedLesson(raw, timing), usage };
 }

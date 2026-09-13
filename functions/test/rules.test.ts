@@ -739,6 +739,34 @@ describe("featureTaps", () => {
   });
 });
 
+// ---- providerBudgets/{provider} -----------------------------------------------
+
+describe("providerBudgets", () => {
+  test("no client can read a provider's tracked budget, not even an admin (negative)", async () => {
+    await seedDoc("providerBudgets/golpo", { toppedUpCentsAllTime: 20000, spentCentsAllTime: 500 });
+    await assertFails(getDoc(doc(admin("a1").firestore(), "providerBudgets/golpo")));
+    await assertFails(getDoc(doc(learner("alice").firestore(), "providerBudgets/golpo")));
+  });
+
+  test("no client can write a provider's tracked budget, including admin (negative)", async () => {
+    await assertFails(setDoc(doc(admin("a1").firestore(), "providerBudgets/golpo"), { toppedUpCentsAllTime: 20000 }));
+  });
+});
+
+// ---- adminAlerts/{alertId} ------------------------------------------------------
+
+describe("adminAlerts", () => {
+  test("no client can read an alert, not even an admin (negative)", async () => {
+    await seedDoc("adminAlerts/a1", { type: "provider_budget_low", provider: "golpo", acknowledged: false });
+    await assertFails(getDoc(doc(admin("a1").firestore(), "adminAlerts/a1")));
+    await assertFails(getDoc(doc(learner("alice").firestore(), "adminAlerts/a1")));
+  });
+
+  test("no client can write an alert, including admin (negative)", async () => {
+    await assertFails(setDoc(doc(admin("a1").firestore(), "adminAlerts/a1"), { acknowledged: true }));
+  });
+});
+
 // ---- catch-all --------------------------------------------------------------
 
 describe("everything else", () => {

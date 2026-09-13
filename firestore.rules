@@ -359,5 +359,23 @@ service cloud.firestore {
     match /featureTaps/{date} {
       allow read, write: if false;
     }
+
+    // ---- providerBudgets/{provider} ---------------------------------------
+    // Shui's own self-tracked GolpoAI/Anthropic spend (providerBudgets.ts) —
+    // neither provider exposes a live balance API, so this is Shui's only
+    // record of it. Read/written only through the admin callables
+    // (adminGetProviderBudgets/adminRecordProviderTopUp) and the spend-
+    // recording path in createOnDemandLesson.ts/tutorGuardrails.ts, all
+    // Admin SDK. Same Function-only posture as adminAnalytics.
+    match /providerBudgets/{provider} {
+      allow read, write: if false;
+    }
+
+    // ---- adminAlerts/{alertId} ---------------------------------------------
+    // Low/exhausted-provider-budget alerts (providerBudgets.ts). Function-
+    // only, same posture as everything else feeding the admin console.
+    match /adminAlerts/{alertId} {
+      allow read, write: if false;
+    }
   }
 }

@@ -227,3 +227,9 @@ export const RecordFeatureTapInputSchema = z.object({
   feature: z.enum(FEATURE_TAP_KEYS),
 });
 export type RecordFeatureTapInput = z.infer<typeof RecordFeatureTapInputSchema>;
+
+export const AdminRecordProviderTopUpInputSchema = z.object({
+  provider: z.enum(["golpo", "anthropic"]),
+  amountCents: z.number().int().positive().max(100_000_00, "a single top-up over $100,000 is almost certainly a data-entry mistake"),
+});
+export type AdminRecordProviderTopUpInput = z.infer<typeof AdminRecordProviderTopUpInputSchema>;

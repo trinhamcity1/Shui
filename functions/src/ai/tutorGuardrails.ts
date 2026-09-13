@@ -4,6 +4,7 @@ import { walletRef, readWallet } from "../lib/credits";
 import { tierOf } from "../lib/tiers";
 import { AiModel, callCostNanodollars, CallUsage, centsToNanodollars, nanodollarsToCents } from "./pricing";
 import { TierConfig } from "../lib/tiers";
+import { recordProviderSpend } from "../lib/providerBudgets";
 
 const CYCLE_DAYS = 30;
 
@@ -96,4 +97,9 @@ export async function recordAiUsage(uid: string, model: AiModel, usage: CallUsag
     { aiSpentNanodollarsThisCycle: FieldValue.increment(costNanodollars), updatedAt: FieldValue.serverTimestamp() },
     { merge: true }
   );
+  // Also priced against Shui's own platform-wide Anthropic budget
+  // (providerBudgets.ts) — this is the AI tutor's share of it; lesson
+  // generation records its own share directly in createOnDemandLesson.ts.
+  // Never throws: a budget-tracking failure must never break a tutor reply.
+  await recordProviderSpend("anthropic", nanodollarsToCents(costNanodollars)).catch(() => {});
 }

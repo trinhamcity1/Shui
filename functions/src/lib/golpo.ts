@@ -1,5 +1,6 @@
 import { defineSecret, defineString } from "firebase-functions/params";
 import { GolpoTiming } from "./tiers";
+import { GolpoSettings } from "./golpoCapabilities";
 
 /**
  * GolpoAI (video.golpoai.com/api-docs) — the render backend, per
@@ -22,6 +23,7 @@ export function scriptCharBudget(timing: GolpoTiming): number {
 export interface GolpoGenerateRequest {
   customScript: string;
   timing: GolpoTiming;
+  settings: GolpoSettings;
 }
 
 export interface GolpoGenerateResult {
@@ -48,6 +50,7 @@ export interface GolpoClient {
 
 export class GolpoRestClient implements GolpoClient {
   async generate(req: GolpoGenerateRequest): Promise<GolpoGenerateResult> {
+    const { settings } = req;
     const res = await fetch(`${golpoApiBaseUrl.value()}/videos/generate`, {
       method: "POST",
       headers: { "x-api-key": golpoApiKey.value(), "content-type": "application/json" },
@@ -55,6 +58,15 @@ export class GolpoRestClient implements GolpoClient {
         custom_script: req.customScript,
         timing: req.timing,
         video_orientation: "vertical",
+        golpo_video_engine: settings.engine,
+        canvas_style_variant: settings.canvasStyleVariant,
+        sketch_style_variant: settings.sketchStyleVariant,
+        pen_animation_style: settings.penAnimationStyle,
+        scene_pacing: settings.scenePacing,
+        narration_voice: settings.voice,
+        background_track: settings.musicTrack,
+        visual_instructions: settings.visualInstructions,
+        narration_instructions: settings.narrationInstructions,
       }),
     });
     if (!res.ok) {

@@ -2,6 +2,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 import { parseGeneratedLesson, runGenerateLesson } from "./generateLesson";
 import { FakeModelClient } from "./modelClient";
 import { scriptCharBudget } from "../lib/golpo";
+import { DEFAULT_GOLPO_SETTINGS } from "../lib/golpoCapabilities";
 
 const VALID_RESPONSE = JSON.stringify({
   refused: false,
@@ -72,9 +73,24 @@ describe("parseGeneratedLesson", () => {
 });
 
 describe("runGenerateLesson", () => {
-  test("wires a scripted model response through end to end", async () => {
+  test("wires a scripted model response through end to end, and reports real token usage", async () => {
     const fake = new FakeModelClient(VALID_RESPONSE);
-    const result = await runGenerateLesson("photosynthesis", "1", fake);
+    const { result, usage } = await runGenerateLesson("photosynthesis", "1", fake);
     expect(result.refused).toBe(false);
+    if (!result.refused) {
+      expect(result.golpoSettings.engine).toMatch(/^golpo_(canvas|sketch)$/);
+    }
+    expect(usage.inputTokens).toBeGreaterThan(0);
+    expect(usage.outputTokens).toBeGreaterThan(0);
+  });
+
+  test("falls back to DEFAULT_GOLPO_SETTINGS when the model omits golpoSettings", async () => {
+    const withoutSettings = JSON.stringify({ ...JSON.parse(VALID_RESPONSE) });
+    const fake = new FakeModelClient(withoutSettings);
+    const { result } = await runGenerateLesson("photosynthesis", "1", fake);
+    expect(result.refused).toBe(false);
+    if (!result.refused) {
+      expect(result.golpoSettings).toEqual(DEFAULT_GOLPO_SETTINGS);
+    }
   });
 });

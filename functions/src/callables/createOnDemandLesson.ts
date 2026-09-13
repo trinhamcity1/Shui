@@ -6,13 +6,18 @@ import { requireNotGuest } from "../lib/auth";
 import { parseInput } from "../lib/validate";
 import { CreateOnDemandLessonInputSchema } from "../schemas/callableInputs";
 import { debitForLesson, refundLesson } from "../lib/credits";
-import { tierOf } from "../lib/tiers";
+import { GOLPO_CENTS_PER_MINUTE, tierOf } from "../lib/tiers";
 import { lookupLessonCache, recordLessonCacheHit } from "../lib/lessonCache";
 import { runGenerateLesson } from "../ai/generateLesson";
 import { splitQuizForStorage, QuizInputSchema } from "../schemas/quiz";
-import { AnthropicModelClient, ModelClient, AI_SECRETS } from "../ai/modelClient";
+import { AnthropicModelClient, ModelClient, AI_SECRETS, aiModel } from "../ai/modelClient";
+import { AiModel, callCostNanodollars, nanodollarsToCents } from "../ai/pricing";
 import { GolpoClient, GolpoRestClient, GOLPO_SECRETS } from "../lib/golpo";
 import { baseOnDemandVideoShape, ensurePersonalTopic, truncateTitle } from "../lib/onDemandVideo";
+import { checkProvidersAvailable, recordProviderSpend } from "../lib/providerBudgets";
+
+/** Shown to the learner when Shui's own Golpo/Anthropic account is genuinely out of tracked credit — a distinct HttpsError code ("unavailable") so the app can show a dedicated "tools offline" screen instead of the generic failed-with-retry UI. */
+export const PROVIDERS_UNAVAILABLE_MESSAGE = "Lesson creation is temporarily offline for maintenance. Please check back soon.";
 
 export interface CreateOnDemandLessonResult {
   videoId: string;
@@ -45,6 +50,15 @@ export async function runCreateOnDemandLesson(
   // Social-eligible.
   originatedFromApi = false
 ): Promise<CreateOnDemandLessonResult> {
+  // The circuit breaker — checked before anything is debited or spent, so a
+  // learner is never charged for a lesson Shui's own account can't actually
+  // afford to render. See providerBudgets.ts's own doc comment for why this
+  // is a blunt exhausted/not-exhausted check, not a per-request estimate.
+  const availability = await checkProvidersAvailable();
+  if (!availability.available) {
+    throw new HttpsError("unavailable", PROVIDERS_UNAVAILABLE_MESSAGE);
+  }
+
   const topicId = await ensurePersonalTopic(uid);
 
   // Cache hit: skip Claude and GolpoAI entirely (phase-07 §5). The debit
@@ -90,14 +104,23 @@ export async function runCreateOnDemandLesson(
     // Cached source no longer exists/was deleted — fall through to a real generation.
   }
 
-  const generated = await runGenerateLesson(topic, debit.timing, deps.modelClient);
+  const { result: generated, usage } = await runGenerateLesson(topic, debit.timing, deps.modelClient);
+  // Priced against Shui's own tracked Anthropic budget regardless of outcome
+  // — a refusal still spends real tokens. Never blocks or throws on its
+  // own; a budget-tracking failure must never take down lesson generation.
+  await recordProviderSpend("anthropic", nanodollarsToCents(callCostNanodollars(aiModel.value() as AiModel, usage))).catch(() => {});
+
   if (generated.refused) {
     await refundLesson(uid, debit.debitedCents, null);
     throw new HttpsError("invalid-argument", generated.reason);
   }
 
   const videoId = randomUUID();
-  const golpo = await deps.golpoClient.generate({ customScript: generated.script, timing: debit.timing });
+  const golpo = await deps.golpoClient.generate({ customScript: generated.script, timing: debit.timing, settings: generated.golpoSettings });
+  // Golpo's API-only tier bills per generate call at the requested timing,
+  // regardless of how the render turns out — so the real cost is recorded
+  // here, at call time, not deferred to checkOnDemandLessonStatus.ts.
+  await recordProviderSpend("golpo", GOLPO_CENTS_PER_MINUTE * parseFloat(debit.timing)).catch(() => {});
 
   await db
     .collection("videos")
@@ -121,6 +144,7 @@ export async function runCreateOnDemandLesson(
       costChargedCents: debit.debitedCents,
       hasQuiz: true,
       golpoJobId: golpo.jobId,
+      golpoSettings: generated.golpoSettings,
     });
 
   // Written now, not when the render finishes — the quiz is a pure function
