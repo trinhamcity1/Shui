@@ -56,7 +56,14 @@ final class BillingViewModel: ObservableObject {
         transactionListener?.cancel()
     }
 
-    private func observeWallet() {
+    /// A fresh anonymous sign-in's ID token can take a moment to propagate
+    /// to the Firestore SDK — a listener attached in that exact window gets
+    /// one permission-denied error even though the rules would otherwise
+    /// allow it (this is the owner's own wallet). Firestore doesn't retry a
+    /// permission error on its own the way it retries a network one, so a
+    /// bounded retry here is what actually recovers from that race instead
+    /// of leaving the balance blank for the rest of the session.
+    private func observeWallet(attempt: Int = 0) {
         walletTask?.cancel()
         walletTask = Task { [weak self] in
             guard let self else { return }
@@ -65,9 +72,10 @@ final class BillingViewModel: ObservableObject {
                     self.wallet = value
                 }
             } catch {
-                // Leave the last known wallet value on screen rather than
-                // clearing it out from under the learner over a transient
-                // listener error.
+                guard !Task.isCancelled, attempt < 3 else { return }
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                guard !Task.isCancelled else { return }
+                self.observeWallet(attempt: attempt + 1)
             }
         }
     }

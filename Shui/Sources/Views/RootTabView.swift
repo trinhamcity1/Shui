@@ -33,11 +33,6 @@ struct RootTabView: View {
             ProfileView(environment: environment)
                 .tabItem { Label(Strings.profileTab, systemImage: "person.crop.circle.fill") }
                 .tag(RootTab.profile)
-            #if DEBUG
-            DebugUploadPipelineView()
-                .tabItem { Label("Debug", systemImage: "ladybug.fill") }
-                .tag(RootTab.debug)
-            #endif
         }
         .tint(theme.accent)
         .onChange(of: appState.rootTab) { _, newValue in

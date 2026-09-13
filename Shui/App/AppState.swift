@@ -34,11 +34,8 @@ enum RootTab: Hashable {
     // (FeedComposerTests) but are no longer wired to any tab as of this
     // change — where curated/spaced-repetition review surfaces next is an
     // open product question, not resolved by this rename.
-    case social, explore, profile, debug
+    case social, explore, profile
 
-    /// Social, Explore, and Profile only — the swipe-navigation ring never
-    /// includes the debug tab, which stays reachable by tapping its own
-    /// tab bar icon like it always has.
     private static let ring: [RootTab] = [.social, .explore, .profile]
 
     /// `nil` at the last tab in the ring — swiping forward past Profile

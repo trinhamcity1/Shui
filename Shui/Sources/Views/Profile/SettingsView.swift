@@ -15,7 +15,7 @@ struct SettingsView: View {
                     NavigationLink("Account") {
                         AccountView(environment: environment, isPresented: $isPresented)
                     }
-                    comingSoonRow("Notifications", phase: 6)
+                    comingSoonRow("Notifications")
                 }
                 Section {
                     NavigationLink("Balance & plan") {
@@ -31,8 +31,12 @@ struct SettingsView: View {
                     NavigationLink("About") {
                         AboutView()
                     }
-                    comingSoonRow("Privacy Policy", phase: nil)
-                    comingSoonRow("Terms of Service", phase: nil)
+                    if let url = URL(string: "https://shuillc.com/privacy.html") {
+                        Link("Privacy Policy", destination: url)
+                    }
+                    if let url = URL(string: "https://shuillc.com/terms.html") {
+                        Link("Terms of Service", destination: url)
+                    }
                 }
                 // Gated on the ID token's claim, not `currentUser.role` (a
                 // Firestore display mirror) — and refreshed on foreground,
@@ -55,11 +59,11 @@ struct SettingsView: View {
         }
     }
 
-    private func comingSoonRow(_ title: String, phase: Int?) -> some View {
+    private func comingSoonRow(_ title: String) -> some View {
         HStack {
             Text(title).foregroundStyle(theme.textTertiary)
             Spacer()
-            Text(phase.map { "Phase \($0)" } ?? "Coming soon")
+            Text("Coming soon")
                 .font(.caption)
                 .foregroundStyle(theme.textTertiary)
         }
