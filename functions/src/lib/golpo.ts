@@ -21,6 +21,15 @@ export function scriptCharBudget(timing: GolpoTiming): number {
 }
 
 export interface GolpoGenerateRequest {
+  /**
+   * The real v2 endpoint docs (video.golpoai.com/api-docs/endpoints/v2,
+   * verified 2026-10) mark `prompt` as required even in Script Mode —
+   * `custom_script` alone isn't enough to pass validation. The learner's raw
+   * topic string is the natural value: it's already "the main prompt/topic"
+   * in Golpo's own words, and Golpo only reads it as a fallback label since
+   * `custom_script` is what actually drives the render.
+   */
+  topic: string;
   customScript: string;
   timing: GolpoTiming;
   settings: GolpoSettings;
@@ -55,6 +64,7 @@ export class GolpoRestClient implements GolpoClient {
       method: "POST",
       headers: { "x-api-key": golpoApiKey.value(), "content-type": "application/json" },
       body: JSON.stringify({
+        prompt: req.topic,
         custom_script: req.customScript,
         timing: req.timing,
         video_orientation: "vertical",

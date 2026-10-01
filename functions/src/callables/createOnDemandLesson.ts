@@ -116,7 +116,7 @@ export async function runCreateOnDemandLesson(
   }
 
   const videoId = randomUUID();
-  const golpo = await deps.golpoClient.generate({ customScript: generated.script, timing: debit.timing, settings: generated.golpoSettings });
+  const golpo = await deps.golpoClient.generate({ topic, customScript: generated.script, timing: debit.timing, settings: generated.golpoSettings });
   // Golpo's API-only tier bills per generate call at the requested timing,
   // regardless of how the render turns out — so the real cost is recorded
   // here, at call time, not deferred to checkOnDemandLessonStatus.ts.
