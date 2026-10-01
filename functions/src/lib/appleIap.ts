@@ -44,11 +44,29 @@ export function loadRootCertificates(): Buffer[] {
     .map((f) => fs.readFileSync(path.join(CERT_DIR, f)));
 }
 
+/**
+ * "Xcode" lets `APPLE_ENVIRONMENT` be pointed at local StoreKit Testing
+ * (Simulator, `Shui/Shui.storekit`, no App Store Connect products or sandbox
+ * tester account needed) — Apple signs those transactions with `environment:
+ * "Xcode"` in the JWS payload, and `SignedDataVerifier` rejects a transaction
+ * whose environment doesn't exactly match how it was constructed (see
+ * `jws_verification.js`'s `decodedJWT.environment !== this.environment`
+ * check). Without this, every local-StoreKit-Testing purchase would fail
+ * verification even though the on-device purchase itself succeeded. Never
+ * set this in a deployed/production project — it's for a developer's own
+ * `.secrets.local.env`-style local override while testing against Simulator.
+ */
+export function resolveAppleEnvironment(value: string): Environment {
+  if (value === "Production") return Environment.PRODUCTION;
+  if (value === "Xcode") return Environment.XCODE;
+  return Environment.SANDBOX;
+}
+
 let cachedVerifier: SignedDataVerifier | null = null;
 
 export function getSignedDataVerifier(): SignedDataVerifier {
   if (!cachedVerifier) {
-    const env = appleEnvironment.value() === "Production" ? Environment.PRODUCTION : Environment.SANDBOX;
+    const env = resolveAppleEnvironment(appleEnvironment.value());
     const appAppleId = env === Environment.PRODUCTION ? Number(appleAppId.value()) : undefined;
     cachedVerifier = new SignedDataVerifier(loadRootCertificates(), true, env, appleBundleId.value(), appAppleId);
   }

@@ -1,7 +1,9 @@
 import { X509Certificate } from "crypto";
+import { Environment } from "@apple/app-store-server-library";
 import {
   actionForProductId,
   loadRootCertificates,
+  resolveAppleEnvironment,
   SUBSCRIPTION_PRODUCT_IDS,
   TOPUP_AMOUNT_CENTS,
   TOPUP_PRODUCT_ID,
@@ -23,6 +25,22 @@ describe("actionForProductId", () => {
 
   test("an unknown product id maps to nothing, not a guess", () => {
     expect(actionForProductId("com.shui.app.something.unrecognized")).toBeNull();
+  });
+});
+
+describe("resolveAppleEnvironment", () => {
+  test("Production maps to the Production environment", () => {
+    expect(resolveAppleEnvironment("Production")).toBe(Environment.PRODUCTION);
+  });
+
+  test("Xcode maps to the Xcode environment, for local StoreKit Testing", () => {
+    expect(resolveAppleEnvironment("Xcode")).toBe(Environment.XCODE);
+  });
+
+  test("anything else, including the real default, falls back to Sandbox", () => {
+    expect(resolveAppleEnvironment("Sandbox")).toBe(Environment.SANDBOX);
+    expect(resolveAppleEnvironment("")).toBe(Environment.SANDBOX);
+    expect(resolveAppleEnvironment("garbage")).toBe(Environment.SANDBOX);
   });
 });
 
