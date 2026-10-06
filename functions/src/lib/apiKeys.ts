@@ -91,6 +91,25 @@ export async function revokeApiKeyForUser(uid: string, keyId: string): Promise<v
   await ref.set({ revoked: true }, { merge: true });
 }
 
+/**
+ * Replaces a key's secret in place — same `keyId`, same `label`, same
+ * `createdAt`/`lastUsedAt`/`requestCount` history, only `keyHash` changes.
+ * The old raw key stops working the instant this returns (its hash no
+ * longer matches anything `resolveApiKey` can look up). Also clears
+ * `revoked`, so rotating a revoked key is a valid way to bring it back with
+ * a fresh secret instead of requiring a separate un-revoke step.
+ */
+export async function rotateApiKeyForUser(uid: string, keyId: string): Promise<{ rawKey: string }> {
+  const ref = apiKeysCollection().doc(keyId);
+  const snap = await ref.get();
+  if (!snap.exists || (snap.data() as ApiKeyDoc).uid !== uid) {
+    throw new HttpsError("not-found", "API key not found.");
+  }
+  const rawKey = generateRawApiKey();
+  await ref.set({ keyHash: hashApiKey(rawKey), revoked: false }, { merge: true });
+  return { rawKey };
+}
+
 /** Read-only lookup for the `lessonsApi` request handler — never touches usage/rate-limit bookkeeping. */
 export async function resolveApiKey(rawKey: string): Promise<{ uid: string; keyId: string } | null> {
   const snap = await apiKeysCollection().where("keyHash", "==", hashApiKey(rawKey)).limit(1).get();

@@ -28,6 +28,7 @@ export { verifyAndApplyPurchase } from "./callables/verifyAndApplyPurchase";
 export { appStoreServerNotifications } from "./webhooks/appStoreServerNotifications";
 export { createApiKey } from "./callables/createApiKey";
 export { revokeApiKey } from "./callables/revokeApiKey";
+export { rotateApiKey } from "./callables/rotateApiKey";
 export { listApiKeys } from "./callables/listApiKeys";
 export { lessonsApi } from "./api/lessonsApi";
 export { adminGetUsageStats } from "./callables/adminGetUsageStats";

@@ -8,6 +8,10 @@ protocol ApiKeyRepository {
     func createKey(label: String) async throws -> (keyId: String, rawKey: String)
     func listKeys() async throws -> [ApiKeyInfo]
     func revokeKey(keyId: String) async throws
+    /// Replaces the key's secret in place — same `keyId`/label/usage
+    /// history, old secret stops working immediately. Returns the new raw
+    /// key, shown exactly once just like `createKey`.
+    func rotateKey(keyId: String) async throws -> String
 }
 
 struct FirestoreApiKeyRepository: ApiKeyRepository {
@@ -51,6 +55,14 @@ struct FirestoreApiKeyRepository: ApiKeyRepository {
         _ = try await functions.httpsCallable("revokeApiKey").call(["keyId": keyId])
     }
 
+    func rotateKey(keyId: String) async throws -> String {
+        let result = try await functions.httpsCallable("rotateApiKey").call(["keyId": keyId])
+        guard let data = result.data as? [String: Any], let rawKey = data["rawKey"] as? String else {
+            throw RepositoryError.malformedResponse
+        }
+        return rawKey
+    }
+
     private static let iso8601WithFractionalSeconds: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions.insert(.withFractionalSeconds)
@@ -82,5 +94,13 @@ final class InMemoryApiKeyRepository: ApiKeyRepository {
     func revokeKey(keyId: String) async throws {
         guard let index = keys.firstIndex(where: { $0.keyId == keyId }) else { return }
         keys[index].revoked = true
+    }
+
+    func rotateKey(keyId: String) async throws -> String {
+        guard let index = keys.firstIndex(where: { $0.keyId == keyId }) else {
+            throw RepositoryError.malformedResponse
+        }
+        keys[index].revoked = false
+        return "shui_live_preview_\(UUID().uuidString.prefix(8))"
     }
 }

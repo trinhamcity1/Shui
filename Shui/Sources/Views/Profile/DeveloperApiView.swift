@@ -53,6 +53,19 @@ final class DeveloperApiViewModel: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
+
+    /// Reuses the same "copy it now" alert `createKey()` triggers — a
+    /// rotated key is just as unrecoverable-after-this-moment as a newly
+    /// created one.
+    func rotate(_ key: ApiKeyInfo) async {
+        do {
+            let rawKey = try await environment.apiKeys.rotateKey(keyId: key.keyId)
+            justCreatedRawKey = rawKey
+            await load()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 }
 
 /// phase-07 §8 — self-serve key management, no tier gate. Documentation for
@@ -99,7 +112,7 @@ struct DeveloperApiView: View {
         }
         .refreshable { await viewModel.load() }
         .alert(
-            "New key created",
+            "Your key",
             isPresented: Binding(get: { viewModel.justCreatedRawKey != nil }, set: { if !$0 { viewModel.dismissRawKey() } })
         ) {
             Button("Copy") {
@@ -142,6 +155,8 @@ struct DeveloperApiView: View {
         .swipeActions(edge: .trailing) {
             if !key.revoked {
                 Button("Revoke", role: .destructive) { Task { await viewModel.revoke(key) } }
+                Button("Rotate") { Task { await viewModel.rotate(key) } }
+                    .tint(theme.accent)
             }
         }
     }
