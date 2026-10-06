@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "seed:civics": "ts-node seed_civics.ts",
-    "bootstrap-admin": "ts-node bootstrap-admin.ts"
+    "bootstrap-admin": "ts-node bootstrap-admin.ts",
+    "set-tier": "ts-node set-tier.ts"
   },
   "dependencies": {
     "firebase-admin": "^12.6.0"
