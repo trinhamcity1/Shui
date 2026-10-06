@@ -110,7 +110,10 @@ final class BillingViewModel: ObservableObject {
     }
 
     func purchase(_ product: Product) async {
-        guard let wallet else { return }
+        guard let wallet else {
+            errorMessage = "Still loading your account — try again in a moment."
+            return
+        }
         guard let token = UUID(uuidString: wallet.appAccountToken) else {
             errorMessage = BillingScreenError.invalidAccountToken.localizedDescription
             return
@@ -245,9 +248,14 @@ struct BillingView: View {
         .padding(.horizontal, 20)
     }
 
+    /// phase-07 §4's own tier table marks "Min deposit / top-up" as "—" for
+    /// Free — top-up is a paid-tier mechanic (it tops up a credit balance
+    /// that spends down a subscription's Siltstone/Obsidian/etc. `timing`
+    /// rules), not something a Free account, which gets exactly one free
+    /// lesson and no ongoing balance, has a use for.
     @ViewBuilder
     private var topUpSection: some View {
-        if let topUpProduct = viewModel.product(for: TierInfo.topUpProductId) {
+        if viewModel.wallet?.tier != .free, let topUpProduct = viewModel.product(for: TierInfo.topUpProductId) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Top up").font(.title3.bold()).foregroundStyle(theme.textPrimary).padding(.horizontal, 20)
                 Button {
