@@ -10,11 +10,10 @@ import { tierOf } from "../lib/tiers";
 import { lookupLessonCache, recordLessonCacheHit } from "../lib/lessonCache";
 import { runGenerateLesson } from "../ai/generateLesson";
 import { splitQuizForStorage, QuizInputSchema } from "../schemas/quiz";
-import { AnthropicModelClient, ModelClient, AI_SECRETS, aiModel } from "../ai/modelClient";
-import { AiModel, callCostNanodollars, nanodollarsToCents } from "../ai/pricing";
+import { AnthropicModelClient, ModelClient, AI_SECRETS } from "../ai/modelClient";
 import { GolpoClient, GolpoRestClient, GOLPO_SECRETS } from "../lib/golpo";
 import { baseOnDemandVideoShape, ensurePersonalTopic, truncateTitle } from "../lib/onDemandVideo";
-import { ALERT_SECRETS, checkProvidersAvailable, recordProviderSpend } from "../lib/providerBudgets";
+import { ALERT_SECRETS, checkProvidersAvailable } from "../lib/providerBudgets";
 
 /** Shown to the learner when Shui's own Golpo/Anthropic account is genuinely out of tracked credit — a distinct HttpsError code ("unavailable") so the app can show a dedicated "tools offline" screen instead of the generic failed-with-retry UI. */
 export const PROVIDERS_UNAVAILABLE_MESSAGE = "Lesson creation is temporarily offline for maintenance. Please check back soon.";
@@ -104,11 +103,7 @@ export async function runCreateOnDemandLesson(
     // Cached source no longer exists/was deleted — fall through to a real generation.
   }
 
-  const { result: generated, usage } = await runGenerateLesson(topic, debit.timing, deps.modelClient);
-  // Priced against Shui's own tracked Anthropic budget regardless of outcome
-  // — a refusal still spends real tokens. Never blocks or throws on its
-  // own; a budget-tracking failure must never take down lesson generation.
-  await recordProviderSpend("anthropic", nanodollarsToCents(callCostNanodollars(aiModel.value() as AiModel, usage))).catch(() => {});
+  const { result: generated } = await runGenerateLesson(topic, debit.timing, deps.modelClient);
 
   if (generated.refused) {
     await refundLesson(uid, debit.debitedCents, null);

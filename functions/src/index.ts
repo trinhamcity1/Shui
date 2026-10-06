@@ -33,7 +33,7 @@ export { listApiKeys } from "./callables/listApiKeys";
 export { lessonsApi } from "./api/lessonsApi";
 export { adminGetUsageStats } from "./callables/adminGetUsageStats";
 export { recordFeatureTap } from "./callables/recordFeatureTap";
-export { adminGetProviderBudgets, adminRecordProviderTopUp, adminAcknowledgeAlert } from "./callables/adminProviderBudgets";
+export { adminGetProviderBudgets, adminAcknowledgeAlert } from "./callables/adminProviderBudgets";
 
 export { onCommentWritten } from "./triggers/onCommentWritten";
 export { onTopicWritten } from "./triggers/onTopicWritten";

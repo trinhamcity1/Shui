@@ -52,26 +52,23 @@ struct DailyUsageStatsPage {
     var history: [DailyUsageStats]
 }
 
-/// GolpoAI's balance is read live from their own `/users/credits` API
-/// (cached a few minutes server-side) — `isLive` is true for it. Anthropic
-/// has no equivalent endpoint, so it's still self-tracked: an admin records
-/// a top-up after topping up on Anthropic's own console, and every real
-/// spend is recorded as it happens. See `functions/src/lib/providerBudgets.ts`.
+/// GolpoAI's balance, read live from their own `/users/credits` API and
+/// cached a few minutes server-side — purely informational, nothing to
+/// maintain here. Anthropic spend isn't tracked in-app at all: their own
+/// account-level spending limit and email alerts (set directly in their
+/// console) are the safety net for that provider instead. See
+/// `functions/src/lib/providerBudgets.ts`.
 struct ProviderBudgetInfo: Codable, Identifiable, Hashable {
     var provider: String
-    var toppedUpCentsAllTime: Int
-    var spentCentsAllTime: Int
     var lowBalanceThresholdCents: Int
     var alertActive: Bool
     var remainingCents: Int
     var updatedAt: Date?
-    var isLive: Bool
     var id: String { provider }
 
     var displayName: String {
         switch provider {
         case "golpo": return "GolpoAI"
-        case "anthropic": return "Anthropic"
         default: return provider.capitalized
         }
     }
@@ -112,7 +109,6 @@ protocol AdminRepository {
     ) async throws -> String
     func usageStats() async throws -> DailyUsageStatsPage
     func providerBudgets() async throws -> ProviderBudgetsPage
-    func recordProviderTopUp(provider: String, amountCents: Int) async throws
     func acknowledgeAlert(alertId: String) async throws
 }
 
@@ -235,10 +231,6 @@ struct FirebaseAdminRepository: AdminRepository {
         return ProviderBudgetsPage(budgets: response.budgets, openAlerts: response.openAlerts)
     }
 
-    func recordProviderTopUp(provider: String, amountCents: Int) async throws {
-        _ = try await functions.httpsCallable("adminRecordProviderTopUp").call(["provider": provider, "amountCents": amountCents])
-    }
-
     func acknowledgeAlert(alertId: String) async throws {
         _ = try await functions.httpsCallable("adminAcknowledgeAlert").call(["alertId": alertId])
     }
@@ -349,20 +341,13 @@ final class InMemoryAdminRepository: AdminRepository {
 
     var providerBudgetsPage = ProviderBudgetsPage(
         budgets: [
-            ProviderBudgetInfo(provider: "golpo", toppedUpCentsAllTime: 0, spentCentsAllTime: 0, lowBalanceThresholdCents: 5000, alertActive: false, remainingCents: 18600, updatedAt: Date(), isLive: true),
-            ProviderBudgetInfo(provider: "anthropic", toppedUpCentsAllTime: 10000, spentCentsAllTime: 2200, lowBalanceThresholdCents: 5000, alertActive: false, remainingCents: 7800, updatedAt: Date(), isLive: false),
+            ProviderBudgetInfo(provider: "golpo", lowBalanceThresholdCents: 5000, alertActive: false, remainingCents: 18600, updatedAt: Date()),
         ],
         openAlerts: []
     )
 
     func providerBudgets() async throws -> ProviderBudgetsPage {
         providerBudgetsPage
-    }
-
-    func recordProviderTopUp(provider: String, amountCents: Int) async throws {
-        guard let index = providerBudgetsPage.budgets.firstIndex(where: { $0.provider == provider }) else { return }
-        providerBudgetsPage.budgets[index].toppedUpCentsAllTime += amountCents
-        providerBudgetsPage.budgets[index].remainingCents += amountCents
     }
 
     func acknowledgeAlert(alertId: String) async throws {
