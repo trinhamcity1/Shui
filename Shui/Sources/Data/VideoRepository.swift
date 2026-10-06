@@ -190,8 +190,19 @@ struct FirestoreVideoRepository: VideoRepository {
 
     func myLessons() async throws -> [Video] {
         guard let uid = auth.currentUser?.uid else { return [] }
+        // `createdBy == uid` is redundant with the `topicId` scoping from a
+        // data-modeling standpoint (every video under personal-{uid} already
+        // belongs to that uid), but Firestore's security rules can't infer
+        // that invariant from the query shape alone: `videos/{videoId}`'s
+        // `allow read` rule needs either `videoIsPublic` (these lessons
+        // start private, so that never holds) or `isVideoOwnerOrAdmin`,
+        // which checks `createdBy`. Without this filter in the query itself,
+        // Firestore can't prove every possible match satisfies the rule and
+        // denies the whole listen with "Missing or insufficient permissions"
+        // — exactly the failure seen in a real device log, not a hypothetical.
         let snapshot = try await db.collection("videos")
             .whereField("topicId", isEqualTo: Topic.personalTopicId(uid: uid))
+            .whereField("createdBy", isEqualTo: uid)
             .whereField("isDeleted", isEqualTo: false)
             .order(by: "createdAt", descending: true)
             .getDocuments()
@@ -199,11 +210,19 @@ struct FirestoreVideoRepository: VideoRepository {
     }
 
     /// The shared prefix every Social query starts from — visibility,
-    /// on-demand-only, never API-originated (phase-07 §6).
+    /// on-demand-only, never API-originated (phase-07 §6). Includes
+    /// `status == ready` even though a shared on-demand lesson is only ever
+    /// made public once it's ready (`shareLessonToSocial.ts` enforces that
+    /// server-side) — the same reasoning as `myLessons()` above: Firestore's
+    /// rule engine checks the query's own filters against `videoIsPublic`,
+    /// which requires `status == 'ready'`, not the server-side invariant
+    /// that happens to make status mismatches impossible in practice.
+    /// Without this filter, the whole Social feed listen is denied.
     private var socialBaseQuery: Query {
         db.collection("videos")
             .whereField("visibility", isEqualTo: Video.Visibility.public.rawValue)
             .whereField("topicVisibility", isEqualTo: Video.Visibility.public.rawValue)
+            .whereField("status", isEqualTo: Video.Status.ready.rawValue)
             .whereField("isDeleted", isEqualTo: false)
             .whereField("generationSource", isEqualTo: "on_demand")
             .whereField("originatedFromApi", isEqualTo: false)
