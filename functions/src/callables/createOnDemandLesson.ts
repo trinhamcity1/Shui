@@ -6,7 +6,7 @@ import { requireNotGuest } from "../lib/auth";
 import { parseInput } from "../lib/validate";
 import { CreateOnDemandLessonInputSchema } from "../schemas/callableInputs";
 import { debitForLesson, refundLesson } from "../lib/credits";
-import { GOLPO_CENTS_PER_MINUTE, tierOf } from "../lib/tiers";
+import { tierOf } from "../lib/tiers";
 import { lookupLessonCache, recordLessonCacheHit } from "../lib/lessonCache";
 import { runGenerateLesson } from "../ai/generateLesson";
 import { splitQuizForStorage, QuizInputSchema } from "../schemas/quiz";
@@ -117,10 +117,10 @@ export async function runCreateOnDemandLesson(
 
   const videoId = randomUUID();
   const golpo = await deps.golpoClient.generate({ topic, customScript: generated.script, timing: debit.timing, settings: generated.golpoSettings });
-  // Golpo's API-only tier bills per generate call at the requested timing,
-  // regardless of how the render turns out — so the real cost is recorded
-  // here, at call time, not deferred to checkOnDemandLessonStatus.ts.
-  await recordProviderSpend("golpo", GOLPO_CENTS_PER_MINUTE * parseFloat(debit.timing)).catch(() => {});
+  // No self-tracked spend recording for Golpo anymore — GolpoAI's own
+  // /users/credits balance already reflects this the instant their API
+  // applies it (providerBudgets.ts's getGolpoRemainingCentsLive reads it
+  // live, cached), so a second, separately-tracked figure would only drift.
 
   await db
     .collection("videos")

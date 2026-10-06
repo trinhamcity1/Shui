@@ -114,6 +114,24 @@ export class GolpoRestClient implements GolpoClient {
   }
 }
 
+/**
+ * `GET /users/credits` (video.golpoai.com/api-docs/endpoints/v2, verified
+ * 2026-10) — the real remaining-balance endpoint, confirmed to exist after
+ * all, which `providerBudgets.ts` now reads instead of an admin-maintained
+ * ledger. Response shape: `{ "plan": "api_only", "credits": 124.5, "status":
+ * "active" }` — `credits` is whole/fractional dollars, not cents.
+ */
+export async function fetchGolpoCreditsCents(): Promise<number> {
+  const res = await fetch(`${golpoApiBaseUrl.value()}/users/credits`, {
+    headers: { "x-api-key": golpoApiKey.value() },
+  });
+  if (!res.ok) {
+    throw new Error(`GolpoAI credits check failed: ${res.status} ${await res.text()}`);
+  }
+  const data = (await res.json()) as { credits: number };
+  return Math.round(data.credits * 100);
+}
+
 /** Scripted responses for tests — never calls the real API. */
 export class FakeGolpoClient implements GolpoClient {
   private statusQueue: GolpoStatus[];

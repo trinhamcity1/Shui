@@ -52,9 +52,11 @@ struct DailyUsageStatsPage {
     var history: [DailyUsageStats]
 }
 
-/// Shui's own self-tracked GolpoAI/Anthropic spend (see
-/// `functions/src/lib/providerBudgets.ts` for why this is self-tracked
-/// rather than read live from either provider).
+/// GolpoAI's balance is read live from their own `/users/credits` API
+/// (cached a few minutes server-side) — `isLive` is true for it. Anthropic
+/// has no equivalent endpoint, so it's still self-tracked: an admin records
+/// a top-up after topping up on Anthropic's own console, and every real
+/// spend is recorded as it happens. See `functions/src/lib/providerBudgets.ts`.
 struct ProviderBudgetInfo: Codable, Identifiable, Hashable {
     var provider: String
     var toppedUpCentsAllTime: Int
@@ -63,6 +65,7 @@ struct ProviderBudgetInfo: Codable, Identifiable, Hashable {
     var alertActive: Bool
     var remainingCents: Int
     var updatedAt: Date?
+    var isLive: Bool
     var id: String { provider }
 
     var displayName: String {
@@ -346,8 +349,8 @@ final class InMemoryAdminRepository: AdminRepository {
 
     var providerBudgetsPage = ProviderBudgetsPage(
         budgets: [
-            ProviderBudgetInfo(provider: "golpo", toppedUpCentsAllTime: 20000, spentCentsAllTime: 1400, lowBalanceThresholdCents: 5000, alertActive: false, remainingCents: 18600, updatedAt: Date()),
-            ProviderBudgetInfo(provider: "anthropic", toppedUpCentsAllTime: 10000, spentCentsAllTime: 2200, lowBalanceThresholdCents: 5000, alertActive: false, remainingCents: 7800, updatedAt: Date()),
+            ProviderBudgetInfo(provider: "golpo", toppedUpCentsAllTime: 0, spentCentsAllTime: 0, lowBalanceThresholdCents: 5000, alertActive: false, remainingCents: 18600, updatedAt: Date(), isLive: true),
+            ProviderBudgetInfo(provider: "anthropic", toppedUpCentsAllTime: 10000, spentCentsAllTime: 2200, lowBalanceThresholdCents: 5000, alertActive: false, remainingCents: 7800, updatedAt: Date(), isLive: false),
         ],
         openAlerts: []
     )

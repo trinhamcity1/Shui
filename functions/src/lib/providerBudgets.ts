@@ -1,6 +1,7 @@
 import { FieldValue, Transaction } from "firebase-admin/firestore";
 import { defineSecret, defineString } from "firebase-functions/params";
 import { db } from "./admin";
+import { fetchGolpoCreditsCents } from "./golpo";
 
 /**
  * Resend (resend.com) — a plain HTTPS POST, no SDK needed, matching this
@@ -19,16 +20,23 @@ const alertEmailFrom = defineString("ALERT_EMAIL_FROM", { default: "Shui Alerts 
 export const ALERT_SECRETS = [resendApiKey];
 
 /**
- * Self-tracked spend against Shui's own GolpoAI and Anthropic accounts —
- * "self-tracked" because neither provider exposes a live "remaining
- * balance" API (confirmed against GolpoAI's own docs, 2026-09; Anthropic's
- * account-level balance isn't a single queryable number either). An admin
- * records what was actually topped up (`recordProviderTopUp`); every real
- * spend gets recorded here at the moment it happens
- * (`recordProviderSpend`), priced with the same per-minute/per-token rates
- * Shui already uses elsewhere (GOLPO_CENTS_PER_MINUTE, pricing.ts). The
- * difference is the tracked "remaining" figure admins and the app's own
- * circuit breaker (createOnDemandLesson.ts) act on.
+ * **GolpoAI** has a real `GET /users/credits` balance endpoint after all
+ * (video.golpoai.com/api-docs/endpoints/v2, confirmed 2026-10 — missed by
+ * the original research against their docs, 2026-09) — `getGolpoRemainingCentsLive`
+ * below reads it directly and caches the result in Firestore for
+ * `GOLPO_CREDITS_CACHE_TTL_MS`, so neither an admin's manual bookkeeping nor
+ * `recordProviderSpend` is load-bearing for Golpo anymore; the cache just
+ * avoids hitting GolpoAI's API on every single lesson request.
+ *
+ * **Anthropic** has no equivalent — its API only exposes historical
+ * usage/cost over a date range (the Usage & Cost Admin API), never a
+ * current balance, and even that requires a separate Admin API key with
+ * broader scope than the regular key this app already uses to call Claude.
+ * So Anthropic still self-tracks: an admin records what was actually
+ * topped up (`recordProviderTopUp`); every real spend gets recorded here at
+ * the moment it happens (`recordProviderSpend`, priced via
+ * pricing.ts's callCostNanodollars). `recordProviderTopUp`/`recordProviderSpend`
+ * both refuse `"golpo"` now — see their own comments.
  */
 export type ProviderId = "golpo" | "anthropic";
 
@@ -144,13 +152,17 @@ function writeAlertIfNeeded(t: Transaction, before: ProviderBudget, after: Provi
 }
 
 /**
- * Records a real spend the instant it happens — called from
- * createOnDemandLesson.ts (Golpo, priced at GOLPO_CENTS_PER_MINUTE) and
- * anywhere an Anthropic call's real token usage is known (priced via
- * pricing.ts's callCostNanodollars). A no-op for a non-positive amount, so
- * callers never need their own guard.
+ * Records a real spend the instant it happens — called anywhere an
+ * Anthropic call's real token usage is known (priced via pricing.ts's
+ * callCostNanodollars). A no-op for a non-positive amount, so callers never
+ * need their own guard. Golpo no longer uses this: its real balance already
+ * reflects every spend the instant GolpoAI's own API applies it, so a
+ * second, self-tracked copy would only drift from reality for no benefit.
  */
 export async function recordProviderSpend(provider: ProviderId, costCents: number): Promise<void> {
+  if (provider === "golpo") {
+    throw new Error("recordProviderSpend(\"golpo\", ...) is obsolete — Golpo's balance is read live from GolpoAI, nothing to record.");
+  }
   if (costCents <= 0) return;
   let shouldAlert = false;
   let after: ProviderBudget | undefined;
@@ -177,9 +189,14 @@ export async function recordProviderSpend(provider: ProviderId, costCents: numbe
  * Admin-recorded top-up — additive, since a real account accumulates
  * multiple top-ups over time. Clears `alertActive` once the resulting
  * balance is back above threshold, so the next time it crosses down a fresh
- * alert fires rather than staying silently suppressed forever.
+ * alert fires rather than staying silently suppressed forever. Golpo isn't
+ * eligible — there's no admin-maintained ledger to add to anymore, its
+ * balance is read live from GolpoAI's own `/users/credits`.
  */
 export async function recordProviderTopUp(provider: ProviderId, amountCents: number): Promise<ProviderBudget> {
+  if (provider === "golpo") {
+    throw new Error("Golpo's balance is read live from GolpoAI now — nothing to record a top-up against.");
+  }
   return db.runTransaction(async (t) => {
     const before = await readProviderBudget(provider, t);
     const after: ProviderBudget = {
@@ -200,6 +217,66 @@ export async function setProviderThreshold(provider: ProviderId, thresholdCents:
   await budgetRef(provider).set({ lowBalanceThresholdCents: thresholdCents, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
 }
 
+/** How long a cached GolpoAI balance is trusted before the next read re-fetches it live — fresh enough for the circuit breaker, cheap enough not to call GolpoAI on every single lesson request. */
+export const GOLPO_CREDITS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * Golpo's live replacement for `readProviderBudget` — fetches
+ * `GET /users/credits` from GolpoAI (via `fetchGolpoCreditsCents`) and
+ * caches the result on the same `providerBudgets/golpo` doc the old
+ * self-tracked ledger used (reusing `lowBalanceThresholdCents`/
+ * `alertActive` from that doc — those admin-configured fields are still
+ * meaningful, only the "remaining" figure itself changed where it comes
+ * from). A stale cache is served as-is; only an expired one triggers a real
+ * API call, so this is safe to call on every `checkProvidersAvailable` and
+ * every admin-console load without hammering GolpoAI.
+ */
+export async function getGolpoRemainingCentsLive(): Promise<number> {
+  const ref = budgetRef("golpo");
+  const snap = await ref.get();
+  const data = snap.data();
+  const cachedAtMs = (data?.cachedAt as FirebaseFirestore.Timestamp | undefined)?.toMillis() ?? 0;
+  const cachedRemainingCents = data?.cachedRemainingCents as number | undefined;
+
+  if (cachedRemainingCents !== undefined && Date.now() - cachedAtMs < GOLPO_CREDITS_CACHE_TTL_MS) {
+    return cachedRemainingCents;
+  }
+
+  const remaining = await fetchGolpoCreditsCents();
+  const thresholdCents = data?.lowBalanceThresholdCents ?? DEFAULT_LOW_BALANCE_THRESHOLD_CENTS;
+  const wasAlertActive = data?.alertActive ?? false;
+  const nowBelowThreshold = remaining <= thresholdCents;
+
+  await ref.set(
+    {
+      cachedRemainingCents: remaining,
+      cachedAt: FieldValue.serverTimestamp(),
+      lowBalanceThresholdCents: thresholdCents,
+      alertActive: nowBelowThreshold,
+      updatedAt: FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  // Same once-per-crossing discipline as writeAlertIfNeeded, just driven by
+  // a live-fetched number instead of a transaction's before/after snapshot
+  // — there's no concurrent writer to race here, this only changes on a
+  // cache-expiry fetch, not on every request.
+  if (nowBelowThreshold && !wasAlertActive) {
+    await db.collection("adminAlerts").doc().set({
+      type: remaining <= 0 ? "provider_budget_exhausted" : "provider_budget_low",
+      provider: "golpo",
+      remainingCents: remaining,
+      thresholdCents,
+      createdAt: FieldValue.serverTimestamp(),
+      acknowledged: false,
+    });
+    await sendAdminEmailAlert("golpo", remaining, thresholdCents);
+  }
+
+  return remaining;
+}
+
 /**
  * The circuit breaker createOnDemandLesson.ts checks before spending
  * anything — "our tools are currently offline" territory. Deliberately a
@@ -208,11 +285,13 @@ export async function setProviderThreshold(provider: ProviderId, thresholdCents:
  * second-guess whether a specific request's cost fits in what's left.
  */
 export async function checkProvidersAvailable(): Promise<{ available: true } | { available: false; exhaustedProvider: ProviderId }> {
-  for (const provider of PROVIDER_IDS) {
-    const budget = await readProviderBudget(provider);
-    if (isExhausted(budget)) {
-      return { available: false, exhaustedProvider: provider };
-    }
+  const golpoRemaining = await getGolpoRemainingCentsLive();
+  if (golpoRemaining <= 0) {
+    return { available: false, exhaustedProvider: "golpo" };
+  }
+  const anthropicBudget = await readProviderBudget("anthropic");
+  if (isExhausted(anthropicBudget)) {
+    return { available: false, exhaustedProvider: "anthropic" };
   }
   return { available: true };
 }

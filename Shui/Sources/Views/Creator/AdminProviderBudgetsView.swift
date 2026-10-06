@@ -1,10 +1,12 @@
 import SwiftUI
 
-/// Admin-only view of Shui's own self-tracked GolpoAI/Anthropic spend
-/// (phase-08 provider-budget tracking). Neither provider exposes a live
-/// balance API, so "remaining" here is only as accurate as the last time an
-/// admin recorded a real top-up here after topping up on the provider's own
-/// dashboard — see `functions/src/lib/providerBudgets.ts`.
+/// Admin-only view of Shui's own GolpoAI/Anthropic spend (phase-08
+/// provider-budget tracking). GolpoAI (`isLive`) is read straight from
+/// their own `/users/credits` API, cached a few minutes server-side — no
+/// admin action needed, and tapping it does nothing. Anthropic has no
+/// equivalent endpoint, so it's still self-tracked: tap it to record a
+/// top-up after topping up on Anthropic's own console — see
+/// `functions/src/lib/providerBudgets.ts`.
 struct AdminProviderBudgetsView: View {
     let environment: AppEnvironment
     @Environment(\.theme) private var theme
@@ -37,7 +39,7 @@ struct AdminProviderBudgetsView: View {
                 } header: {
                     Text("Tracked balances")
                 } footer: {
-                    Text("Self-tracked, not live — record a top-up here every time one happens on GolpoAI's or Anthropic's own dashboard, or this drifts from reality.")
+                    Text("GolpoAI is read live from their own API. Anthropic has no equivalent — tap it to record a top-up every time one happens on their console, or it drifts from reality.")
                 }
             } else if isLoading {
                 Section {
@@ -58,27 +60,47 @@ struct AdminProviderBudgetsView: View {
         }
     }
 
+    @ViewBuilder
     private func budgetRow(_ budget: ProviderBudgetInfo) -> some View {
-        Button { topUpTarget = budget } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text(budget.displayName).font(.subheadline.weight(.semibold)).foregroundStyle(theme.textPrimary)
-                    Spacer()
-                    if budget.alertActive {
-                        Label("Low", systemImage: "exclamationmark.triangle.fill")
-                            .font(.caption2)
-                            .foregroundStyle(theme.warning)
-                    }
+        if budget.isLive {
+            budgetRowContent(budget)
+        } else {
+            Button { topUpTarget = budget } label: {
+                budgetRowContent(budget)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func budgetRowContent(_ budget: ProviderBudgetInfo) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(budget.displayName).font(.subheadline.weight(.semibold)).foregroundStyle(theme.textPrimary)
+                Spacer()
+                if budget.isLive {
+                    Label("Live", systemImage: "dot.radiowaves.left.and.right")
+                        .font(.caption2)
+                        .foregroundStyle(theme.textSecondary)
                 }
-                Text(currency(budget.remainingCents) + " remaining")
-                    .font(.title3.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(budget.alertActive ? theme.warning : theme.textPrimary)
+                if budget.alertActive {
+                    Label("Low", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(theme.warning)
+                }
+            }
+            Text(currency(budget.remainingCents) + " remaining")
+                .font(.title3.weight(.semibold).monospacedDigit())
+                .foregroundStyle(budget.alertActive ? theme.warning : theme.textPrimary)
+            if budget.isLive {
+                Text("Read live from GolpoAI, cached a few minutes · alert under \(currency(budget.lowBalanceThresholdCents))")
+                    .font(.caption)
+                    .foregroundStyle(theme.textSecondary)
+            } else {
                 Text("\(currency(budget.toppedUpCentsAllTime)) topped up · \(currency(budget.spentCentsAllTime)) spent · alert under \(currency(budget.lowBalanceThresholdCents))")
                     .font(.caption)
                     .foregroundStyle(theme.textSecondary)
             }
         }
-        .buttonStyle(.plain)
     }
 
     private func alertRow(_ alert: AdminAlertInfo) -> some View {
