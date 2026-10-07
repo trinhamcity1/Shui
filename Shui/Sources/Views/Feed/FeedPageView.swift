@@ -32,24 +32,17 @@ struct FeedPageView: View {
             Color.black
 
             if let player = viewModel.playerPool.player(forIndex: index) {
-                // Two layers sharing one AVPlayer, always in sync: a
-                // blurred, cropped backdrop that fills every pixel edge to
-                // edge (so there's never a plain black bar), behind the
-                // real content shown in full and never cropped. When a
-                // source's ratio happens to already match the screen, the
-                // foreground fully covers the backdrop and this is a no-op
-                // visually — this isn't Golpo-specific, it's correct for
-                // any video regardless of its real dimensions.
-                ZStack {
-                    VideoPlayerLayerView(player: player, gravity: .resizeAspectFill)
-                        .blur(radius: 30)
-                        .scaleEffect(1.2) // keeps the blur's own soft edge from peeking in at the frame border
-                        .overlay(Color.black.opacity(0.35))
-                        .clipped()
-
-                    VideoPlayerLayerView(player: player, gravity: .resizeAspect)
-                }
-                .accessibilityHidden(true)
+                // `.resizeAspect` — the whole frame, letterboxed, never
+                // cropped. A blurred-backdrop-fill variant was tried here
+                // (filling the screen edge-to-edge behind the full video)
+                // and rolled back: against GolpoAI's real 2:3 output it read
+                // worse than plain letterboxing. See `golpo.ts`'s
+                // `generate()` for the actual fix on the content side —
+                // Golpo is now told to keep everything important away from
+                // the frame edges, so the letterbox bars this leaves are
+                // never covering anything that matters.
+                VideoPlayerLayerView(player: player, gravity: .resizeAspect)
+                    .accessibilityHidden(true)
             }
 
             statusOverlay

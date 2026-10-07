@@ -32,6 +32,13 @@ struct RingSwipeNavigation: ViewModifier {
     @Environment(\.dismiss) private var dismiss
     let isRoot: Bool
     var onSwipeBack: (() -> Void)?
+    /// Fires instead of the otherwise-dead backward swipe when this is a
+    /// root screen that's already at the start of the ring
+    /// (`previousInRing == nil`, i.e. Social) — lets a root tab repurpose
+    /// its "nowhere to go" direction for something else (Social's "swipe
+    /// right to create a lesson," replacing a toolbar button) instead of
+    /// the gesture just springing back with no effect.
+    var onRootBoundarySwipeBack: (() -> Void)?
 
     @State private var offset: CGFloat = 0
     /// Blocks a new drag from starting while the previous one is still
@@ -79,7 +86,10 @@ struct RingSwipeNavigation: ViewModifier {
         if dx < 0 {
             return appState.rootTab.nextInRing != nil
         }
-        return isRoot ? appState.rootTab.previousInRing != nil : true
+        if isRoot {
+            return appState.rootTab.previousInRing != nil || onRootBoundarySwipeBack != nil
+        }
+        return true
     }
 
     private func handleEnded(dx: CGFloat) {
@@ -108,8 +118,11 @@ struct RingSwipeNavigation: ViewModifier {
 
     private func swipeBack() {
         if isRoot {
-            guard let previous = appState.rootTab.previousInRing else { return }
-            appState.rootTab = previous
+            if let previous = appState.rootTab.previousInRing {
+                appState.rootTab = previous
+            } else {
+                onRootBoundarySwipeBack?()
+            }
         } else if let onSwipeBack {
             onSwipeBack()
         } else {
@@ -126,7 +139,14 @@ extension View {
     ///     `isRoot == false` case — pass the caller's own captured
     ///     `dismiss` when attaching this somewhere `@Environment` isn't
     ///     reliably resolved (see the type's own doc comment).
-    func ringSwipeNavigation(isRoot: Bool, onSwipeBack: (() -> Void)? = nil) -> some View {
-        modifier(RingSwipeNavigation(isRoot: isRoot, onSwipeBack: onSwipeBack))
+    ///   - onRootBoundarySwipeBack: Only consulted for `isRoot == true` at
+    ///     the first tab in the ring, where a backward swipe would
+    ///     otherwise do nothing.
+    func ringSwipeNavigation(
+        isRoot: Bool,
+        onSwipeBack: (() -> Void)? = nil,
+        onRootBoundarySwipeBack: (() -> Void)? = nil
+    ) -> some View {
+        modifier(RingSwipeNavigation(isRoot: isRoot, onSwipeBack: onSwipeBack, onRootBoundarySwipeBack: onRootBoundarySwipeBack))
     }
 }

@@ -70,7 +70,12 @@ struct SocialFeedView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel: SocialFeedViewModel
     @State private var showCreateLesson = false
-    @State private var showSearchField = false
+    /// Gates both the search field and the category chips together — Social
+    /// has no toolbar button for creating a lesson any more (swiping right
+    /// from this, the ring's first tab, does that instead — see
+    /// `onRootBoundarySwipeBack` below), so the only thing left in the top
+    /// bar is search/filter, collapsed to a single icon until tapped.
+    @State private var showFilters = false
 
     init(environment: AppEnvironment) {
         self.environment = environment
@@ -109,17 +114,22 @@ struct SocialFeedView: View {
     private var content: some View {
         if viewModel.isLoading && viewModel.videos.isEmpty {
             ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity).shuiShellBackground()
-                .ringSwipeNavigation(isRoot: true)
+                .ringSwipeNavigation(isRoot: true, onRootBoundarySwipeBack: { showCreateLesson = true })
         } else if viewModel.filteredVideos.isEmpty {
             emptyState
-                .ringSwipeNavigation(isRoot: true)
+                .ringSwipeNavigation(isRoot: true, onRootBoundarySwipeBack: { showCreateLesson = true })
         } else {
             // `.id` forces a fresh `FeedView` — and a fresh player pool —
             // whenever the underlying video list actually changes (a chip
             // tap, a reload), since `.videoList` mode takes its list once at
             // init and never re-observes it.
-            FeedView(mode: .videoList(videos: viewModel.filteredVideos), environment: environment, isTabRoot: true)
-                .id(feedIdentity)
+            FeedView(
+                mode: .videoList(videos: viewModel.filteredVideos),
+                environment: environment,
+                isTabRoot: true,
+                onRootBoundarySwipeBack: { showCreateLesson = true }
+            )
+            .id(feedIdentity)
         }
     }
 
@@ -151,48 +161,53 @@ struct SocialFeedView: View {
         .shuiShellBackground()
     }
 
+    /// Collapsed by default to just the search glyph, floating directly
+    /// over the video with no backing — the `.ultraThinMaterial` strip this
+    /// used to always show read as a permanent haze across the top of every
+    /// video. Tapping it reveals the search field and category chips
+    /// together, with their own backing then, since legible text over a
+    /// moving video needs one.
     private var topBar: some View {
         VStack(spacing: 10) {
             HStack(spacing: 10) {
-                Button { withAnimation(.snappy) { showSearchField.toggle() } } label: {
-                    Image(systemName: showSearchField ? "xmark.circle.fill" : "magnifyingglass")
+                Button { withAnimation(.snappy) { showFilters.toggle() } } label: {
+                    Image(systemName: showFilters ? "xmark.circle.fill" : "magnifyingglass")
                         .frame(minWidth: 44, minHeight: 44)
                 }
-                .accessibilityLabel(showSearchField ? "Close search" : "Search lessons")
-                if showSearchField {
+                .accessibilityLabel(showFilters ? "Close search and filters" : "Search and filter lessons")
+                if showFilters {
                     TextField("Search lessons", text: $viewModel.searchText)
                         .textFieldStyle(.plain)
                         .autocorrectionDisabled()
                 }
                 Spacer()
-                Button { showCreateLesson = true } label: {
-                    Image(systemName: "plus.circle.fill")
-                }
-                .accessibilityLabel("New lesson")
             }
             .font(.title3)
             .foregroundStyle(theme.textOnAccent)
             .padding(.horizontal, 16)
+            .shadow(color: .black.opacity(showFilters ? 0 : 0.5), radius: 6)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    categoryChip(title: "All", isSelected: viewModel.selectedCategoryId == nil) {
-                        viewModel.selectedCategoryId = nil
-                    }
-                    ForEach(viewModel.categories) { category in
-                        if let categoryId = category.id {
-                            categoryChip(title: category.title, isSelected: viewModel.selectedCategoryId == categoryId) {
-                                viewModel.selectedCategoryId = categoryId
+            if showFilters {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        categoryChip(title: "All", isSelected: viewModel.selectedCategoryId == nil) {
+                            viewModel.selectedCategoryId = nil
+                        }
+                        ForEach(viewModel.categories) { category in
+                            if let categoryId = category.id {
+                                categoryChip(title: category.title, isSelected: viewModel.selectedCategoryId == categoryId) {
+                                    viewModel.selectedCategoryId = categoryId
+                                }
                             }
                         }
                     }
+                    .padding(.horizontal, 16)
                 }
-                .padding(.horizontal, 16)
             }
         }
         .padding(.top, 8)
-        .padding(.bottom, 12)
-        .background(.ultraThinMaterial)
+        .padding(.bottom, showFilters ? 12 : 8)
+        .background(showFilters ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.clear))
     }
 
     private func categoryChip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {

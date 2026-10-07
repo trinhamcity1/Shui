@@ -66,6 +66,26 @@ export interface GolpoClient {
   checkStatus(jobId: string): Promise<GolpoStatus>;
 }
 
+/**
+ * Appended to every render regardless of what the lesson-writing prompt
+ * told Claude to put in `visualInstructions` — the app displays Golpo's
+ * output at `.resizeAspect` (full frame, never cropped; see
+ * `VideoPlayerLayerView`), but Golpo's real output ratio (2:3) still gets
+ * pillarboxed/letterboxed against a phone screen, and anything Golpo drew
+ * right at the original frame's edge reads as uncomfortably close to those
+ * bars. A fixed suffix here reaches every render even if Claude's own
+ * instructions forget to mention it; it's appended after Claude's 500-char
+ * cap (`MAX_INSTRUCTION_CHARS` in golpoCapabilities.ts) rather than inside
+ * it, since that cap is this app's own sanity limit on what Claude writes,
+ * not a real GolpoAI API constraint.
+ */
+const SAFE_MARGIN_INSTRUCTION =
+  "Keep all text, labels, and important visual detail within the center safe area of the frame — leave a clear margin on all four edges so nothing critical sits right at the border.";
+
+function withSafeMarginGuidance(instructions?: string): string {
+  return instructions ? `${instructions}\n\n${SAFE_MARGIN_INSTRUCTION}` : SAFE_MARGIN_INSTRUCTION;
+}
+
 export class GolpoRestClient implements GolpoClient {
   async generate(req: GolpoGenerateRequest): Promise<GolpoGenerateResult> {
     const { settings } = req;
@@ -84,7 +104,7 @@ export class GolpoRestClient implements GolpoClient {
         scene_pacing: settings.scenePacing,
         narration_voice: settings.voice,
         background_track: settings.musicTrack,
-        visual_instructions: settings.visualInstructions,
+        visual_instructions: withSafeMarginGuidance(settings.visualInstructions),
         narration_instructions: settings.narrationInstructions,
       }),
     });

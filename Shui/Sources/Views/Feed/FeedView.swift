@@ -9,6 +9,10 @@ struct FeedView: View {
     @State private var scrollPositionID: String?
     @State private var showSignInSheet = false
     var onExploreRequested: (() -> Void)?
+    /// Threaded straight through to `.ringSwipeNavigation` — see that
+    /// modifier's own doc comment. Only meaningful when `isTabRoot` is the
+    /// first tab in the ring (Social).
+    var onRootBoundarySwipeBack: (() -> Void)?
     /// `true` for the Learn tab's old mixed feed, and now also for
     /// `SocialFeedView`'s `.videoList` feed (phase-07 §6 — Social replaced
     /// Learn as the tab this sits at the root of, but that's an `isTabRoot`
@@ -18,9 +22,16 @@ struct FeedView: View {
     /// which is what `isRoot` on `ringSwipeNavigation` needs to know.
     private let isTabRoot: Bool
 
-    init(mode: FeedViewModel.Mode, environment: AppEnvironment, onExploreRequested: (() -> Void)? = nil, isTabRoot: Bool? = nil) {
+    init(
+        mode: FeedViewModel.Mode,
+        environment: AppEnvironment,
+        onExploreRequested: (() -> Void)? = nil,
+        isTabRoot: Bool? = nil,
+        onRootBoundarySwipeBack: (() -> Void)? = nil
+    ) {
         _viewModel = StateObject(wrappedValue: FeedViewModel(mode: mode, environment: environment))
         self.onExploreRequested = onExploreRequested
+        self.onRootBoundarySwipeBack = onRootBoundarySwipeBack
         if let isTabRoot {
             self.isTabRoot = isTabRoot
         } else if case .mixed = mode {
@@ -71,7 +82,7 @@ struct FeedView: View {
         // `@Environment(\.dismiss)`, matching the same captured-once
         // pattern `onNextLesson`/`onRequireSignIn` already use below for
         // views instantiated inside the feed's `ForEach`.
-        .ringSwipeNavigation(isRoot: isTabRoot, onSwipeBack: swipeBackAction)
+        .ringSwipeNavigation(isRoot: isTabRoot, onSwipeBack: swipeBackAction, onRootBoundarySwipeBack: onRootBoundarySwipeBack)
         .task { await viewModel.loadInitial() }
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected {

@@ -216,37 +216,53 @@ private struct SwipeToRevealRow<Content: View>: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Lesson settings")
 
-            Button {
-                if isRevealed {
-                    onClose()
-                } else {
-                    onTapContent()
+            // Not wrapped in a `Button`: a `Button`'s own internal gesture
+            // recognizer and `List`'s row-selection/scroll recognizers both
+            // had to "fail" before this view's `DragGesture` was even
+            // offered a touch, which in practice meant the swipe almost
+            // never won — a plain `onTapGesture` plus `.simultaneousGesture`
+            // below (the same technique `RingSwipeNavigation` already uses
+            // to swipe a vertically-scrolling feed) gets every touch
+            // instead of waiting in line for one.
+            content()
+                .contentShape(Rectangle())
+                .background(theme.surface)
+                .offset(x: min(0, (isRevealed ? -revealWidth : 0) + dragTranslation))
+                .onTapGesture {
+                    if isRevealed {
+                        onClose()
+                    } else {
+                        onTapContent()
+                    }
                 }
-            } label: {
-                content()
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .background(theme.surface)
-            .offset(x: min(0, (isRevealed ? -revealWidth : 0) + dragTranslation))
-            .gesture(
-                DragGesture(minimumDistance: 12)
-                    .updating($dragTranslation) { value, state, _ in
-                        let proposed = value.translation.width
-                        state = isRevealed
-                            ? min(max(proposed, 0), revealWidth)
-                            : max(min(proposed, 0), -revealWidth)
-                    }
-                    .onEnded { value in
-                        let translation = value.translation.width
-                        if isRevealed {
-                            if translation > revealWidth / 2 { onClose() }
-                        } else {
-                            if translation < -revealWidth / 2 { onReveal() }
+                .accessibilityAddTraits(.isButton)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 16)
+                        .updating($dragTranslation) { value, state, _ in
+                            guard isHorizontalDrag(value.translation) else { return }
+                            let proposed = value.translation.width
+                            state = isRevealed
+                                ? min(max(proposed, 0), revealWidth)
+                                : max(min(proposed, 0), -revealWidth)
                         }
-                    }
-            )
-            .animation(.snappy(duration: 0.25), value: isRevealed)
+                        .onEnded { value in
+                            guard isHorizontalDrag(value.translation) else { return }
+                            let translation = value.translation.width
+                            if isRevealed {
+                                if translation > revealWidth / 2 { onClose() }
+                            } else {
+                                if translation < -revealWidth / 2 { onReveal() }
+                            }
+                        }
+                )
+                .animation(.snappy(duration: 0.25), value: isRevealed)
         }
+    }
+
+    /// Same ratio `RingSwipeNavigation` gates on — only a drag that's
+    /// clearly more horizontal than vertical counts, so this never fights
+    /// the List's own vertical scroll for the same touch.
+    private func isHorizontalDrag(_ translation: CGSize) -> Bool {
+        abs(translation.width) > abs(translation.height) * 1.5
     }
 }

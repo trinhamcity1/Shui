@@ -11,15 +11,15 @@ final class PlayerLayerContainerView: UIView {
 }
 
 /// Chrome-less video surface for a feed page. `gravity` defaults to
-/// `.resizeAspectFill` (fills its frame edge to edge, cropping whatever
-/// doesn't fit) — `FeedPageView` layers a second instance of this at
-/// `.resizeAspect` (shows the whole frame, letterboxed) on top of a blurred
-/// `.resizeAspectFill` copy behind it, since GolpoAI's real output ratio
-/// (2:3, confirmed against their docs) doesn't match a phone screen closely
-/// enough for a plain `.resizeAspectFill` to avoid cropping real content.
+/// `.resizeAspect` (shows the whole frame, letterboxed) — GolpoAI's real
+/// output ratio (2:3, confirmed against their docs) doesn't match a phone
+/// screen, and `.resizeAspectFill` was tried and rolled back for cropping
+/// real content off the top/bottom. `gravity` stays a parameter rather than
+/// a hardcoded value since not every caller necessarily wants the same
+/// trade-off.
 struct VideoPlayerLayerView: UIViewRepresentable {
     let player: AVPlayer
-    var gravity: AVLayerVideoGravity = .resizeAspectFill
+    var gravity: AVLayerVideoGravity = .resizeAspect
 
     func makeUIView(context: Context) -> PlayerLayerContainerView {
         let view = PlayerLayerContainerView()
