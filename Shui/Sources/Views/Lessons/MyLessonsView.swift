@@ -48,6 +48,12 @@ final class MyLessonsViewModel: ObservableObject {
 /// each row showing its status inline. Reuses `CreatorVideoRow`/
 /// `StatusBadge` from the Creator topic editor (§9's "no second
 /// video-list view") rather than a bespoke row.
+///
+/// Row interaction is a swipe-to-reveal gear (`SwipeToRevealRow` below)
+/// rather than `.swipeActions` — opening Lesson Settings (title, thumbnail,
+/// quiz, share/unshare, download, delete) needed more than one action, so a
+/// single settings page replaced the old one-off "Share to Social" swipe
+/// action.
 struct MyLessonsView: View {
     let environment: AppEnvironment
     @Environment(\.theme) private var theme
@@ -55,7 +61,10 @@ struct MyLessonsView: View {
     @State private var showCreate = false
     @State private var openedVideo: Video?
     @State private var retryTarget: RetryTarget?
-    @State private var shareErrorMessage: String?
+    @State private var settingsTarget: Video?
+    /// Only one row revealed at a time — swiping a second row, or swiping
+    /// this one back, closes whichever was open. `nil` means none revealed.
+    @State private var revealedVideoId: String?
 
     private struct RetryTarget: Identifiable {
         let id = UUID()
@@ -75,8 +84,18 @@ struct MyLessonsView: View {
                 emptyState
             } else {
                 List {
-                    ForEach(viewModel.lessons) { video in
-                        row(for: video)
+                    ForEach(Array(viewModel.lessons.enumerated()), id: \.element.id) { index, video in
+                        VStack(alignment: .leading, spacing: 4) {
+                            if index == 0 {
+                                Text("Swipe left for settings")
+                                    .font(.caption)
+                                    .foregroundStyle(theme.textTertiary)
+                                    .padding(.horizontal, 4)
+                            }
+                            row(for: video)
+                        }
+                        .listRowInsets(EdgeInsets())
+                        .listRowSeparator(.hidden)
                     }
                 }
                 .listStyle(.plain)
@@ -101,13 +120,13 @@ struct MyLessonsView: View {
         .sheet(item: $retryTarget, onDismiss: { Task { await viewModel.load() } }) { target in
             CreateLessonView(environment: environment, initialTopic: target.topic)
         }
+        .sheet(item: $settingsTarget, onDismiss: { Task { await viewModel.load() } }) { video in
+            NavigationStack {
+                VideoSettingsView(video: video, environment: environment, onDeleted: { Task { await viewModel.load() } })
+            }
+        }
         .fullScreenCover(item: $openedVideo) { video in
             FeedView(mode: .videoList(videos: [video]), environment: environment)
-        }
-        .alert("Couldn't share", isPresented: Binding(get: { shareErrorMessage != nil }, set: { if !$0 { shareErrorMessage = nil } })) {
-            Button(Strings.done, role: .cancel) {}
-        } message: {
-            Text(shareErrorMessage ?? "")
         }
     }
 
@@ -132,9 +151,16 @@ struct MyLessonsView: View {
     }
 
     private func row(for video: Video) -> some View {
-        Button {
-            handleTap(video)
-        } label: {
+        SwipeToRevealRow(
+            isRevealed: revealedVideoId == video.id,
+            onReveal: { revealedVideoId = video.id },
+            onClose: { if revealedVideoId == video.id { revealedVideoId = nil } },
+            onTapContent: { handleTap(video) },
+            onGearTap: {
+                revealedVideoId = nil
+                settingsTarget = video
+            }
+        ) {
             HStack {
                 CreatorVideoRow(video: video)
                 Spacer()
@@ -144,18 +170,9 @@ struct MyLessonsView: View {
                         .foregroundStyle(theme.textTertiary)
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
         }
-        .buttonStyle(.plain)
-        .swipeActions(edge: .trailing) {
-            if canShare(video) {
-                Button("Share to Social") { Task { await shareTapped(video) } }
-                    .tint(theme.accent)
-            }
-        }
-    }
-
-    private func canShare(_ video: Video) -> Bool {
-        video.status == .ready && video.sharedToSocial != true && video.originatedFromApi != true
     }
 
     private func handleTap(_ video: Video) {
@@ -168,15 +185,68 @@ struct MyLessonsView: View {
             break
         }
     }
+}
 
-    private func shareTapped(_ video: Video) async {
-        guard let videoId = video.id else { return }
-        AppAnalytics.logFeatureTap(.shareToSocial)
-        do {
-            _ = try await environment.onDemandLessons.shareToSocial(videoId: videoId)
-            await viewModel.load()
-        } catch {
-            shareErrorMessage = error.localizedDescription
+/// A row with a gear button revealed by swiping left, closed by swiping
+/// right or tapping the content — a "trap door," not a persistent action
+/// bar. Built as a raw drag gesture rather than `.swipeActions` because
+/// Lesson Settings needs one single destination (a gear tap), not a row of
+/// independent action buttons.
+private struct SwipeToRevealRow<Content: View>: View {
+    let isRevealed: Bool
+    let onReveal: () -> Void
+    let onClose: () -> Void
+    let onTapContent: () -> Void
+    let onGearTap: () -> Void
+    @ViewBuilder let content: () -> Content
+
+    @Environment(\.theme) private var theme
+    @GestureState private var dragTranslation: CGFloat = 0
+    private let revealWidth: CGFloat = 64
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            Button(action: onGearTap) {
+                Image(systemName: "gearshape.fill")
+                    .font(.title3)
+                    .foregroundStyle(theme.textPrimary)
+                    .frame(width: revealWidth, height: 64)
+                    .background(theme.surfaceSubtle)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Lesson settings")
+
+            Button {
+                if isRevealed {
+                    onClose()
+                } else {
+                    onTapContent()
+                }
+            } label: {
+                content()
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .background(theme.surface)
+            .offset(x: min(0, (isRevealed ? -revealWidth : 0) + dragTranslation))
+            .gesture(
+                DragGesture(minimumDistance: 12)
+                    .updating($dragTranslation) { value, state, _ in
+                        let proposed = value.translation.width
+                        state = isRevealed
+                            ? min(max(proposed, 0), revealWidth)
+                            : max(min(proposed, 0), -revealWidth)
+                    }
+                    .onEnded { value in
+                        let translation = value.translation.width
+                        if isRevealed {
+                            if translation > revealWidth / 2 { onClose() }
+                        } else {
+                            if translation < -revealWidth / 2 { onReveal() }
+                        }
+                    }
+            )
+            .animation(.snappy(duration: 0.25), value: isRevealed)
         }
     }
 }

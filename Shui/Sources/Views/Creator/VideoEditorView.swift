@@ -137,7 +137,8 @@ struct VideoEditorView: View {
                 // Send nil rather than "" so clearing the box doesn't write
                 // an empty string the tutor would then treat as a transcript
                 // that exists but says nothing.
-                transcript: transcript.isEmpty ? nil : transcript
+                transcript: transcript.isEmpty ? nil : transcript,
+                thumbnailURL: nil
             )
             video.title = title
             video.description = description

@@ -10,9 +10,16 @@ struct QuizBuilderView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: QuizBuilderViewModel
     @State private var showPreview = false
+    /// `suggestQuizQuestions` (the "Draft with AI" section below) is
+    /// creator/admin-gated server-side — true by default for Creator mode's
+    /// own call sites, `false` when this is opened for a learner's own
+    /// on-demand lesson (Video Settings), which has its own separate,
+    /// owner-scoped "Regenerate quiz" action instead.
+    private let allowAIDraft: Bool
 
-    init(video: Video, environment: AppEnvironment) {
+    init(video: Video, environment: AppEnvironment, allowAIDraft: Bool = true) {
         self.environment = environment
+        self.allowAIDraft = allowAIDraft
         _viewModel = StateObject(wrappedValue: QuizBuilderViewModel(video: video, environment: environment))
     }
 
@@ -35,7 +42,9 @@ struct QuizBuilderView: View {
                 }
             }
 
-            draftSection
+            if allowAIDraft {
+                draftSection
+            }
 
             ForEach(Array(viewModel.questions.enumerated()), id: \.element.id) { index, question in
                 questionSection(index: index, question: question)

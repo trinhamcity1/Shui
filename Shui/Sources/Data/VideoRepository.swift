@@ -44,7 +44,13 @@ protocol VideoRepository {
     /// Sends the whole intended order rather than a move — see
     /// `reorderTopicVideos` server-side for why.
     func reorder(topicId: String, videoIds: [String]) async throws
-    func updateMetadata(videoId: String, title: String?, description: String?, transcript: String?) async throws
+    func updateMetadata(
+        videoId: String,
+        title: String?,
+        description: String?,
+        transcript: String?,
+        thumbnailURL: String?
+    ) async throws
     func softDelete(videoId: String) async throws
 }
 
@@ -176,11 +182,18 @@ struct FirestoreVideoRepository: VideoRepository {
         ])
     }
 
-    func updateMetadata(videoId: String, title: String?, description: String?, transcript: String?) async throws {
+    func updateMetadata(
+        videoId: String,
+        title: String?,
+        description: String?,
+        transcript: String?,
+        thumbnailURL: String?
+    ) async throws {
         var payload: [String: Any] = ["videoId": videoId]
         if let title { payload["title"] = title }
         if let description { payload["description"] = description }
         if let transcript { payload["transcript"] = transcript }
+        if let thumbnailURL { payload["thumbnailURL"] = thumbnailURL }
         _ = try await functions.httpsCallable("updateVideoMetadata").call(payload)
     }
 
@@ -307,11 +320,18 @@ final class InMemoryVideoRepository: VideoRepository {
         }
     }
 
-    func updateMetadata(videoId: String, title: String?, description: String?, transcript: String?) async throws {
+    func updateMetadata(
+        videoId: String,
+        title: String?,
+        description: String?,
+        transcript: String?,
+        thumbnailURL: String?
+    ) async throws {
         guard let index = videos.firstIndex(where: { $0.id == videoId }) else { return }
         if let title { videos[index].title = title }
         if let description { videos[index].description = description }
         if let transcript { videos[index].transcript = transcript }
+        if let thumbnailURL { videos[index].thumbnailURL = thumbnailURL }
     }
 
     func softDelete(videoId: String) async throws {

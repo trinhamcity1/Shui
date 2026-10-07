@@ -49,6 +49,14 @@ protocol OnDemandLessonRepository {
     /// Firestore listener racing it.
     func checkStatus(videoId: String) async throws -> (status: String, message: String?)
     func shareToSocial(videoId: String) async throws
+    /// The reverse of `shareToSocial` — flips this lesson back to private.
+    func unshareFromSocial(videoId: String) async throws
+    /// Re-runs Claude against this lesson's already-saved script to produce
+    /// a fresh quiz, auto-saved server-side (no separate save step, unlike
+    /// Creator mode's AI-draft-then-review flow). Returns how many
+    /// regenerations remain today — the server enforces a 3/video/day limit
+    /// resetting at UTC midnight; this is purely for display.
+    func regenerateQuiz(videoId: String) async throws -> Int
 }
 
 struct FirestoreOnDemandLessonRepository: OnDemandLessonRepository {
@@ -79,6 +87,26 @@ struct FirestoreOnDemandLessonRepository: OnDemandLessonRepository {
                 throw RepositoryError.malformedResponse
             }
             return (status, data["message"] as? String)
+        } catch let error as NSError {
+            throw Self.mapError(error)
+        }
+    }
+
+    func unshareFromSocial(videoId: String) async throws {
+        do {
+            _ = try await functions.httpsCallable("unshareLessonFromSocial").call(["videoId": videoId])
+        } catch let error as NSError {
+            throw Self.mapError(error)
+        }
+    }
+
+    func regenerateQuiz(videoId: String) async throws -> Int {
+        do {
+            let result = try await functions.httpsCallable("regenerateOnDemandLessonQuiz").call(["videoId": videoId])
+            guard let data = result.data as? [String: Any], let remaining = data["remainingToday"] as? Int else {
+                throw RepositoryError.malformedResponse
+            }
+            return remaining
         } catch let error as NSError {
             throw Self.mapError(error)
         }
@@ -133,5 +161,16 @@ final class InMemoryOnDemandLessonRepository: OnDemandLessonRepository {
 
     func shareToSocial(videoId: String) async throws {
         sharedVideoIds.insert(videoId)
+    }
+
+    func unshareFromSocial(videoId: String) async throws {
+        sharedVideoIds.remove(videoId)
+    }
+
+    var quizRegensRemainingToday = 3
+
+    func regenerateQuiz(videoId: String) async throws -> Int {
+        quizRegensRemainingToday = max(0, quizRegensRemainingToday - 1)
+        return quizRegensRemainingToday
     }
 }
