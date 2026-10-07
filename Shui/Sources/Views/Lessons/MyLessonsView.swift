@@ -14,7 +14,33 @@ final class MyLessonsViewModel: ObservableObject {
     func load() async {
         isLoading = true
         defer { isLoading = false }
-        lessons = (try? await environment.videos.myLessons()) ?? []
+        var fetched = (try? await environment.videos.myLessons()) ?? []
+        await refreshStuckGeneratingLessons(fetched)
+        // Re-fetch rather than patch in place: checkOnDemandLessonStatus just
+        // wrote playbackURL/status/etc. server-side, and that's the one
+        // source of truth for what actually changed, not anything derivable
+        // from the poll response alone.
+        if fetched.contains(where: { $0.status == .generating }) {
+            fetched = (try? await environment.videos.myLessons()) ?? fetched
+        }
+        lessons = fetched
+    }
+
+    /// A lesson only ever gets polled while `CreateLessonView`'s own sheet is
+    /// open (`CreateLessonViewModel.startPolling`) — if that sheet closes
+    /// before GolpoAI finishes (an error, a dismiss, the app backgrounded),
+    /// nothing else in the app was ever going to check on it again, and it
+    /// stayed "generating" forever even after the render actually completed.
+    /// Every load of this screen gets each still-generating lesson one more
+    /// chance to finalize instead.
+    private func refreshStuckGeneratingLessons(_ videos: [Video]) async {
+        let generatingIds = videos.compactMap { $0.status == .generating ? $0.id : nil }
+        guard !generatingIds.isEmpty else { return }
+        await withTaskGroup(of: Void.self) { group in
+            for videoId in generatingIds {
+                group.addTask { _ = try? await self.environment.onDemandLessons.checkStatus(videoId: videoId) }
+            }
+        }
     }
 }
 
