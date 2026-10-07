@@ -74,6 +74,7 @@ export const updateVideoMetadata = onCall(async (request) => {
   if (input.title !== undefined) updates.title = input.title;
   if (input.description !== undefined) updates.description = input.description;
   if (input.transcript !== undefined) updates.transcript = input.transcript;
+  if (input.thumbnailURL !== undefined) updates.thumbnailURL = input.thumbnailURL;
   if (Object.keys(updates).length === 0) {
     throw new HttpsError("invalid-argument", "Nothing to update.");
   }

@@ -121,6 +121,8 @@ export const UpdateVideoMetadataInputSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).optional(),
   transcript: z.string().max(20000).optional(),
+  /** Set after a direct R2 upload via createThumbnailUpload — never a client-invented URL, but not re-validated against R2 either (same trust level as every other field here: owner-gated, not origin-gated). */
+  thumbnailURL: z.string().url().optional(),
 });
 export type UpdateVideoMetadataInput = z.infer<typeof UpdateVideoMetadataInputSchema>;
 
