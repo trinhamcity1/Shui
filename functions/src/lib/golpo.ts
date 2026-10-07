@@ -3,13 +3,22 @@ import { GolpoTiming } from "./tiers";
 import { GolpoSettings } from "./golpoCapabilities";
 
 /**
- * GolpoAI (video.golpoai.com/api-docs) — the render backend, per
+ * GolpoAI (docs at video.golpoai.com/api-docs — the render backend, per
  * prompts/phase-07-lessons-on-demand.md §2. One account Shui bills, not a
  * per-learner key. Base URL is a plain string (not sensitive) so staging/
  * prod can point at different GolpoAI environments without a secret rotation.
+ *
+ * IMPORTANT: the real API lives at `api.golpoai.com`, a *different* host
+ * than the docs/dashboard site (`video.golpoai.com`) — confirmed 2026-10 by
+ * directly curling both with a real key: `video.golpoai.com` either 404s
+ * (its own Next.js frontend intercepting the request) or returns a generic
+ * "Authentication required" regardless of key validity, while
+ * `api.golpoai.com` is the real backend that actually recognizes it. The
+ * wrong host was configured as the default since Phase 7 — every real call
+ * this app has ever made was hitting the wrong domain.
  */
 export const golpoApiKey = defineSecret("GOLPO_API_KEY");
-export const golpoApiBaseUrl = defineString("GOLPO_API_BASE_URL", { default: "https://video.golpoai.com/api/v2" });
+export const golpoApiBaseUrl = defineString("GOLPO_API_BASE_URL", { default: "https://api.golpoai.com/api/v2" });
 
 export const GOLPO_SECRETS = [golpoApiKey];
 
