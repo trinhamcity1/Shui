@@ -67,6 +67,7 @@ final class SocialFeedViewModel: ObservableObject {
 struct SocialFeedView: View {
     let environment: AppEnvironment
     @Environment(\.theme) private var theme
+    @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel: SocialFeedViewModel
     @State private var showCreateLesson = false
     @State private var showSearchField = false
@@ -86,6 +87,17 @@ struct SocialFeedView: View {
             await viewModel.loadFeed()
         }
         .onChange(of: viewModel.selectedCategoryId) { _, _ in
+            Task { await viewModel.loadFeed() }
+        }
+        // `.task` above only ever fires once per app session — TabView keeps
+        // this whole view alive across tab switches (same as ExploreView),
+        // so without this, a lesson shared from My Lessons (a different tab)
+        // never shows up here until the app relaunches. Re-fetching on every
+        // return to this tab is the simplest fix that doesn't require Social
+        // and My Lessons, two unrelated sibling views, to know about each
+        // other directly.
+        .onChange(of: appState.rootTab) { _, newValue in
+            guard newValue == .social else { return }
             Task { await viewModel.loadFeed() }
         }
         .sheet(isPresented: $showCreateLesson, onDismiss: { Task { await viewModel.loadFeed() } }) {
