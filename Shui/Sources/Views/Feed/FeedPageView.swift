@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 
 /// One full-bleed page of the feed: video, overlays, right rail, and the
@@ -31,8 +32,24 @@ struct FeedPageView: View {
             Color.black
 
             if let player = viewModel.playerPool.player(forIndex: index) {
-                VideoPlayerLayerView(player: player)
-                    .accessibilityHidden(true)
+                // Two layers sharing one AVPlayer, always in sync: a
+                // blurred, cropped backdrop that fills every pixel edge to
+                // edge (so there's never a plain black bar), behind the
+                // real content shown in full and never cropped. When a
+                // source's ratio happens to already match the screen, the
+                // foreground fully covers the backdrop and this is a no-op
+                // visually — this isn't Golpo-specific, it's correct for
+                // any video regardless of its real dimensions.
+                ZStack {
+                    VideoPlayerLayerView(player: player, gravity: .resizeAspectFill)
+                        .blur(radius: 30)
+                        .scaleEffect(1.2) // keeps the blur's own soft edge from peeking in at the frame border
+                        .overlay(Color.black.opacity(0.35))
+                        .clipped()
+
+                    VideoPlayerLayerView(player: player, gravity: .resizeAspect)
+                }
+                .accessibilityHidden(true)
             }
 
             statusOverlay

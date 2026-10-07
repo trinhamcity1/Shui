@@ -10,17 +10,22 @@ final class PlayerLayerContainerView: UIView {
     var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
 }
 
-/// Full-bleed, chrome-less video surface for a feed page. Fills its frame
-/// with `.resizeAspectFill`, matching the vertical, edge-to-edge look of
-/// the rest of the TikTok-style feed.
+/// Chrome-less video surface for a feed page. `gravity` defaults to
+/// `.resizeAspectFill` (fills its frame edge to edge, cropping whatever
+/// doesn't fit) — `FeedPageView` layers a second instance of this at
+/// `.resizeAspect` (shows the whole frame, letterboxed) on top of a blurred
+/// `.resizeAspectFill` copy behind it, since GolpoAI's real output ratio
+/// (2:3, confirmed against their docs) doesn't match a phone screen closely
+/// enough for a plain `.resizeAspectFill` to avoid cropping real content.
 struct VideoPlayerLayerView: UIViewRepresentable {
     let player: AVPlayer
+    var gravity: AVLayerVideoGravity = .resizeAspectFill
 
     func makeUIView(context: Context) -> PlayerLayerContainerView {
         let view = PlayerLayerContainerView()
         view.backgroundColor = .clear
         view.playerLayer.player = player
-        view.playerLayer.videoGravity = .resizeAspectFill
+        view.playerLayer.videoGravity = gravity
         return view
     }
 
@@ -28,5 +33,6 @@ struct VideoPlayerLayerView: UIViewRepresentable {
         if uiView.playerLayer.player !== player {
             uiView.playerLayer.player = player
         }
+        uiView.playerLayer.videoGravity = gravity
     }
 }
