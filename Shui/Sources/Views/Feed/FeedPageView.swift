@@ -32,17 +32,31 @@ struct FeedPageView: View {
             Color.black
 
             if let player = viewModel.playerPool.player(forIndex: index) {
-                // `.resizeAspect` — the whole frame, letterboxed, never
-                // cropped. A blurred-backdrop-fill variant was tried here
-                // (filling the screen edge-to-edge behind the full video)
-                // and rolled back: against GolpoAI's real 2:3 output it read
-                // worse than plain letterboxing. See `golpo.ts`'s
-                // `generate()` for the actual fix on the content side —
-                // Golpo is now told to keep everything important away from
-                // the frame edges, so the letterbox bars this leaves are
-                // never covering anything that matters.
-                VideoPlayerLayerView(player: player, gravity: .resizeAspect)
-                    .accessibilityHidden(true)
+                // Two layers sharing one AVPlayer, always in sync: a
+                // blurred, cropped backdrop that fills every pixel edge to
+                // edge (so there's never a plain black bar), behind the
+                // real content shown in full and never cropped. Confirmed
+                // against GolpoAI's own API docs that this mismatch is
+                // permanent, not a bug to fix upstream — their only
+                // dimension control is `video_orientation`, and `"vertical"`
+                // is hardcoded to 1024×1536px (2:3), despite the docs'
+                // table mislabeling it "9:16"; there's no width/height/
+                // aspect_ratio parameter at all. A plain `.resizeAspect`
+                // letterbox (tried after a full-crop fill read as cutting
+                // off real content) left visible black bars on a phone
+                // screen's much taller ~9:19.5 ratio — this fills them with
+                // the video's own content instead of flat black, without
+                // cropping anything real.
+                ZStack {
+                    VideoPlayerLayerView(player: player, gravity: .resizeAspectFill)
+                        .blur(radius: 30)
+                        .scaleEffect(1.2) // keeps the blur's own soft edge from peeking in at the frame border
+                        .overlay(Color.black.opacity(0.35))
+                        .clipped()
+
+                    VideoPlayerLayerView(player: player, gravity: .resizeAspect)
+                }
+                .accessibilityHidden(true)
             }
 
             statusOverlay
