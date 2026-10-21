@@ -2,7 +2,7 @@ import { createHash } from "crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import { db } from "./admin";
 import { CategorySlug } from "./categories";
-import { GolpoTiming } from "./tiers";
+import { LessonSpec } from "./tiers";
 
 /**
  * v1 scope is exact-normalized-string matching only (phase-07 §5) —
@@ -17,38 +17,38 @@ export function normalizeTopic(raw: string): string {
     .replace(/\s+/g, " ");
 }
 
-export function cacheKeyFor(normalizedTopic: string, timing: GolpoTiming): string {
-  return createHash("sha256").update(`${normalizedTopic}::${timing}`).digest("hex");
+/** A 90-second horizontal lesson is a different rendered file from a 30-second vertical one on the same topic. */
+export function cacheKeyFor(normalizedTopic: string, spec: LessonSpec): string {
+  return createHash("sha256").update(`${normalizedTopic}::${spec.duration}::${spec.orientation}`).digest("hex");
 }
 
-export interface LessonCacheEntry {
+export interface LessonCacheEntry extends LessonSpec {
   canonicalTopic: string;
   sourceVideoId: string;
   categoryId: CategorySlug;
-  timing: GolpoTiming;
   hitCount: number;
 }
 
-export async function lookupLessonCache(rawTopic: string, timing: GolpoTiming): Promise<LessonCacheEntry | null> {
-  const key = cacheKeyFor(normalizeTopic(rawTopic), timing);
+export async function lookupLessonCache(rawTopic: string, spec: LessonSpec): Promise<LessonCacheEntry | null> {
+  const key = cacheKeyFor(normalizeTopic(rawTopic), spec);
   const snap = await db.collection("lessonCache").doc(key).get();
   if (!snap.exists) return null;
   return snap.data() as LessonCacheEntry;
 }
 
-export async function recordLessonCacheHit(rawTopic: string, timing: GolpoTiming): Promise<void> {
-  const key = cacheKeyFor(normalizeTopic(rawTopic), timing);
+export async function recordLessonCacheHit(rawTopic: string, spec: LessonSpec): Promise<void> {
+  const key = cacheKeyFor(normalizeTopic(rawTopic), spec);
   await db.collection("lessonCache").doc(key).update({ hitCount: FieldValue.increment(1) });
 }
 
 export async function writeLessonCache(
   rawTopic: string,
-  timing: GolpoTiming,
-  entry: Omit<LessonCacheEntry, "hitCount">
+  spec: LessonSpec,
+  entry: Omit<LessonCacheEntry, "hitCount" | keyof LessonSpec>
 ): Promise<void> {
-  const key = cacheKeyFor(normalizeTopic(rawTopic), timing);
+  const key = cacheKeyFor(normalizeTopic(rawTopic), spec);
   await db
     .collection("lessonCache")
     .doc(key)
-    .set({ ...entry, hitCount: 0, createdAt: FieldValue.serverTimestamp() });
+    .set({ ...entry, ...spec, hitCount: 0, createdAt: FieldValue.serverTimestamp() });
 }

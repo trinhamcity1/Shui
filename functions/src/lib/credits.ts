@@ -1,7 +1,16 @@
 import { FieldValue, Transaction } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 import { db } from "./admin";
-import { LikeRefundConfig, tierOf, TierId } from "./tiers";
+import {
+  durationLabel,
+  isDurationAllowed,
+  lessonCostCents,
+  LessonDuration,
+  LikeRefundConfig,
+  minimumTierFor,
+  tierOf,
+  TierId,
+} from "./tiers";
 
 export interface Wallet {
   tier: TierId;
@@ -290,23 +299,35 @@ async function writeLedgerRow(
  * actually spent (refundLesson below reverses this on a GolpoAI failure).
  */
 export async function debitForLesson(
-  uid: string
-): Promise<{ usedFreeLesson: boolean; debitedCents: number; tier: TierId; timing: "0.5" | "1" | "2" }> {
+  uid: string,
+  requestedDuration?: LessonDuration
+): Promise<{ usedFreeLesson: boolean; debitedCents: number; tier: TierId; duration: LessonDuration }> {
   return db.runTransaction(async (t) => {
     const wallet = await readWallet(uid, t);
+    const tier = tierOf(wallet.tier);
+    // Omitted only by the developer API, which has no duration parameter —
+    // it gets the tier's longest length, which is what every lesson got
+    // before durations were selectable.
+    const duration = requestedDuration ?? tier.maxDuration;
+    // The app greys out lengths above the tier, but this is the real gate.
+    if (!isDurationAllowed(tier, duration)) {
+      throw new HttpsError(
+        "failed-precondition",
+        `${durationLabel(duration)} lessons need ${minimumTierFor(duration).displayName} or higher.`
+      );
+    }
 
     if (!wallet.hasUsedFreeLesson && wallet.tier === "free") {
       t.set(walletRef(uid), { hasUsedFreeLesson: true, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
       await writeLedgerRow(t, uid, { type: "free_grant", amountCents: 0, note: "lifetime free lesson consumed" });
-      return { usedFreeLesson: true, debitedCents: 0, tier: "free", timing: "0.5" };
+      return { usedFreeLesson: true, debitedCents: 0, tier: "free", duration };
     }
 
-    const tier = tierOf(wallet.tier);
-    const costCents = Math.round(parseFloat(tier.timing) * 400);
+    const costCents = lessonCostCents(tier, duration);
     if (!canAffordLesson(wallet.creditBalanceCents, costCents)) {
       throw new HttpsError(
         "resource-exhausted",
-        `You need $${(costCents / 100).toFixed(2)} of credit for a ${tier.displayName} lesson — top up to continue.`
+        `You need $${(costCents / 100).toFixed(2)} of credit for a ${durationLabel(duration)} lesson — top up to continue.`
       );
     }
 
@@ -316,7 +337,7 @@ export async function debitForLesson(
       { merge: true }
     );
     await writeLedgerRow(t, uid, { type: "lesson_debit", amountCents: -costCents });
-    return { usedFreeLesson: false, debitedCents: costCents, tier: tier.id, timing: tier.timing };
+    return { usedFreeLesson: false, debitedCents: costCents, tier: tier.id, duration };
   });
 }
 

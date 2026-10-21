@@ -9,7 +9,45 @@ export type TierId = "free" | "siltstone" | "obsidian" | "alabaster" | "pyramidi
 
 export const TIER_IDS: TierId[] = ["free", "siltstone", "obsidian", "alabaster", "pyramidion"];
 
+/** The GolpoAI `timing` buckets this app actually sends — a subset of what Golpo supports. */
 export type GolpoTiming = "0.5" | "1" | "2";
+
+/**
+ * What the learner picks, in minutes, spelled the way Golpo spells `timing`.
+ * "1.5" is not a Golpo timing value — it renders as `timing: "2"` with a
+ * script sized for 90 seconds. Golpo's docs only require `timing` to be
+ * >= the script's estimated length, so the shorter script is what sets the
+ * real length (see golpoTimingFor).
+ */
+export const LESSON_DURATIONS = ["0.5", "1", "1.5", "2"] as const;
+export type LessonDuration = (typeof LESSON_DURATIONS)[number];
+
+/** Golpo's only two real output sizes: vertical 1024×1536, horizontal 1536×1024. */
+export const LESSON_ORIENTATIONS = ["vertical", "horizontal"] as const;
+export type LessonOrientation = (typeof LESSON_ORIENTATIONS)[number];
+
+/** The two things that make one rendered lesson a different asset from another on the same topic. */
+export interface LessonSpec {
+  duration: LessonDuration;
+  orientation: LessonOrientation;
+}
+
+export function golpoTimingFor(duration: LessonDuration): GolpoTiming {
+  return duration === "1.5" ? "2" : duration;
+}
+
+export function durationLabel(duration: LessonDuration): string {
+  switch (duration) {
+    case "0.5":
+      return "30-second";
+    case "1":
+      return "1-minute";
+    case "1.5":
+      return "90-second";
+    case "2":
+      return "2-minute";
+  }
+}
 
 export interface LikeRefundConfig {
   /** Likes needed to unlock one $refundCents credit. */
@@ -35,8 +73,10 @@ export interface TierConfig {
   subscriptionCreditCents: number;
   /** Bonus applied to a $5+ top-up, e.g. 10 means $5 -> $5.50. */
   topUpBonusPercent: number;
-  /** The GolpoAI `timing` value every generation at this tier uses — never user-selectable. */
-  timing: GolpoTiming;
+  /** The longest lesson this tier may generate — every shorter LESSON_DURATIONS entry is allowed too. */
+  maxDuration: LessonDuration;
+  /** This tier's per-minute lesson price; any duration's cost is pro-rated from it. */
+  lessonCentsPerMinute: number;
   /** true: Shui burns its watermark onto the file served/downloaded. false: the clean master is served. */
   watermarked: boolean;
   downloadable: boolean;
@@ -51,6 +91,9 @@ export interface TierConfig {
   aiDowngradeThresholdPercent: number | null;
 }
 
+/** The default per-minute lesson rate ($4/min) — a 2x markup on GolpoAI's own $2/min. Every tier uses it today; each tier reads it via its own `lessonCentsPerMinute` so a tier can be repriced alone. */
+export const LESSON_CENTS_PER_MINUTE = 400;
+
 export const TIERS: Record<TierId, TierConfig> = {
   free: {
     id: "free",
@@ -58,7 +101,8 @@ export const TIERS: Record<TierId, TierConfig> = {
     monthlyFeeCents: 0,
     subscriptionCreditCents: 0,
     topUpBonusPercent: 0,
-    timing: "0.5",
+    maxDuration: "0.5",
+    lessonCentsPerMinute: LESSON_CENTS_PER_MINUTE,
     watermarked: true,
     downloadable: false,
     likeRefund: null,
@@ -72,7 +116,8 @@ export const TIERS: Record<TierId, TierConfig> = {
     monthlyFeeCents: 0,
     subscriptionCreditCents: 0,
     topUpBonusPercent: 0,
-    timing: "1",
+    maxDuration: "1",
+    lessonCentsPerMinute: LESSON_CENTS_PER_MINUTE,
     watermarked: true,
     downloadable: true,
     likeRefund: null,
@@ -86,7 +131,8 @@ export const TIERS: Record<TierId, TierConfig> = {
     monthlyFeeCents: 2000,
     subscriptionCreditCents: 2200,
     topUpBonusPercent: 10,
-    timing: "1",
+    maxDuration: "1",
+    lessonCentsPerMinute: LESSON_CENTS_PER_MINUTE,
     watermarked: true,
     downloadable: true,
     likeRefund: null,
@@ -100,7 +146,8 @@ export const TIERS: Record<TierId, TierConfig> = {
     monthlyFeeCents: 5000,
     subscriptionCreditCents: 5750,
     topUpBonusPercent: 15,
-    timing: "2",
+    maxDuration: "2",
+    lessonCentsPerMinute: LESSON_CENTS_PER_MINUTE,
     watermarked: false,
     downloadable: true,
     likeRefund: { thresholdLikes: 100, refundCents: 200, cycleCapCents: 2000, cumulative: false },
@@ -114,7 +161,8 @@ export const TIERS: Record<TierId, TierConfig> = {
     monthlyFeeCents: 20000,
     subscriptionCreditCents: 24000,
     topUpBonusPercent: 20,
-    timing: "2",
+    maxDuration: "2",
+    lessonCentsPerMinute: LESSON_CENTS_PER_MINUTE,
     watermarked: false,
     downloadable: true,
     likeRefund: { thresholdLikes: 100, refundCents: 200, cycleCapCents: 2000, cumulative: true },
@@ -128,14 +176,21 @@ export function tierOf(id: string | undefined | null): TierConfig {
   return TIERS[(id as TierId) ?? "free"] ?? TIERS.free;
 }
 
-/** $4/min flat, every tier — a 2x markup on GolpoAI's own $2/min at every duration. */
-export const LESSON_CENTS_PER_MINUTE = 400;
-
 /** GolpoAI's real cost, informational only — never charged to the learner directly. */
 export const GOLPO_CENTS_PER_MINUTE = 200;
 
-export function lessonCostCents(timing: GolpoTiming): number {
-  return Math.round(parseFloat(timing) * LESSON_CENTS_PER_MINUTE);
+export function isDurationAllowed(tier: TierConfig, duration: LessonDuration): boolean {
+  return parseFloat(duration) <= parseFloat(tier.maxDuration);
+}
+
+/** Pro-rated from the tier's own rate: at $4/min, 30s is $2 and 90s is $6. */
+export function lessonCostCents(tier: TierConfig, duration: LessonDuration): number {
+  return Math.round(parseFloat(duration) * tier.lessonCentsPerMinute);
+}
+
+/** The cheapest tier that unlocks `duration` — for "needs Alabaster" copy. */
+export function minimumTierFor(duration: LessonDuration): TierConfig {
+  return TIER_IDS.map((id) => TIERS[id]).find((tier) => isDurationAllowed(tier, duration)) ?? TIERS.pyramidion;
 }
 
 export const MIN_TOPUP_CENTS = 500; // $5

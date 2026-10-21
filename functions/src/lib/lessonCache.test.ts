@@ -19,15 +19,21 @@ describe("normalizeTopic", () => {
 });
 
 describe("cacheKeyFor", () => {
-  test("same topic + same timing is deterministic", () => {
-    expect(cacheKeyFor("compound interest", "1")).toBe(cacheKeyFor("compound interest", "1"));
+  const v1 = { duration: "1", orientation: "vertical" } as const;
+
+  test("same topic + same spec is deterministic", () => {
+    expect(cacheKeyFor("compound interest", v1)).toBe(cacheKeyFor("compound interest", v1));
   });
 
-  test("same topic, different timing, different key — a 2-minute lesson isn't the same asset as a 1-minute one", () => {
-    expect(cacheKeyFor("compound interest", "1")).not.toBe(cacheKeyFor("compound interest", "2"));
+  test("same topic, different duration, different key — a 2-minute lesson isn't the same asset as a 1-minute one", () => {
+    expect(cacheKeyFor("compound interest", v1)).not.toBe(cacheKeyFor("compound interest", { ...v1, duration: "2" }));
+  });
+
+  test("same topic, different orientation, different key — a horizontal render isn't the vertical one", () => {
+    expect(cacheKeyFor("compound interest", v1)).not.toBe(cacheKeyFor("compound interest", { ...v1, orientation: "horizontal" }));
   });
 
   test("different topics never collide", () => {
-    expect(cacheKeyFor("compound interest", "1")).not.toBe(cacheKeyFor("simple interest", "1"));
+    expect(cacheKeyFor("compound interest", v1)).not.toBe(cacheKeyFor("simple interest", v1));
   });
 });

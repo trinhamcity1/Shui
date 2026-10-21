@@ -1,6 +1,6 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import { CATEGORY_SLUGS, CategorySlug, isCategorySlug } from "../lib/categories";
-import { GolpoTiming } from "../lib/tiers";
+import { durationLabel, LessonDuration, LessonSpec } from "../lib/tiers";
 import { scriptCharBudget } from "../lib/golpo";
 import { DEFAULT_GOLPO_SETTINGS, GolpoSettings, GolpoSettingsSchema } from "../lib/golpoCapabilities";
 import { buildArtWisdomPromptSection } from "../lib/artWisdom";
@@ -31,14 +31,19 @@ export interface RefusedLesson {
  * in the pipeline: the script it writes is exactly what gets rendered and
  * exactly what the quiz is graded against.
  */
-function buildPrompt(topic: string, timing: GolpoTiming): string {
-  const charBudget = scriptCharBudget(timing);
+function buildPrompt(topic: string, spec: LessonSpec): string {
+  const charBudget = scriptCharBudget(spec.duration);
+  const frame =
+    spec.orientation === "vertical"
+      ? "a vertical (portrait, 2:3) frame — compose visuals top-to-bottom, stacked, never wide side-by-side layouts"
+      : "a horizontal (landscape, 3:2) frame — compose visuals left-to-right, side-by-side layouts work well";
   return `You write a short educational lesson script, a comprehension quiz, and the
-GolpoAI render settings for a short-form vertical video app.
+GolpoAI render settings for a short-form educational video app.
 
 Topic requested: "${topic}"
-Target length: ${timing} minute(s) of narration — the script MUST be under ${charBudget}
+Target length: a ${durationLabel(spec.duration)} lesson — the script MUST be under ${charBudget}
 characters, spoken-style prose, no stage directions or scene markers.
+The video renders in ${frame}. Write visualInstructions for that frame.
 
 Pick exactly one category for this lesson from this closed list (respond with the slug):
 ${CATEGORY_SLUGS.join(", ")}
@@ -86,7 +91,7 @@ Respond with JSON only — no prose, no markdown fence — matching exactly:
 }`;
 }
 
-export function parseGeneratedLesson(raw: string, timing: GolpoTiming): GeneratedLesson | RefusedLesson {
+export function parseGeneratedLesson(raw: string, duration: LessonDuration): GeneratedLesson | RefusedLesson {
   const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
   let parsed: unknown;
   try {
@@ -109,11 +114,11 @@ export function parseGeneratedLesson(raw: string, timing: GolpoTiming): Generate
     throw new HttpsError("internal", "The lesson draft came back incomplete. Try again.");
   }
 
-  const charBudget = scriptCharBudget(timing);
+  const charBudget = scriptCharBudget(duration);
   if (script.length > charBudget) {
     throw new HttpsError(
       "internal",
-      `The generated script ran long for a ${timing}-minute lesson. Try again.`
+      `The generated script ran long for a ${durationLabel(duration)} lesson. Try again.`
     );
   }
 
@@ -142,12 +147,12 @@ export interface RunGenerateLessonResult {
   usage: CallUsage;
 }
 
-export async function runGenerateLesson(topic: string, timing: GolpoTiming, modelClient: ModelClient): Promise<RunGenerateLessonResult> {
+export async function runGenerateLesson(topic: string, spec: LessonSpec, modelClient: ModelClient): Promise<RunGenerateLessonResult> {
   const { text: raw, usage } = await modelClient.stream({
-    system: buildPrompt(topic, timing),
+    system: buildPrompt(topic, spec),
     messages: [{ role: "user", content: `Write the lesson for: ${topic}` }],
     maxTokens: MAX_OUTPUT_TOKENS,
     onToken: () => {},
   });
-  return { result: parseGeneratedLesson(raw, timing), usage };
+  return { result: parseGeneratedLesson(raw, spec.duration), usage };
 }

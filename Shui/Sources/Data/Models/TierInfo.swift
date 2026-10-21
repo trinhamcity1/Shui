@@ -16,7 +16,12 @@ struct TierInfo {
     let productId: String?
     let referenceMonthlyFeeCents: Int
     let topUpBonusPercent: Int
-    let lessonMinutes: Double
+    /// The longest lesson this tier may generate; every shorter
+    /// `LessonDuration` is allowed too. Mirrors `maxDuration` server-side.
+    let maxLessonMinutes: Double
+    /// Mirrors `lessonCentsPerMinute` — any length's price is pro-rated
+    /// from it (at $4/min, 30s is $2). Display-only; the server charges.
+    let lessonCentsPerMinute: Int
     let watermarked: Bool
     let downloadable: Bool
     let features: [String]
@@ -31,7 +36,8 @@ struct TierInfo {
             productId: nil,
             referenceMonthlyFeeCents: 0,
             topUpBonusPercent: 0,
-            lessonMinutes: 0.5,
+            maxLessonMinutes: 0.5,
+            lessonCentsPerMinute: 400,
             watermarked: true,
             downloadable: false,
             features: ["One free 30-second lesson, ever", "Watermarked playback"]
@@ -43,10 +49,11 @@ struct TierInfo {
             productId: nil,
             referenceMonthlyFeeCents: 0,
             topUpBonusPercent: 0,
-            lessonMinutes: 1,
+            maxLessonMinutes: 1,
+            lessonCentsPerMinute: 400,
             watermarked: true,
             downloadable: true,
-            features: ["$4/min, pay only for what you generate", "1-minute lessons", "Downloadable (watermarked)", "Developer API access"]
+            features: ["$4/min, pay only for what you generate", "Lessons up to 1 minute", "Downloadable (watermarked)", "Developer API access"]
         ),
         TierInfo(
             tier: .obsidian,
@@ -55,10 +62,11 @@ struct TierInfo {
             productId: "com.shui.app.tier.obsidian.monthly",
             referenceMonthlyFeeCents: 2000,
             topUpBonusPercent: 10,
-            lessonMinutes: 1,
+            maxLessonMinutes: 1,
+            lessonCentsPerMinute: 400,
             watermarked: true,
             downloadable: true,
-            features: ["Monthly credit, unused balance rolls over", "10% bonus on every top-up", "1-minute lessons", "Downloadable (watermarked)"]
+            features: ["Monthly credit, unused balance rolls over", "10% bonus on every top-up", "Lessons up to 1 minute", "Downloadable (watermarked)"]
         ),
         TierInfo(
             tier: .alabaster,
@@ -67,11 +75,12 @@ struct TierInfo {
             productId: "com.shui.app.tier.alabaster.monthly",
             referenceMonthlyFeeCents: 5000,
             topUpBonusPercent: 15,
-            lessonMinutes: 2,
+            maxLessonMinutes: 2,
+            lessonCentsPerMinute: 400,
             watermarked: false,
             downloadable: true,
             features: [
-                "Monthly credit, unused balance rolls over", "15% bonus on every top-up", "2-minute lessons",
+                "Monthly credit, unused balance rolls over", "15% bonus on every top-up", "Lessons up to 2 minutes",
                 "No watermark — clean downloads", "$2 credit refund per video that hits 100 likes (up to $20/cycle)",
             ]
         ),
@@ -82,11 +91,12 @@ struct TierInfo {
             productId: "com.shui.app.tier.pyramidion.monthly",
             referenceMonthlyFeeCents: 20000,
             topUpBonusPercent: 20,
-            lessonMinutes: 2,
+            maxLessonMinutes: 2,
+            lessonCentsPerMinute: 400,
             watermarked: false,
             downloadable: true,
             features: [
-                "Monthly credit, unused balance rolls over", "20% bonus on every top-up", "2-minute lessons",
+                "Monthly credit, unused balance rolls over", "20% bonus on every top-up", "Lessons up to 2 minutes",
                 "No watermark — clean downloads", "$2 credit refund per 100 cumulative likes (up to $20/cycle)",
                 "Developer API access on this same wallet", "Highest AI tutor usage cap",
             ]
@@ -95,5 +105,19 @@ struct TierInfo {
 
     static func info(for tier: Wallet.Tier) -> TierInfo {
         all.first { $0.tier == tier } ?? all[0]
+    }
+
+    func allows(_ duration: LessonDuration) -> Bool {
+        duration.minutes <= maxLessonMinutes
+    }
+
+    func costCents(for duration: LessonDuration) -> Int {
+        Int((duration.minutes * Double(lessonCentsPerMinute)).rounded())
+    }
+
+    /// The cheapest tier that unlocks `duration` — what a locked length's
+    /// chip names.
+    static func minimumTier(for duration: LessonDuration) -> TierInfo? {
+        all.first { $0.allows(duration) }
     }
 }

@@ -6,7 +6,7 @@ import { requireNotGuest } from "../lib/auth";
 import { parseInput } from "../lib/validate";
 import { CreateOnDemandLessonInputSchema } from "../schemas/callableInputs";
 import { debitForLesson, refundLesson } from "../lib/credits";
-import { tierOf } from "../lib/tiers";
+import { golpoTimingFor, LessonDuration, LessonOrientation, LessonSpec, tierOf } from "../lib/tiers";
 import { lookupLessonCache, recordLessonCacheHit } from "../lib/lessonCache";
 import { runGenerateLesson } from "../ai/generateLesson";
 import { splitQuizForStorage, QuizInputSchema } from "../schemas/quiz";
@@ -40,7 +40,7 @@ async function writeQuiz(videoId: string, questions: unknown, updatedBy: string)
  */
 export async function runCreateOnDemandLesson(
   uid: string,
-  topic: string,
+  request: { topic: string; duration?: LessonDuration; orientation?: LessonOrientation },
   deps: { modelClient: ModelClient; golpoClient: GolpoClient },
   // true only for requests through the developer API (functions/src/api/lessonsApi.ts) —
   // the app callable at the bottom of this file always leaves this at its
@@ -58,16 +58,18 @@ export async function runCreateOnDemandLesson(
     throw new HttpsError("unavailable", PROVIDERS_UNAVAILABLE_MESSAGE);
   }
 
+  const { topic } = request;
   const topicId = await ensurePersonalTopic(uid);
 
   // Cache hit: skip Claude and GolpoAI entirely (phase-07 §5). The debit
-  // still happens — a cache hit is pure margin, not a discount — but the
-  // *tier being debited* is looked up first so we know which `timing`
-  // bucket to check the cache against.
-  const debit = await debitForLesson(uid);
+  // still happens — a cache hit is pure margin, not a discount — and comes
+  // first because it's what resolves (and tier-checks) the duration the
+  // cache is keyed on.
+  const debit = await debitForLesson(uid, request.duration);
   const tier = tierOf(debit.tier);
+  const spec: LessonSpec = { duration: debit.duration, orientation: request.orientation ?? "vertical" };
 
-  const cached = await lookupLessonCache(topic, debit.timing);
+  const cached = await lookupLessonCache(topic, spec);
   if (cached) {
     const sourceSnap = await db.collection("videos").doc(cached.sourceVideoId).get();
     const source = sourceSnap.data();
@@ -86,7 +88,8 @@ export async function runCreateOnDemandLesson(
           watermarkedPlaybackURL: source.watermarkedPlaybackURL ?? null,
           durationSeconds: source.durationSeconds ?? null,
           sizeBytes: source.sizeBytes ?? null,
-          timing: debit.timing,
+          timing: spec.duration,
+          orientation: spec.orientation,
           generationSource: "on_demand",
           originatedFromApi,
           generatedFromCache: true,
@@ -97,13 +100,13 @@ export async function runCreateOnDemandLesson(
           publishedAt: FieldValue.serverTimestamp(),
         });
       await copyQuizFrom(cached.sourceVideoId, videoId);
-      await recordLessonCacheHit(topic, debit.timing);
+      await recordLessonCacheHit(topic, spec);
       return { videoId, status: "ready" };
     }
     // Cached source no longer exists/was deleted — fall through to a real generation.
   }
 
-  const { result: generated } = await runGenerateLesson(topic, debit.timing, deps.modelClient);
+  const { result: generated } = await runGenerateLesson(topic, spec, deps.modelClient);
 
   if (generated.refused) {
     await refundLesson(uid, debit.debitedCents, null);
@@ -111,7 +114,13 @@ export async function runCreateOnDemandLesson(
   }
 
   const videoId = randomUUID();
-  const golpo = await deps.golpoClient.generate({ topic, customScript: generated.script, timing: debit.timing, settings: generated.golpoSettings });
+  const golpo = await deps.golpoClient.generate({
+    topic,
+    customScript: generated.script,
+    timing: golpoTimingFor(spec.duration),
+    orientation: spec.orientation,
+    settings: generated.golpoSettings,
+  });
   // No self-tracked spend recording for Golpo anymore — GolpoAI's own
   // /users/credits balance already reflects this the instant their API
   // applies it (providerBudgets.ts's getGolpoRemainingCentsLive reads it
@@ -130,7 +139,10 @@ export async function runCreateOnDemandLesson(
       watermarkedPlaybackURL: null,
       durationSeconds: null,
       sizeBytes: null,
-      timing: debit.timing,
+      // The learner's chosen length in minutes ("1.5" included) — not the
+      // Golpo `timing` bucket it rendered with (golpoTimingFor).
+      timing: spec.duration,
+      orientation: spec.orientation,
       generationSource: "on_demand",
       originatedFromApi,
       generatedFromCache: false,
@@ -166,7 +178,7 @@ async function copyQuizFrom(sourceVideoId: string, targetVideoId: string): Promi
 export const createOnDemandLesson = onCall({ secrets: [...AI_SECRETS, ...GOLPO_SECRETS, ...ALERT_SECRETS] }, async (request) => {
   const uid = requireNotGuest(request);
   const input = parseInput(CreateOnDemandLessonInputSchema, request.data);
-  return runCreateOnDemandLesson(uid, input.topic, {
+  return runCreateOnDemandLesson(uid, input, {
     modelClient: new AnthropicModelClient(),
     golpoClient: new GolpoRestClient(),
   });

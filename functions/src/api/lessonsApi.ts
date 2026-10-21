@@ -79,7 +79,7 @@ async function handleCreateLesson(uid: string, req: Request, res: Response): Pro
 
   const result = await runCreateOnDemandLesson(
     uid,
-    topic,
+    { topic },
     { modelClient: new AnthropicModelClient(), golpoClient: new GolpoRestClient() },
     true // originatedFromApi
   );

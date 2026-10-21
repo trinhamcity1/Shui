@@ -53,7 +53,7 @@ describe("parseGeneratedLesson", () => {
     expect(() => parseGeneratedLesson(bad, "1")).toThrow(HttpsError);
   });
 
-  test("rejects a script over the timing's character budget", () => {
+  test("rejects a script over the duration's character budget", () => {
     const over = JSON.stringify({
       ...JSON.parse(VALID_RESPONSE),
       script: "x".repeat(scriptCharBudget("0.5") + 1),
@@ -67,6 +67,12 @@ describe("parseGeneratedLesson", () => {
     expect(() => parseGeneratedLesson(JSON.stringify(bad), "1")).toThrow(HttpsError);
   });
 
+  test("a 90-second lesson gets a 90-second budget, not its 2-minute Golpo bucket's", () => {
+    const over = JSON.stringify({ ...JSON.parse(VALID_RESPONSE), script: "x".repeat(scriptCharBudget("1.5") + 1) });
+    expect(() => parseGeneratedLesson(over, "1.5")).toThrow(HttpsError);
+    expect(scriptCharBudget("1.5")).toBeLessThan(scriptCharBudget("2"));
+  });
+
   test("unparsable JSON throws rather than silently returning garbage", () => {
     expect(() => parseGeneratedLesson("not json at all", "1")).toThrow(HttpsError);
   });
@@ -75,7 +81,7 @@ describe("parseGeneratedLesson", () => {
 describe("runGenerateLesson", () => {
   test("wires a scripted model response through end to end, and reports real token usage", async () => {
     const fake = new FakeModelClient(VALID_RESPONSE);
-    const { result, usage } = await runGenerateLesson("photosynthesis", "1", fake);
+    const { result, usage } = await runGenerateLesson("photosynthesis", { duration: "1", orientation: "vertical" }, fake);
     expect(result.refused).toBe(false);
     if (!result.refused) {
       expect(result.golpoSettings.engine).toMatch(/^golpo_(canvas|sketch)$/);
@@ -87,7 +93,7 @@ describe("runGenerateLesson", () => {
   test("falls back to DEFAULT_GOLPO_SETTINGS when the model omits golpoSettings", async () => {
     const withoutSettings = JSON.stringify({ ...JSON.parse(VALID_RESPONSE) });
     const fake = new FakeModelClient(withoutSettings);
-    const { result } = await runGenerateLesson("photosynthesis", "1", fake);
+    const { result } = await runGenerateLesson("photosynthesis", { duration: "1", orientation: "vertical" }, fake);
     expect(result.refused).toBe(false);
     if (!result.refused) {
       expect(result.golpoSettings).toEqual(DEFAULT_GOLPO_SETTINGS);

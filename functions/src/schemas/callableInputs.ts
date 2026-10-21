@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { FEATURE_TAP_KEYS } from "../lib/featureTaps";
+import { LESSON_DURATIONS, LESSON_ORIENTATIONS } from "../lib/tiers";
 
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024;
@@ -192,6 +193,9 @@ export type AiTutorMessageInput = z.infer<typeof AiTutorMessageInputSchema>;
 
 export const CreateOnDemandLessonInputSchema = z.object({
   topic: z.string().min(1).max(300),
+  /** Omitted means the tier's longest allowed length (debitForLesson). */
+  duration: z.enum(LESSON_DURATIONS).optional(),
+  orientation: z.enum(LESSON_ORIENTATIONS).optional(),
 });
 export type CreateOnDemandLessonInput = z.infer<typeof CreateOnDemandLessonInputSchema>;
 

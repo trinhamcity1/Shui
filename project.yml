@@ -23,6 +23,10 @@ targets:
       - path: Shui/App
       - path: Shui/Sources
       - path: Shui/Resources
+        excludes:
+          # A listening room for auditioning sounds — see Sounds/README.md.
+          - "Sounds/Library/**"
+          - "**/*.md"
       # StoreKit Testing config (phase-07 IAP) — a project reference only,
       # wired into the Run scheme below, not compiled or bundled.
       - path: Shui/Shui.storekit

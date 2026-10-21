@@ -74,12 +74,13 @@ export async function runCheckOnDemandLessonStatus(
   });
 
   if (!video.generatedFromCache && video.rawTopic) {
-    await writeLessonCache(video.rawTopic, video.timing, {
-      canonicalTopic: video.rawTopic,
-      sourceVideoId: videoId,
-      categoryId: video.categoryId,
-      timing: video.timing,
-    });
+    // `orientation` is absent on lessons created before it was selectable —
+    // every one of those rendered vertical.
+    await writeLessonCache(
+      video.rawTopic,
+      { duration: video.timing, orientation: video.orientation ?? "vertical" },
+      { canonicalTopic: video.rawTopic, sourceVideoId: videoId, categoryId: video.categoryId }
+    );
   }
 
   return { status: "ready" };

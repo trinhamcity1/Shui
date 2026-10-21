@@ -1,5 +1,5 @@
 import { defineSecret, defineString } from "firebase-functions/params";
-import { GolpoTiming } from "./tiers";
+import { GolpoTiming, LessonDuration, LessonOrientation } from "./tiers";
 import { GolpoSettings } from "./golpoCapabilities";
 
 /**
@@ -22,11 +22,12 @@ export const golpoApiBaseUrl = defineString("GOLPO_API_BASE_URL", { default: "ht
 
 export const GOLPO_SECRETS = [golpoApiKey];
 
-/** ~1,050 characters per minute of `timing` — the real Script Mode budget the phase doc cites. */
+/** ~1,050 characters per minute of narration — the real Script Mode budget the phase doc cites. */
 export const GOLPO_CHARS_PER_MINUTE = 1050;
 
-export function scriptCharBudget(timing: GolpoTiming): number {
-  return Math.floor(parseFloat(timing) * GOLPO_CHARS_PER_MINUTE);
+/** Sized from the lesson's own duration, not its Golpo `timing` bucket — a 90-second lesson gets a 90-second script even though it renders with `timing: "2"`. */
+export function scriptCharBudget(duration: LessonDuration): number {
+  return Math.floor(parseFloat(duration) * GOLPO_CHARS_PER_MINUTE);
 }
 
 export interface GolpoGenerateRequest {
@@ -40,7 +41,9 @@ export interface GolpoGenerateRequest {
    */
   topic: string;
   customScript: string;
+  /** Must be >= the script's estimated length (Golpo's docs) — see golpoTimingFor. */
   timing: GolpoTiming;
+  orientation: LessonOrientation;
   settings: GolpoSettings;
 }
 
@@ -68,12 +71,11 @@ export interface GolpoClient {
 
 /**
  * Appended to every render regardless of what the lesson-writing prompt
- * told Claude to put in `visualInstructions` — the app displays Golpo's
- * output at `.resizeAspect` (full frame, never cropped; see
- * `VideoPlayerLayerView`), but Golpo's real output ratio (2:3) still gets
- * pillarboxed/letterboxed against a phone screen, and anything Golpo drew
- * right at the original frame's edge reads as uncomfortably close to those
- * bars. A fixed suffix here reaches every render even if Claude's own
+ * told Claude to put in `visualInstructions` — Golpo's real output ratios
+ * (2:3 vertical, 3:2 horizontal) never match a phone screen, so the app
+ * letterboxes them over a blurred backdrop (`FeedPageView`), and anything
+ * Golpo drew right at the frame's edge reads as uncomfortably close to that
+ * boundary — and gets cut off outright on any platform that crops to fill. A fixed suffix here reaches every render even if Claude's own
  * instructions forget to mention it; it's appended after Claude's 500-char
  * cap (`MAX_INSTRUCTION_CHARS` in golpoCapabilities.ts) rather than inside
  * it, since that cap is this app's own sanity limit on what Claude writes,
@@ -96,7 +98,7 @@ export class GolpoRestClient implements GolpoClient {
         prompt: req.topic,
         custom_script: req.customScript,
         timing: req.timing,
-        video_orientation: "vertical",
+        video_orientation: req.orientation,
         golpo_video_engine: settings.engine,
         canvas_style_variant: settings.canvasStyleVariant,
         sketch_style_variant: settings.sketchStyleVariant,

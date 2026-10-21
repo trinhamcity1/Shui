@@ -50,6 +50,51 @@ final class LessonsAndBillingTests: XCTestCase {
         XCTAssertEqual(TierInfo.info(for: .pyramidion).productId, "com.shui.app.tier.pyramidion.monthly")
     }
 
+    // MARK: - Lesson lengths and prices
+
+    // Every expectation below mirrors functions/src/lib/tiers.test.ts — the
+    // app only displays these, the server charges, so a drift here is a
+    // price shown that isn't the price paid.
+
+    func testEachTierAllowsLengthsUpToItsCap() {
+        func allowed(_ tier: Wallet.Tier) -> [LessonDuration] {
+            LessonDuration.allCases.filter(TierInfo.info(for: tier).allows)
+        }
+        XCTAssertEqual(allowed(.free), [.thirtySeconds])
+        XCTAssertEqual(allowed(.siltstone), [.thirtySeconds, .oneMinute])
+        XCTAssertEqual(allowed(.obsidian), [.thirtySeconds, .oneMinute])
+        XCTAssertEqual(allowed(.alabaster), LessonDuration.allCases)
+        XCTAssertEqual(allowed(.pyramidion), LessonDuration.allCases)
+    }
+
+    func testLessonPriceIsProRatedFromTheTierRate() {
+        let obsidian = TierInfo.info(for: .obsidian)
+        XCTAssertEqual(obsidian.costCents(for: .thirtySeconds), 200)
+        XCTAssertEqual(obsidian.costCents(for: .oneMinute), 400)
+        let alabaster = TierInfo.info(for: .alabaster)
+        XCTAssertEqual(alabaster.costCents(for: .ninetySeconds), 600)
+        XCTAssertEqual(alabaster.costCents(for: .twoMinutes), 800)
+    }
+
+    func testLockedLengthNamesTheCheapestTierThatUnlocksIt() {
+        XCTAssertEqual(TierInfo.minimumTier(for: .oneMinute)?.tier, .siltstone)
+        XCTAssertEqual(TierInfo.minimumTier(for: .ninetySeconds)?.tier, .alabaster)
+        XCTAssertEqual(TierInfo.minimumTier(for: .twoMinutes)?.tier, .alabaster)
+    }
+
+    func testDurationRawValuesMatchTheServerSpelling() {
+        XCTAssertEqual(LessonDuration.allCases.map(\.rawValue), ["0.5", "1", "1.5", "2"])
+    }
+
+    func testPlatformFormatsMapToTheTwoRealSizes() {
+        for format in [LessonFormat.vertical, .tiktok, .instagramReels, .facebookReels, .youtubeShorts] {
+            XCTAssertEqual(format.orientation, .vertical, format.title)
+        }
+        for format in [LessonFormat.horizontal, .youtube] {
+            XCTAssertEqual(format.orientation, .horizontal, format.title)
+        }
+    }
+
     // MARK: - Wallet / CreditTransaction display formatting
 
     func testCreditBalanceDisplayFormatsCentsAsDollars() {
