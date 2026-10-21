@@ -81,11 +81,15 @@ struct Video: Codable, Identifiable, Hashable {
     /// in cents — shown in My Lessons as a receipt, not recomputed
     /// client-side from `tiers.ts`'s pricing table.
     var costChargedCents: Int? = nil
-    /// The learner's own typed topic, before Claude's script/category
-    /// generation — `title` is a truncated-to-80-chars display copy of this
-    /// (`truncateTitle` server-side), so a failed lesson's "Try again"
-    /// action resubmits this, not `title`.
+    /// The learner's own typed idea, before Claude's script/category
+    /// generation, so a failed lesson's "Try again" resubmits this, not
+    /// `title`. Only ever set for a short idea: a long brief isn't stored
+    /// (this doc turns publicly readable once shared to Social), and a
+    /// learner's own script is already `transcript`.
     var rawTopic: String? = nil
+    /// "describe" or "script" — mirrors `LessonMode`; `nil` on lessons
+    /// created before script mode existed (all of which were "describe").
+    var creationMode: String? = nil
 
     var isOnDemandLesson: Bool { generationSource == "on_demand" }
 }

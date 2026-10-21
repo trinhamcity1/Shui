@@ -2,7 +2,7 @@ import { createHash } from "crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import { db } from "./admin";
 import { CategorySlug } from "./categories";
-import { LessonSpec } from "./tiers";
+import { LessonSpec } from "./lessonSpec";
 
 /**
  * v1 scope is exact-normalized-string matching only (phase-07 §5) —
@@ -17,9 +17,11 @@ export function normalizeTopic(raw: string): string {
     .replace(/\s+/g, " ");
 }
 
-/** A 90-second horizontal lesson is a different rendered file from a 30-second vertical one on the same topic. */
+/** Same idea, different length/frame/audience/voice is a different rendered file. */
 export function cacheKeyFor(normalizedTopic: string, spec: LessonSpec): string {
-  return createHash("sha256").update(`${normalizedTopic}::${spec.duration}::${spec.orientation}`).digest("hex");
+  return createHash("sha256")
+    .update(`${normalizedTopic}::${spec.duration}::${spec.orientation}::${spec.purpose}::${spec.voice}`)
+    .digest("hex");
 }
 
 export interface LessonCacheEntry extends LessonSpec {

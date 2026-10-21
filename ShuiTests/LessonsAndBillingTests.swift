@@ -86,6 +86,18 @@ final class LessonsAndBillingTests: XCTestCase {
         XCTAssertEqual(LessonDuration.allCases.map(\.rawValue), ["0.5", "1", "1.5", "2"])
     }
 
+    func testScriptBudgetMirrorsTheServer() {
+        // functions/src/lib/golpo.ts: floor(minutes × 1,050).
+        XCTAssertEqual(LessonDuration.allCases.map(\.scriptCharacterBudget), [525, 1050, 1575, 2100])
+    }
+
+    func testModeVoiceAndPurposeRawValuesMatchTheServerSpelling() {
+        // functions/src/lib/lessonSpec.ts and golpoCapabilities.ts.
+        XCTAssertEqual(LessonMode.allCases.map(\.rawValue), ["describe", "script"])
+        XCTAssertEqual(LessonPurpose.allCases.map(\.rawValue), ["personal", "team_training", "classroom", "social_media"])
+        XCTAssertEqual(LessonVoice.allCases.filter { $0 != .auto }.map(\.rawValue), ["female-1", "female-2", "male-1", "male-2"])
+    }
+
     func testPlatformFormatsMapToTheTwoRealSizes() {
         for format in [LessonFormat.vertical, .tiktok, .instagramReels, .facebookReels, .youtubeShorts] {
             XCTAssertEqual(format.orientation, .vertical, format.title)

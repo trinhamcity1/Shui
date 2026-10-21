@@ -28,27 +28,41 @@ enum LessonGenerationPhase: Equatable {
     case writingScript
     case animating
 
-    var title: String {
-        switch self {
-        case .writingScript: return "Writing your script"
-        case .animating: return "Animating your lesson"
+    func title(for mode: LessonMode) -> String {
+        switch (self, mode) {
+        case (.writingScript, .describe): return "Writing your script"
+        case (.writingScript, .script): return "Reading your script"
+        case (.animating, _): return "Animating your lesson"
         }
     }
 
-    var detail: String {
-        switch self {
-        case .writingScript: return "Researching your topic and drafting a quiz."
-        case .animating: return "Drawing scenes and adding narration."
+    func detail(for mode: LessonMode) -> String {
+        switch (self, mode) {
+        case (.writingScript, .describe): return "Researching your topic and drafting a quiz."
+        case (.writingScript, .script): return "Choosing visuals and drafting a quiz."
+        case (.animating, _): return "Drawing scenes and adding narration."
         }
     }
 }
 
 @MainActor
 final class CreateLessonViewModel: ObservableObject {
-    /// Matches `CreateOnDemandLessonInputSchema`'s `topic` max.
-    static let topicLimit = 300
+    /// Matches `MAX_BRIEF_CHARS` server-side. A script's real limit is far
+    /// lower and depends on the length (`scriptCharacterBudget`); this only
+    /// caps what can be pasted while editing one down.
+    static let textLimit = 5000
 
-    @Published var topic: String
+    @Published var mode: LessonMode
+    /// Describe mode's box, and My script's — kept separate so switching
+    /// modes never throws away what was typed in the other.
+    @Published var topic: String {
+        didSet { if topic.utf16.count > Self.textLimit { topic = Self.capped(topic) } }
+    }
+    @Published var script: String {
+        didSet { if script.utf16.count > Self.textLimit { script = Self.capped(script) } }
+    }
+    @Published var purpose: LessonPurpose = .personal
+    @Published var voice: LessonVoice = .auto
     @Published private(set) var duration: LessonDuration = .thirtySeconds
     @Published var format: LessonFormat = .vertical
     @Published private(set) var stage: LessonCreationStage = .idle
@@ -64,13 +78,32 @@ final class CreateLessonViewModel: ObservableObject {
     /// automatically if the reload afterwards shows it's now unlocked.
     private var durationAwaitingUpgrade: LessonDuration?
 
-    init(environment: AppEnvironment, initialTopic: String = "") {
+    init(environment: AppEnvironment, initialText: String = "", initialMode: LessonMode = .describe) {
         self.environment = environment
-        self.topic = initialTopic
+        self.mode = initialMode
+        self.topic = initialMode == .describe ? initialText : ""
+        self.script = initialMode == .script ? initialText : ""
     }
 
-    var trimmedTopic: String { topic.trimmingCharacters(in: .whitespacesAndNewlines) }
-    var canSubmit: Bool { !trimmedTopic.isEmpty && !stage.isBusy }
+    /// What will actually be sent — whichever box the current mode uses.
+    var activeText: String {
+        (mode == .describe ? topic : script).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// In UTF-16 units, the way the server measures it.
+    var activeLength: Int { activeText.utf16.count }
+
+    var scriptOverBudget: Bool {
+        mode == .script && activeLength > duration.scriptCharacterBudget
+    }
+
+    /// A brief longer than the chosen length can narrate gets condensed to
+    /// its key points rather than rushed through.
+    var briefWillBeCondensed: Bool {
+        mode == .describe && activeLength > duration.scriptCharacterBudget
+    }
+
+    var canSubmit: Bool { !activeText.isEmpty && !stage.isBusy && !scriptOverBudget }
     var tierInfo: TierInfo { TierInfo.info(for: wallet?.tier ?? .free) }
 
     private var isFirstFreeLesson: Bool {
@@ -134,18 +167,17 @@ final class CreateLessonViewModel: ObservableObject {
     }
 
     func generate() {
-        let topic = trimmedTopic
-        guard !topic.isEmpty, !stage.isBusy else { return }
+        let text = activeText
+        guard !text.isEmpty, !stage.isBusy, !scriptOverBudget else { return }
         AppAnalytics.logFeatureTap(.createLesson)
-        let chosenDuration = duration
-        let chosenOrientation = format.orientation
+        let request = LessonRequest(
+            mode: mode, text: text, duration: duration, orientation: format.orientation, purpose: purpose, voice: voice
+        )
         phase = .writingScript
         stage = .generating
         Task {
             do {
-                let (videoId, status) = try await environment.onDemandLessons.createLesson(
-                    topic: topic, duration: chosenDuration, orientation: chosenOrientation
-                )
+                let (videoId, status) = try await environment.onDemandLessons.createLesson(request)
                 if status == "ready" {
                     stage = .ready(videoId: videoId)
                 } else {
@@ -210,6 +242,19 @@ final class CreateLessonViewModel: ObservableObject {
     private static func currency(_ cents: Int) -> String {
         (Double(cents) / 100).formatted(.currency(code: "USD"))
     }
+
+    /// Trims to `textLimit` UTF-16 units without splitting a character.
+    private static func capped(_ text: String) -> String {
+        var result = ""
+        var used = 0
+        for character in text {
+            let size = character.utf16.count
+            if used + size > textLimit { break }
+            result.append(character)
+            used += size
+        }
+        return result
+    }
 }
 
 /// A composer, not a form: the topic gets the whole stage, length and
@@ -230,11 +275,15 @@ struct CreateLessonView: View {
     @State private var burstTrigger = 0
     @State private var selectionTick = 0
     @State private var isLaunching = false
+    @State private var showStyleOptions = false
     @FocusState private var topicFieldFocused: Bool
+    @Namespace private var modeNamespace
 
-    init(environment: AppEnvironment, initialTopic: String = "") {
+    init(environment: AppEnvironment, initialText: String = "", initialMode: LessonMode = .describe) {
         self.environment = environment
-        _viewModel = StateObject(wrappedValue: CreateLessonViewModel(environment: environment, initialTopic: initialTopic))
+        _viewModel = StateObject(wrappedValue: CreateLessonViewModel(
+            environment: environment, initialText: initialText, initialMode: initialMode
+        ))
     }
 
     var body: some View {
@@ -310,10 +359,14 @@ struct CreateLessonView: View {
     private var composer: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
-                header
-                topicCard
+                VStack(alignment: .leading, spacing: 18) {
+                    header
+                    modePicker
+                    topicCard
+                }
                 lengthSection
                 formatSection
+                styleSection
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
@@ -321,76 +374,169 @@ struct CreateLessonView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom, spacing: 0) { summaryBar }
+        // Briefs and scripts are multi-paragraph, so Return inserts a line
+        // break; this is the way out of the keyboard.
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button(Strings.done) { topicFieldFocused = false }
+            }
+        }
+        // Voice matters most to someone writing their own narration.
+        .onChange(of: viewModel.mode) { _, newValue in
+            if newValue == .script {
+                withAnimation(.snappy) { showStyleOptions = true }
+            }
+        }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("What do you want to learn?")
+            Text(viewModel.mode == .describe ? "What do you want to learn?" : "Your words, brought to life")
                 .font(.system(.title, design: .rounded, weight: .bold))
                 .foregroundStyle(theme.textPrimary)
-            Text("Shui writes the script, animates it, and adds a quiz.")
+            Text(viewModel.mode == .describe
+                 ? "Type an idea, or paste a detailed brief — rules, steps, notes. Shui writes the script, animates it, and adds a quiz."
+                 : "Shui reads your script exactly as written, animates it, and adds a quiz.")
                 .font(.subheadline)
                 .foregroundStyle(theme.textSecondary)
         }
+        .animation(.snappy, value: viewModel.mode)
+    }
+
+    private var modePicker: some View {
+        HStack(spacing: 4) {
+            ForEach(LessonMode.allCases) { mode in
+                let selected = viewModel.mode == mode
+                Button {
+                    selectionTick += 1
+                    withAnimation(.snappy) { viewModel.mode = mode }
+                } label: {
+                    Label(mode.title, systemImage: mode.systemImage)
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .foregroundStyle(selected ? theme.textOnAccent : theme.textSecondary)
+                        .background {
+                            if selected {
+                                Capsule()
+                                    .fill(theme.accentGradient)
+                                    .matchedGeometryEffect(id: "modeHighlight", in: modeNamespace)
+                            }
+                        }
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .padding(4)
+        .background(Capsule().fill(theme.surfaceSubtle))
+    }
+
+    private var activeTextBinding: Binding<String> {
+        viewModel.mode == .describe ? $viewModel.topic : $viewModel.script
     }
 
     private var topicCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            TextField("e.g. How does compound interest work?", text: $viewModel.topic, axis: .vertical)
-                .font(.title3)
-                .foregroundStyle(theme.textPrimary)
-                .lineLimit(3...6)
-                .focused($topicFieldFocused)
-                .submitLabel(.done)
-            HStack {
-                if !viewModel.topic.isEmpty {
-                    Button {
-                        viewModel.topic = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(theme.textSecondary)
-                    .accessibilityLabel("Clear topic")
-                }
-                Spacer()
-                Text("\(viewModel.topic.count)/\(CreateLessonViewModel.topicLimit)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(theme.textSecondary)
-            }
-        }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: Theme.cornerRadiusCard, style: .continuous)
-                .fill(theme.surface)
-                .shadow(color: .black.opacity(0.06), radius: 14, y: 6)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.cornerRadiusCard, style: .continuous)
-                .strokeBorder(
-                    topicFieldFocused ? AnyShapeStyle(theme.accentGradient) : AnyShapeStyle(theme.borderSubtle),
-                    lineWidth: topicFieldFocused ? 2 : 1
+        let overBudget = viewModel.scriptOverBudget
+        return VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
+                TextField(
+                    viewModel.mode == .describe
+                        ? "An idea — or paste your notes, rules, or steps"
+                        : "Write exactly what the narrator should say…",
+                    text: activeTextBinding,
+                    axis: .vertical
                 )
-        )
-        .contentShape(Rectangle())
-        .onTapGesture { topicFieldFocused = true }
-        .animation(.snappy, value: topicFieldFocused)
-        // A multi-line field's return key inserts a newline; here it means
-        // "done" instead, and the topic never carries line breaks or runs
-        // past the server's limit.
-        .onChange(of: viewModel.topic) { _, newValue in
-            var cleaned = newValue
-            if cleaned.contains("\n") {
-                cleaned = cleaned.replacingOccurrences(of: "\n", with: " ")
-                topicFieldFocused = false
+                .font(viewModel.mode == .describe ? Font.title3 : Font.body)
+                .foregroundStyle(theme.textPrimary)
+                .lineLimit(viewModel.mode == .describe ? 3...10 : 6...14)
+                .focused($topicFieldFocused)
+                // One field per mode: its binding changes with the mode, and a
+                // focused field can otherwise keep showing the other mode's text.
+                .id(viewModel.mode)
+                HStack {
+                    if !activeTextBinding.wrappedValue.isEmpty {
+                        Button {
+                            activeTextBinding.wrappedValue = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(theme.textSecondary)
+                        .accessibilityLabel("Clear")
+                    }
+                    Spacer()
+                    Text(counterText)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(overBudget ? theme.warning : theme.textSecondary)
+                }
             }
-            if cleaned.count > CreateLessonViewModel.topicLimit {
-                cleaned = String(cleaned.prefix(CreateLessonViewModel.topicLimit))
+            .padding(18)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.cornerRadiusCard, style: .continuous)
+                    .fill(theme.surface)
+                    .shadow(color: .black.opacity(0.06), radius: 14, y: 6)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.cornerRadiusCard, style: .continuous)
+                    .strokeBorder(
+                        overBudget
+                            ? AnyShapeStyle(theme.warning)
+                            : (topicFieldFocused ? AnyShapeStyle(theme.accentGradient) : AnyShapeStyle(theme.borderSubtle)),
+                        lineWidth: overBudget || topicFieldFocused ? 2 : 1
+                    )
+            )
+            .contentShape(Rectangle())
+            .onTapGesture { topicFieldFocused = true }
+            .animation(.snappy, value: topicFieldFocused)
+
+            textGuidance
+        }
+    }
+
+    private var counterText: String {
+        let limit = viewModel.mode == .script ? viewModel.duration.scriptCharacterBudget : CreateLessonViewModel.textLimit
+        return "\(viewModel.activeLength.formatted()) / \(limit.formatted())"
+    }
+
+    /// What the text in the box will turn into at the chosen length.
+    @ViewBuilder
+    private var textGuidance: some View {
+        let duration = viewModel.duration
+        switch viewModel.mode {
+        case .describe:
+            if viewModel.briefWillBeCondensed {
+                guidanceLabel(
+                    "More than a \(duration.adjective) lesson can cover — Shui will focus on the key points.",
+                    systemImage: "text.badge.checkmark",
+                    color: theme.textSecondary
+                )
             }
-            if cleaned != newValue {
-                viewModel.topic = cleaned
+        case .script:
+            if viewModel.scriptOverBudget {
+                guidanceLabel(
+                    "Too long for a \(duration.adjective) lesson — shorten it or pick a longer length.",
+                    systemImage: "exclamationmark.triangle.fill",
+                    color: theme.warning
+                )
+            } else {
+                guidanceLabel(
+                    "Read exactly as written. A \(duration.adjective) lesson fits up to \(duration.scriptCharacterBudget.formatted()) characters, about \((duration.scriptCharacterBudget / 6).formatted()) words.",
+                    systemImage: "info.circle",
+                    color: theme.textSecondary
+                )
             }
         }
+    }
+
+    private func guidanceLabel(_ text: String, systemImage: String, color: Color) -> some View {
+        Label(text, systemImage: systemImage)
+            .font(.footnote)
+            .foregroundStyle(color)
+            .padding(.horizontal, 4)
+            .transition(.opacity)
     }
 
     private var lengthSection: some View {
@@ -547,6 +693,102 @@ struct CreateLessonView: View {
             .foregroundStyle(theme.textSecondary)
     }
 
+    private var styleSection: some View {
+        let twoColumns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+        return VStack(alignment: .leading, spacing: 12) {
+            Button {
+                withAnimation(.snappy) { showStyleOptions.toggle() }
+            } label: {
+                HStack(spacing: 8) {
+                    sectionLabel("Voice & purpose", systemImage: "waveform")
+                    Spacer(minLength: 8)
+                    if !showStyleOptions {
+                        Text("\(viewModel.purpose.title) · \(viewModel.voice == .auto ? "Auto voice" : "\(viewModel.voice.title) voice")")
+                            .font(.footnote)
+                            .foregroundStyle(theme.textSecondary)
+                            .lineLimit(1)
+                    }
+                    Image(systemName: "chevron.down")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(theme.textSecondary)
+                        .rotationEffect(.degrees(showStyleOptions ? 180 : 0))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(showStyleOptions ? "Hide voice and purpose" : "Voice and purpose: \(viewModel.purpose.title), \(viewModel.voice.title) voice")
+
+            if showStyleOptions {
+                VStack(alignment: .leading, spacing: 10) {
+                    optionGroupLabel("Made for")
+                    LazyVGrid(columns: twoColumns, spacing: 10) {
+                        ForEach(LessonPurpose.allCases) { purpose in
+                            optionCard(title: purpose.title, detail: purpose.detail, systemImage: purpose.systemImage,
+                                       selected: viewModel.purpose == purpose) { viewModel.purpose = purpose }
+                        }
+                    }
+                    optionGroupLabel("Voice")
+                        .padding(.top, 6)
+                    LazyVGrid(columns: twoColumns, spacing: 10) {
+                        ForEach(LessonVoice.allCases) { voice in
+                            optionCard(title: voice.title, detail: voice.detail, systemImage: voice.systemImage,
+                                       selected: viewModel.voice == voice) { viewModel.voice = voice }
+                        }
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    private func optionGroupLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(theme.textSecondary)
+    }
+
+    private func optionCard(title: String, detail: String, systemImage: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button {
+            selectionTick += 1
+            withAnimation(.snappy) { action() }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: systemImage)
+                    .font(.subheadline)
+                    .foregroundStyle(selected ? theme.accent : theme.textSecondary)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(theme.textPrimary)
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(theme.textSecondary)
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(theme.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(
+                        selected ? AnyShapeStyle(theme.accentGradient) : AnyShapeStyle(theme.borderSubtle),
+                        lineWidth: selected ? 2 : 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title), \(detail)")
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
     // MARK: - Summary bar
 
     private var summaryBar: some View {
@@ -642,13 +884,13 @@ struct CreateLessonView: View {
             LessonOrb(colors: theme.accentGradientStops)
             VStack(spacing: 10) {
                 ZStack {
-                    Text(viewModel.phase.title)
+                    Text(viewModel.phase.title(for: viewModel.mode))
                         .font(.system(.title2, design: .rounded, weight: .bold))
                         .foregroundStyle(theme.textPrimary)
                         .id(viewModel.phase)
                         .transition(.opacity.combined(with: .offset(y: 8)))
                 }
-                Text(viewModel.phase.detail)
+                Text(viewModel.phase.detail(for: viewModel.mode))
                     .font(.subheadline)
                     .foregroundStyle(theme.textSecondary)
                     .id(viewModel.phase)
@@ -659,7 +901,7 @@ struct CreateLessonView: View {
             .animation(.smooth(duration: 0.45), value: viewModel.phase)
             .multilineTextAlignment(.center)
 
-            Text("“\(viewModel.trimmedTopic)”")
+            Text("“\(viewModel.activeText)”")
                 .font(.subheadline.italic())
                 .foregroundStyle(theme.textSecondary)
                 .multilineTextAlignment(.center)

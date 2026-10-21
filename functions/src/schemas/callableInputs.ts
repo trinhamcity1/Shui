@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { FEATURE_TAP_KEYS } from "../lib/featureTaps";
 import { LESSON_DURATIONS, LESSON_ORIENTATIONS } from "../lib/tiers";
+import { LESSON_MODES, LESSON_PURPOSES, MAX_BRIEF_CHARS, MAX_SCRIPT_CHARS } from "../lib/lessonSpec";
+import { GOLPO_VOICES } from "../lib/golpoCapabilities";
 
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024;
@@ -191,12 +193,34 @@ export type AiTutorMessageInput = z.infer<typeof AiTutorMessageInputSchema>;
 
 // ---- Phase 7: lessons on demand ------------------------------------------
 
-export const CreateOnDemandLessonInputSchema = z.object({
-  topic: z.string().min(1).max(300),
-  /** Omitted means the tier's longest allowed length (debitForLesson). */
-  duration: z.enum(LESSON_DURATIONS).optional(),
-  orientation: z.enum(LESSON_ORIENTATIONS).optional(),
-});
+export const CreateOnDemandLessonInputSchema = z
+  .object({
+    /** Omitted means "describe". */
+    mode: z.enum(LESSON_MODES).optional(),
+    topic: z.string().max(MAX_BRIEF_CHARS).optional(),
+    script: z.string().max(MAX_SCRIPT_CHARS).optional(),
+    /** Omitted means the tier's longest allowed length (debitForLesson). */
+    duration: z.enum(LESSON_DURATIONS).optional(),
+    orientation: z.enum(LESSON_ORIENTATIONS).optional(),
+    purpose: z.enum(LESSON_PURPOSES).optional(),
+    /** Omitted means the lesson-writing call picks the voice. */
+    voice: z.enum(GOLPO_VOICES).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if ((value.mode ?? "describe") === "describe") {
+      if (!value.topic?.trim()) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "topic is required", path: ["topic"] });
+      }
+      return;
+    }
+    if (!value.script?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "script is required in script mode", path: ["script"] });
+    }
+    // A script's length limit depends on the length, so it can't be checked without one.
+    if (!value.duration) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "duration is required in script mode", path: ["duration"] });
+    }
+  });
 export type CreateOnDemandLessonInput = z.infer<typeof CreateOnDemandLessonInputSchema>;
 
 export const CheckOnDemandLessonStatusInputSchema = z.object({

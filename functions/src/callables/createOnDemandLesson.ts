@@ -6,12 +6,14 @@ import { requireNotGuest } from "../lib/auth";
 import { parseInput } from "../lib/validate";
 import { CreateOnDemandLessonInputSchema } from "../schemas/callableInputs";
 import { debitForLesson, refundLesson } from "../lib/credits";
-import { golpoTimingFor, LessonDuration, LessonOrientation, LessonSpec, tierOf } from "../lib/tiers";
+import { durationLabel, golpoTimingFor, LessonDuration, LessonOrientation, tierOf } from "../lib/tiers";
+import { LessonMode, LessonPurpose, LessonSpec, SHORT_IDEA_MAX_CHARS } from "../lib/lessonSpec";
+import { GolpoVoice } from "../lib/golpoCapabilities";
 import { lookupLessonCache, recordLessonCacheHit } from "../lib/lessonCache";
 import { runGenerateLesson } from "../ai/generateLesson";
 import { splitQuizForStorage, QuizInputSchema } from "../schemas/quiz";
 import { AnthropicModelClient, ModelClient, AI_SECRETS } from "../ai/modelClient";
-import { GolpoClient, GolpoRestClient, GOLPO_SECRETS } from "../lib/golpo";
+import { GolpoClient, GolpoRestClient, GOLPO_SECRETS, scriptCharBudget } from "../lib/golpo";
 import { baseOnDemandVideoShape, ensurePersonalTopic, truncateTitle } from "../lib/onDemandVideo";
 import { ALERT_SECRETS, checkProvidersAvailable } from "../lib/providerBudgets";
 
@@ -33,6 +35,21 @@ async function writeQuiz(videoId: string, questions: unknown, updatedBy: string)
   ]);
 }
 
+/** What a learner (or developer-API caller) asks for — every field but the text is optional. */
+export interface CreateLessonRequest {
+  /** Defaults to "describe". */
+  mode?: LessonMode;
+  /** Describe mode: an idea or a detailed brief. */
+  topic?: string;
+  /** Script mode: the narration, read word-for-word. */
+  script?: string;
+  duration?: LessonDuration;
+  orientation?: LessonOrientation;
+  purpose?: LessonPurpose;
+  /** Omitted means AI Art Wisdom picks the voice. */
+  voice?: GolpoVoice;
+}
+
 /**
  * The real work, factored out from the `onCall` wrapper so tests can supply
  * `FakeModelClient`/`FakeGolpoClient` — same split as every other AI-backed
@@ -40,7 +57,7 @@ async function writeQuiz(videoId: string, questions: unknown, updatedBy: string)
  */
 export async function runCreateOnDemandLesson(
   uid: string,
-  request: { topic: string; duration?: LessonDuration; orientation?: LessonOrientation },
+  request: CreateLessonRequest,
   deps: { modelClient: ModelClient; golpoClient: GolpoClient },
   // true only for requests through the developer API (functions/src/api/lessonsApi.ts) —
   // the app callable at the bottom of this file always leaves this at its
@@ -49,6 +66,22 @@ export async function runCreateOnDemandLesson(
   // Social-eligible.
   originatedFromApi = false
 ): Promise<CreateOnDemandLessonResult> {
+  const mode: LessonMode = request.mode ?? "describe";
+  const text = ((mode === "script" ? request.script : request.topic) ?? "").trim();
+  if (!text) {
+    throw new HttpsError("invalid-argument", mode === "script" ? "Write a script first." : "Describe what you want to learn first.");
+  }
+  // Checked before anything is charged. The app blocks this already; this is
+  // the real gate, and the schema guarantees `duration` in script mode.
+  if (mode === "script" && request.duration && text.length > scriptCharBudget(request.duration)) {
+    throw new HttpsError(
+      "invalid-argument",
+      `Your script is ${text.length} characters — a ${durationLabel(request.duration)} lesson fits up to ` +
+        `${scriptCharBudget(request.duration)}. Shorten it or pick a longer length.`
+    );
+  }
+  const isShortIdea = mode === "describe" && text.length <= SHORT_IDEA_MAX_CHARS;
+
   // The circuit breaker — checked before anything is debited or spent, so a
   // learner is never charged for a lesson Shui's own account can't actually
   // afford to render. See providerBudgets.ts's own doc comment for why this
@@ -58,18 +91,23 @@ export async function runCreateOnDemandLesson(
     throw new HttpsError("unavailable", PROVIDERS_UNAVAILABLE_MESSAGE);
   }
 
-  const { topic } = request;
   const topicId = await ensurePersonalTopic(uid);
 
-  // Cache hit: skip Claude and GolpoAI entirely (phase-07 §5). The debit
-  // still happens — a cache hit is pure margin, not a discount — and comes
-  // first because it's what resolves (and tier-checks) the duration the
-  // cache is keyed on.
+  // The debit comes first because it's what resolves (and tier-checks) the
+  // duration everything below is keyed on.
   const debit = await debitForLesson(uid, request.duration);
   const tier = tierOf(debit.tier);
-  const spec: LessonSpec = { duration: debit.duration, orientation: request.orientation ?? "vertical" };
+  const spec: LessonSpec = {
+    duration: debit.duration,
+    orientation: request.orientation ?? "vertical",
+    purpose: request.purpose ?? "personal",
+    voice: request.voice ?? "auto",
+  };
 
-  const cached = await lookupLessonCache(topic, spec);
+  // Cache hit: skip Claude and GolpoAI entirely (phase-07 §5) — short ideas
+  // only; a brief or a learner's own script is bespoke. A cache hit is pure
+  // margin, not a discount: the debit above still stands.
+  const cached = isShortIdea ? await lookupLessonCache(text, spec) : null;
   if (cached) {
     const sourceSnap = await db.collection("videos").doc(cached.sourceVideoId).get();
     const source = sourceSnap.data();
@@ -79,8 +117,8 @@ export async function runCreateOnDemandLesson(
         .collection("videos")
         .doc(videoId)
         .set({
-          ...baseOnDemandVideoShape({ uid, topicId, categoryId: cached.categoryId, title: truncateTitle(topic) }),
-          rawTopic: topic,
+          ...baseOnDemandVideoShape({ uid, topicId, categoryId: cached.categoryId, title: truncateTitle(text) }),
+          ...lessonShapeFields(mode, text, isShortIdea, spec),
           status: "ready",
           transcript: source.transcript ?? null,
           transcriptSource: "on_demand_script",
@@ -88,8 +126,6 @@ export async function runCreateOnDemandLesson(
           watermarkedPlaybackURL: source.watermarkedPlaybackURL ?? null,
           durationSeconds: source.durationSeconds ?? null,
           sizeBytes: source.sizeBytes ?? null,
-          timing: spec.duration,
-          orientation: spec.orientation,
           generationSource: "on_demand",
           originatedFromApi,
           generatedFromCache: true,
@@ -100,26 +136,31 @@ export async function runCreateOnDemandLesson(
           publishedAt: FieldValue.serverTimestamp(),
         });
       await copyQuizFrom(cached.sourceVideoId, videoId);
-      await recordLessonCacheHit(topic, spec);
+      await recordLessonCacheHit(text, spec);
       return { videoId, status: "ready" };
     }
     // Cached source no longer exists/was deleted — fall through to a real generation.
   }
 
-  const { result: generated } = await runGenerateLesson(topic, spec, deps.modelClient);
+  const { result: generated } = await runGenerateLesson({ mode, text }, spec, deps.modelClient);
 
   if (generated.refused) {
     await refundLesson(uid, debit.debitedCents, null);
     throw new HttpsError("invalid-argument", generated.reason);
   }
 
+  // A short idea is its own title, as it always was; a brief or a script
+  // needs a real one rather than its first 80 characters.
+  const title = truncateTitle(isShortIdea ? text : generated.title ?? text);
+  const golpoSettings = spec.voice === "auto" ? generated.golpoSettings : { ...generated.golpoSettings, voice: spec.voice };
+
   const videoId = randomUUID();
   const golpo = await deps.golpoClient.generate({
-    topic,
+    topic: title,
     customScript: generated.script,
     timing: golpoTimingFor(spec.duration),
     orientation: spec.orientation,
-    settings: generated.golpoSettings,
+    settings: golpoSettings,
   });
   // No self-tracked spend recording for Golpo anymore — GolpoAI's own
   // /users/credits balance already reflects this the instant their API
@@ -130,8 +171,8 @@ export async function runCreateOnDemandLesson(
     .collection("videos")
     .doc(videoId)
     .set({
-      ...baseOnDemandVideoShape({ uid, topicId, categoryId: generated.categoryId, title: truncateTitle(topic) }),
-      rawTopic: topic,
+      ...baseOnDemandVideoShape({ uid, topicId, categoryId: generated.categoryId, title }),
+      ...lessonShapeFields(mode, text, isShortIdea, spec),
       status: "generating",
       transcript: generated.script,
       transcriptSource: "on_demand_script",
@@ -139,10 +180,6 @@ export async function runCreateOnDemandLesson(
       watermarkedPlaybackURL: null,
       durationSeconds: null,
       sizeBytes: null,
-      // The learner's chosen length in minutes ("1.5" included) — not the
-      // Golpo `timing` bucket it rendered with (golpoTimingFor).
-      timing: spec.duration,
-      orientation: spec.orientation,
       generationSource: "on_demand",
       originatedFromApi,
       generatedFromCache: false,
@@ -151,14 +188,34 @@ export async function runCreateOnDemandLesson(
       costChargedCents: debit.debitedCents,
       hasQuiz: true,
       golpoJobId: golpo.jobId,
-      golpoSettings: generated.golpoSettings,
+      golpoSettings,
     });
 
   // Written now, not when the render finishes — the quiz is a pure function
-  // of the script Claude already returned, and never depends on GolpoAI.
+  // of the script, and never depends on GolpoAI.
   await writeQuiz(videoId, generated.questions, uid);
 
   return { videoId, status: "generating" };
+}
+
+/**
+ * The fields that record how a lesson was asked for. `rawTopic` is kept
+ * only for a short idea: it's what the cache write in
+ * checkOnDemandLessonStatus keys on (so null also means "never cache"), and
+ * a video doc becomes publicly readable once shared to Social — a pasted
+ * brief can hold far more than the narration that ends up public anyway.
+ */
+function lessonShapeFields(mode: LessonMode, text: string, isShortIdea: boolean, spec: LessonSpec) {
+  return {
+    rawTopic: isShortIdea ? text : null,
+    creationMode: mode,
+    // The learner's chosen length in minutes ("1.5" included) — not the
+    // Golpo `timing` bucket it rendered with (golpoTimingFor).
+    timing: spec.duration,
+    orientation: spec.orientation,
+    purpose: spec.purpose,
+    voiceChoice: spec.voice,
+  };
 }
 
 async function copyQuizFrom(sourceVideoId: string, targetVideoId: string): Promise<void> {

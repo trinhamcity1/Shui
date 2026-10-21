@@ -73,12 +73,19 @@ export async function runCheckOnDemandLessonStatus(
     updatedAt: FieldValue.serverTimestamp(),
   });
 
+  // `rawTopic` is only ever set for a short idea — a brief or a learner's own
+  // script is bespoke and never cached (createOnDemandLesson).
   if (!video.generatedFromCache && video.rawTopic) {
-    // `orientation` is absent on lessons created before it was selectable —
-    // every one of those rendered vertical.
+    // The fallbacks are what every lesson created before each of these was
+    // selectable actually rendered with.
     await writeLessonCache(
       video.rawTopic,
-      { duration: video.timing, orientation: video.orientation ?? "vertical" },
+      {
+        duration: video.timing,
+        orientation: video.orientation ?? "vertical",
+        purpose: video.purpose ?? "personal",
+        voice: video.voiceChoice ?? "auto",
+      },
       { canonicalTopic: video.rawTopic, sourceVideoId: videoId, categoryId: video.categoryId }
     );
   }

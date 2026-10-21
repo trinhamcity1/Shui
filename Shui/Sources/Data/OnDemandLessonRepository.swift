@@ -41,7 +41,7 @@ protocol OnDemandLessonRepository {
     /// (phase-07 §5) — the caller should treat that the same as any other
     /// ready lesson, not assume a fresh generation just because this call
     /// just happened.
-    func createLesson(topic: String, duration: LessonDuration, orientation: LessonOrientation) async throws -> (videoId: String, status: String)
+    func createLesson(_ request: LessonRequest) async throws -> (videoId: String, status: String)
     /// Poll every ~3s while `status == "generating"` (§7) — this both reads
     /// GolpoAI's job status *and*, server-side, performs the
     /// watermark/cache-write side effects the first time it observes a
@@ -66,13 +66,22 @@ struct FirestoreOnDemandLessonRepository: OnDemandLessonRepository {
         self.functions = functions
     }
 
-    func createLesson(topic: String, duration: LessonDuration, orientation: LessonOrientation) async throws -> (videoId: String, status: String) {
+    func createLesson(_ request: LessonRequest) async throws -> (videoId: String, status: String) {
+        var payload: [String: Any] = [
+            "mode": request.mode.rawValue,
+            "duration": request.duration.rawValue,
+            "orientation": request.orientation.rawValue,
+            "purpose": request.purpose.rawValue,
+        ]
+        switch request.mode {
+        case .describe: payload["topic"] = request.text
+        case .script: payload["script"] = request.text
+        }
+        if request.voice != .auto {
+            payload["voice"] = request.voice.rawValue
+        }
         do {
-            let result = try await functions.httpsCallable("createOnDemandLesson").call([
-                "topic": topic,
-                "duration": duration.rawValue,
-                "orientation": orientation.rawValue,
-            ])
+            let result = try await functions.httpsCallable("createOnDemandLesson").call(payload)
             guard let data = result.data as? [String: Any],
                   let videoId = data["videoId"] as? String,
                   let status = data["status"] as? String else {
@@ -153,7 +162,7 @@ final class InMemoryOnDemandLessonRepository: OnDemandLessonRepository {
     private var pollCounts: [String: Int] = [:]
     var sharedVideoIds: Set<String> = []
 
-    func createLesson(topic: String, duration: LessonDuration, orientation: LessonOrientation) async throws -> (videoId: String, status: String) {
+    func createLesson(_ request: LessonRequest) async throws -> (videoId: String, status: String) {
         (UUID().uuidString, "generating")
     }
 

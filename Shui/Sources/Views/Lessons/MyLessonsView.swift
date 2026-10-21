@@ -68,7 +68,8 @@ struct MyLessonsView: View {
 
     private struct RetryTarget: Identifiable {
         let id = UUID()
-        let topic: String
+        let mode: LessonMode
+        let text: String
     }
 
     init(environment: AppEnvironment) {
@@ -118,7 +119,7 @@ struct MyLessonsView: View {
             CreateLessonView(environment: environment)
         }
         .sheet(item: $retryTarget, onDismiss: { Task { await viewModel.load() } }) { target in
-            CreateLessonView(environment: environment, initialTopic: target.topic)
+            CreateLessonView(environment: environment, initialText: target.text, initialMode: target.mode)
         }
         .sheet(item: $settingsTarget, onDismiss: { Task { await viewModel.load() } }) { video in
             NavigationStack {
@@ -180,7 +181,14 @@ struct MyLessonsView: View {
         case .ready:
             openedVideo = video
         case .failed:
-            retryTarget = RetryTarget(topic: video.rawTopic ?? video.title)
+            // A script lesson's own narration is its transcript. A long
+            // brief is never stored (see `Video.rawTopic`), so retrying one
+            // starts from the title.
+            if video.creationMode == LessonMode.script.rawValue, let transcript = video.transcript {
+                retryTarget = RetryTarget(mode: .script, text: transcript)
+            } else {
+                retryTarget = RetryTarget(mode: .describe, text: video.rawTopic ?? video.title)
+            }
         case .pending, .uploading, .generating:
             break
         }

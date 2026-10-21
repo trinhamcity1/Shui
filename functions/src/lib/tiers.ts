@@ -26,12 +26,6 @@ export type LessonDuration = (typeof LESSON_DURATIONS)[number];
 export const LESSON_ORIENTATIONS = ["vertical", "horizontal"] as const;
 export type LessonOrientation = (typeof LESSON_ORIENTATIONS)[number];
 
-/** The two things that make one rendered lesson a different asset from another on the same topic. */
-export interface LessonSpec {
-  duration: LessonDuration;
-  orientation: LessonOrientation;
-}
-
 export function golpoTimingFor(duration: LessonDuration): GolpoTiming {
   return duration === "1.5" ? "2" : duration;
 }
