@@ -84,6 +84,12 @@ struct FeedView: View {
         // views instantiated inside the feed's `ForEach`.
         .ringSwipeNavigation(isRoot: isTabRoot, onSwipeBack: swipeBackAction, onRootBoundarySwipeBack: onRootBoundarySwipeBack)
         .task { await viewModel.loadInitial() }
+        // TabView keeps a tab's views alive after you switch away, so without
+        // this the Social feed's video kept playing — audio and all — while
+        // you browsed Explore or Profile. Also covers pushing a screen over a
+        // feed. Coming back re-fires each visible page's own `.onAppear`,
+        // which re-activates playback.
+        .onDisappear { viewModel.playerPool.pauseAll() }
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected {
                 viewModel.flushPendingQuizAttempts()
