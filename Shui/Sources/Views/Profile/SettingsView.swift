@@ -29,10 +29,10 @@ struct SettingsView: View {
                     NavigationLink("About") {
                         AboutView()
                     }
-                    if let url = URL(string: "https://shuillc.com/privacy.html") {
+                    if let url = LegalLinks.privacyPolicy {
                         Link("Privacy Policy", destination: url)
                     }
-                    if let url = URL(string: "https://shuillc.com/terms.html") {
+                    if let url = LegalLinks.termsOfService {
                         Link("Terms of Service", destination: url)
                     }
                 }

@@ -64,7 +64,11 @@ struct ExploreView: View {
                     if !continueTopics.isEmpty {
                         continueLearningSection
                     }
-                    categoriesSection
+                    if !visibleCategories.isEmpty {
+                        categoriesSection
+                    } else if continueTopics.isEmpty {
+                        nothingToExploreYet
+                    }
                 }
                 .padding(.vertical, 16)
             }
@@ -108,7 +112,7 @@ struct ExploreView: View {
                 .padding(.horizontal, 20)
 
             LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(categories) { category in
+                ForEach(visibleCategories) { category in
                     NavigationLink {
                         CategoryPageView(category: category, environment: environment)
                     } label: {
@@ -119,6 +123,29 @@ struct ExploreView: View {
             }
             .padding(.horizontal, 20)
         }
+    }
+
+    /// Categories with no public topics aren't shown — an empty one only
+    /// leads to a page saying so. Each reappears on its own the moment it
+    /// has a public topic.
+    private var visibleCategories: [Category] {
+        categories.filter { (liveTopicCounts[$0.id ?? ""] ?? $0.topicCount) > 0 }
+    }
+
+    private var nothingToExploreYet: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "square.grid.2x2")
+                .font(.title2)
+                .foregroundStyle(theme.textSecondary)
+            Text("Nothing to explore yet")
+                .font(.headline)
+                .foregroundStyle(theme.textPrimary)
+            Text("Courses will appear here as they're published.")
+                .font(.subheadline)
+                .foregroundStyle(theme.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
     }
 
     @ViewBuilder

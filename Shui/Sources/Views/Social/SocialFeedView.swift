@@ -26,8 +26,30 @@ final class SocialFeedViewModel: ObservableObject {
         return videos.filter { $0.title.localizedCaseInsensitiveContains(trimmed) }
     }
 
+    /// Only categories that have at least one lesson in Social — an empty
+    /// chip just leads to "No lessons here yet." A category comes back on
+    /// its own the first time a lesson in it is shared. A count that fails
+    /// to load hides that chip rather than risk showing an empty one.
     func loadCategories() async {
-        categories = (try? await environment.categories.list()) ?? []
+        let all = (try? await environment.categories.list()) ?? []
+        let videos = environment.videos
+        let counts = await withTaskGroup(of: (String, Int).self) { group in
+            for category in all {
+                guard let categoryId = category.id else { continue }
+                group.addTask {
+                    (categoryId, (try? await videos.socialVideoCount(inCategory: categoryId)) ?? 0)
+                }
+            }
+            var results: [String: Int] = [:]
+            for await (categoryId, count) in group {
+                results[categoryId] = count
+            }
+            return results
+        }
+        categories = all.filter { (counts[$0.id ?? ""] ?? 0) > 0 }
+        if let selectedCategoryId, !categories.contains(where: { $0.id == selectedCategoryId }) {
+            self.selectedCategoryId = nil
+        }
     }
 
     func loadFeed() async {
@@ -103,7 +125,10 @@ struct SocialFeedView: View {
         // other directly.
         .onChange(of: appState.rootTab) { _, newValue in
             guard newValue == .social else { return }
-            Task { await viewModel.loadFeed() }
+            Task {
+                await viewModel.loadCategories()
+                await viewModel.loadFeed()
+            }
         }
         .sheet(isPresented: $showCreateLesson, onDismiss: { Task { await viewModel.loadFeed() } }) {
             CreateLessonView(environment: environment)

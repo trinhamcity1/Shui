@@ -33,6 +33,8 @@ final class BillingViewModel: ObservableObject {
     @Published private(set) var transactions: [CreditTransaction] = []
     @Published var errorMessage: String?
     @Published private(set) var purchasingProductId: String?
+    @Published private(set) var isRestoring = false
+    @Published var restoreMessage: String?
 
     private let environment: AppEnvironment
     private var walletTask: Task<Void, Never>?
@@ -137,6 +139,41 @@ final class BillingViewModel: ObservableObject {
         }
     }
 
+    /// App Review requires a way to restore subscriptions. Syncs with the
+    /// App Store, then re-sends each active subscription through the same
+    /// server verification a purchase uses — a no-op for one already
+    /// applied, and refused for one bought under a different Shui account
+    /// (`appAccountToken`). Top-ups are consumables and never restore.
+    func restorePurchases() async {
+        isRestoring = true
+        defer { isRestoring = false }
+        do {
+            try await AppStore.sync()
+        } catch StoreKitError.userCancelled {
+            return
+        } catch {
+            errorMessage = error.localizedDescription
+            return
+        }
+        var found = 0
+        var firstFailure: String?
+        for await entitlement in StoreKit.Transaction.currentEntitlements {
+            guard case .verified = entitlement else { continue }
+            found += 1
+            do {
+                _ = try await environment.billing.applyPurchase(signedTransactionInfo: entitlement.jwsRepresentation)
+            } catch {
+                firstFailure = firstFailure ?? error.localizedDescription
+            }
+        }
+        await loadTransactions()
+        if let firstFailure {
+            errorMessage = firstFailure
+        } else {
+            restoreMessage = found == 0 ? "No active subscription found for this Apple ID." : "Your subscription is restored."
+        }
+    }
+
     private func apply(_ verification: VerificationResult<StoreKit.Transaction>) async {
         guard case .verified(let transaction) = verification else {
             errorMessage = BillingScreenError.verificationFailed.localizedDescription
@@ -176,6 +213,7 @@ struct BillingView: View {
                 }
                 topUpSection
                 plansSection
+                subscriptionTerms
                 historySection
             }
             .padding(.vertical, 16)
@@ -194,6 +232,47 @@ struct BillingView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
+        .alert("Restore purchases", isPresented: Binding(get: { viewModel.restoreMessage != nil }, set: { if !$0 { viewModel.restoreMessage = nil } })) {
+            Button(Strings.done, role: .cancel) {}
+        } message: {
+            Text(viewModel.restoreMessage ?? "")
+        }
+    }
+
+    /// What App Review requires next to anything sold as an auto-renewing
+    /// subscription: how renewal and cancellation work, links to the terms
+    /// and privacy policy, and a way to restore a past purchase.
+    private var subscriptionTerms: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                Task { await viewModel.restorePurchases() }
+            } label: {
+                HStack {
+                    Text("Restore purchases")
+                    Spacer()
+                    if viewModel.isRestoring {
+                        ProgressView()
+                    }
+                }
+            }
+            .buttonStyle(.shuiPillOutline)
+            .disabled(viewModel.isRestoring || viewModel.purchasingProductId != nil)
+
+            Text("Plans are monthly subscriptions that renew automatically at the price shown until canceled. Payment is charged to your Apple ID. Cancel at least 24 hours before the period ends in Settings › your name › Subscriptions.")
+                .font(.caption)
+                .foregroundStyle(theme.textSecondary)
+
+            HStack(spacing: 16) {
+                if let url = LegalLinks.termsOfService {
+                    Link("Terms of Service", destination: url)
+                }
+                if let url = LegalLinks.privacyPolicy {
+                    Link("Privacy Policy", destination: url)
+                }
+            }
+            .font(.caption.weight(.semibold))
+        }
+        .padding(.horizontal, 20)
     }
 
     private var balanceCard: some View {

@@ -34,6 +34,10 @@ protocol VideoRepository {
     /// single category chip filter share this one method — both are just
     /// "match any of these category ids," a 1-element array for a chip.
     func socialFeed(categoryIds: [String], limit: Int, after cursor: PageCursor?) async throws -> Page<Video>
+    /// How many lessons Social would show under one category chip — an
+    /// aggregate count, one read no matter how many match. A chip for an
+    /// empty category only leads to "No lessons here yet."
+    func socialVideoCount(inCategory categoryId: String) async throws -> Int
 
     // ---- Creator mode (Phase 5) ------------------------------------------
     // The learner-facing `videos(inTopic:)` above filters to ready+public
@@ -262,6 +266,14 @@ struct FirestoreVideoRepository: VideoRepository {
         let snapshot = try await query.getDocuments()
         return Page(items: snapshot.decoded(), cursor: snapshot.documents.last.map(PageCursor.init))
     }
+
+    func socialVideoCount(inCategory categoryId: String) async throws -> Int {
+        let snapshot = try await socialBaseQuery
+            .whereField("categoryId", isEqualTo: categoryId)
+            .count
+            .getAggregation(source: .server)
+        return snapshot.count.intValue
+    }
 }
 
 final class InMemoryVideoRepository: VideoRepository {
@@ -356,5 +368,9 @@ final class InMemoryVideoRepository: VideoRepository {
     func socialFeed(categoryIds: [String], limit: Int, after cursor: PageCursor?) async throws -> Page<Video> {
         let matching = videos.filter { isSocialEligible($0) && categoryIds.contains($0.categoryId) }
         return Page(items: Array(matching.prefix(limit)), cursor: nil)
+    }
+
+    func socialVideoCount(inCategory categoryId: String) async throws -> Int {
+        videos.filter { isSocialEligible($0) && $0.categoryId == categoryId }.count
     }
 }
