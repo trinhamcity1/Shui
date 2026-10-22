@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { defineString } from "firebase-functions/params";
-import { Environment, SignedDataVerifier } from "@apple/app-store-server-library";
+import { Environment, SignedDataVerifier, VerificationException, VerificationStatus } from "@apple/app-store-server-library";
 import { TierId } from "./tiers";
 
 /**
@@ -12,8 +12,13 @@ import { TierId } from "./tiers";
  * mechanics" section for the full architecture this file implements.
  */
 export const appleBundleId = defineString("APPLE_BUNDLE_ID", { default: "com.shui.app" });
+/** Only "Xcode" changes anything (local StoreKit Testing) — see verifierEnvironments. */
 export const appleEnvironment = defineString("APPLE_ENVIRONMENT", { default: "Sandbox" });
-/** Omitted (undefined) in Sandbox — required once APPLE_ENVIRONMENT is "Production". */
+/**
+ * The numeric Apple ID from App Store Connect → App Information. Apple
+ * requires it to verify Production purchases, so until it's set only
+ * Sandbox purchases verify.
+ */
 export const appleAppId = defineString("APPLE_APP_APPLE_ID", { default: "" });
 
 /**
@@ -62,15 +67,66 @@ export function resolveAppleEnvironment(value: string): Environment {
   return Environment.SANDBOX;
 }
 
-let cachedVerifier: SignedDataVerifier | null = null;
+/**
+ * Every environment a real purchase can come from, most likely first.
+ * App Review and TestFlight buy in Apple's *sandbox* even on the release
+ * build, while customers buy in *production* — and a SignedDataVerifier
+ * accepts exactly one environment, rejecting the other's payloads as
+ * INVALID_ENVIRONMENT. Apple's guidance is for one server to accept both
+ * (otherwise either the reviewer's test purchase fails, or every real
+ * one does). "Xcode" pins local StoreKit Testing to its own environment.
+ */
+export function verifierEnvironments(configured: string, appAppleId: string): Environment[] {
+  if (resolveAppleEnvironment(configured) === Environment.XCODE) return [Environment.XCODE];
+  return appAppleId ? [Environment.PRODUCTION, Environment.SANDBOX] : [Environment.SANDBOX];
+}
 
-export function getSignedDataVerifier(): SignedDataVerifier {
-  if (!cachedVerifier) {
-    const env = resolveAppleEnvironment(appleEnvironment.value());
-    const appAppleId = env === Environment.PRODUCTION ? Number(appleAppId.value()) : undefined;
-    cachedVerifier = new SignedDataVerifier(loadRootCertificates(), true, env, appleBundleId.value(), appAppleId);
+let cachedVerifiers: SignedDataVerifier[] | null = null;
+
+function getVerifiers(): SignedDataVerifier[] {
+  if (!cachedVerifiers) {
+    const certificates = loadRootCertificates();
+    const appAppleId = appleAppId.value();
+    cachedVerifiers = verifierEnvironments(appleEnvironment.value(), appAppleId).map(
+      (env) =>
+        new SignedDataVerifier(
+          certificates,
+          true,
+          env,
+          appleBundleId.value(),
+          env === Environment.PRODUCTION ? Number(appAppleId) : undefined
+        )
+    );
   }
-  return cachedVerifier;
+  return cachedVerifiers;
+}
+
+/**
+ * Tries each environment in turn, moving on only when one rejects the
+ * payload for coming from a different environment. Any other failure — a
+ * bad signature, another app's purchase — is final.
+ */
+async function verifyInAnyEnvironment<T>(verify: (verifier: SignedDataVerifier) => Promise<T>): Promise<T> {
+  const verifiers = getVerifiers();
+  let lastError: unknown = new Error("No App Store verifier is configured.");
+  for (const verifier of verifiers) {
+    try {
+      return await verify(verifier);
+    } catch (error) {
+      lastError = error;
+      const wrongEnvironment = error instanceof VerificationException && error.status === VerificationStatus.INVALID_ENVIRONMENT;
+      if (!wrongEnvironment) throw error;
+    }
+  }
+  throw lastError;
+}
+
+export function verifyTransaction(signedTransactionInfo: string) {
+  return verifyInAnyEnvironment((verifier) => verifier.verifyAndDecodeTransaction(signedTransactionInfo));
+}
+
+export function verifyNotification(signedPayload: string) {
+  return verifyInAnyEnvironment((verifier) => verifier.verifyAndDecodeNotification(signedPayload));
 }
 
 // ---- product ID -> action mapping (pure, unit-tested) --------------------

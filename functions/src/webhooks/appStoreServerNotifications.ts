@@ -1,7 +1,7 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { FieldValue } from "firebase-admin/firestore";
 import { NotificationTypeV2 } from "@apple/app-store-server-library";
-import { actionForProductId, getSignedDataVerifier } from "../lib/appleIap";
+import { actionForProductId, verifyNotification, verifyTransaction } from "../lib/appleIap";
 import {
   applySubscriptionGrant,
   hasAppliedAppleTransaction,
@@ -38,7 +38,7 @@ export const appStoreServerNotifications = onRequest(async (req, res) => {
 
   let notification;
   try {
-    notification = await getSignedDataVerifier().verifyAndDecodeNotification(signedPayload);
+    notification = await verifyNotification(signedPayload);
   } catch {
     res.status(400).send("Invalid signature");
     return;
@@ -50,7 +50,7 @@ export const appStoreServerNotifications = onRequest(async (req, res) => {
     return;
   }
 
-  const transaction = await getSignedDataVerifier().verifyAndDecodeTransaction(signedTransactionInfo);
+  const transaction = await verifyTransaction(signedTransactionInfo);
   if (!transaction.appAccountToken || !transaction.transactionId || !transaction.productId) {
     res.status(200).send("OK");
     return;

@@ -2,7 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { requireNotGuest } from "../lib/auth";
 import { parseInput } from "../lib/validate";
 import { VerifyAndApplyPurchaseInputSchema } from "../schemas/callableInputs";
-import { actionForProductId, getSignedDataVerifier } from "../lib/appleIap";
+import { actionForProductId, verifyTransaction } from "../lib/appleIap";
 import { applySubscriptionGrant, applyTopUp, hasAppliedAppleTransaction, readWallet } from "../lib/credits";
 import { Type } from "@apple/app-store-server-library";
 
@@ -24,7 +24,7 @@ export async function runVerifyAndApplyPurchase(
   uid: string,
   signedTransactionInfo: string
 ): Promise<VerifyAndApplyPurchaseResult> {
-  const transaction = await getSignedDataVerifier().verifyAndDecodeTransaction(signedTransactionInfo);
+  const transaction = await verifyTransaction(signedTransactionInfo);
 
   if (!transaction.transactionId || !transaction.productId) {
     throw new HttpsError("invalid-argument", "The purchase receipt is missing required fields.");

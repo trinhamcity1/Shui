@@ -7,6 +7,7 @@ import {
   SUBSCRIPTION_PRODUCT_IDS,
   TOPUP_AMOUNT_CENTS,
   TOPUP_PRODUCT_ID,
+  verifierEnvironments,
 } from "./appleIap";
 
 describe("actionForProductId", () => {
@@ -53,5 +54,20 @@ describe("loadRootCertificates", () => {
       expect(cert.issuer).toMatch(/Apple/);
       expect(new Date(cert.validTo).getTime()).toBeGreaterThan(Date.now());
     }
+  });
+});
+
+describe("verifierEnvironments", () => {
+  test("once the app's Apple ID is set, accepts production first and sandbox (App Review, TestFlight) too", () => {
+    expect(verifierEnvironments("Sandbox", "6740000000")).toEqual([Environment.PRODUCTION, Environment.SANDBOX]);
+    expect(verifierEnvironments("Production", "6740000000")).toEqual([Environment.PRODUCTION, Environment.SANDBOX]);
+  });
+
+  test("without the app's Apple ID, only sandbox can verify — Apple requires the ID for production", () => {
+    expect(verifierEnvironments("Production", "")).toEqual([Environment.SANDBOX]);
+  });
+
+  test("Xcode stays pinned to local StoreKit Testing", () => {
+    expect(verifierEnvironments("Xcode", "6740000000")).toEqual([Environment.XCODE]);
   });
 });
